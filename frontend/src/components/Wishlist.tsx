@@ -62,7 +62,7 @@ const Wishlist: React.FC = () => {
           // If no cached products or empty, try to fetch from API
           if (!allProducts || allProducts.length === 0) {
             try {
-              const response = await fetch('/api/products');
+              const response = await fetch('/.netlify/functions/products');
               if (response.ok) {
                 const apiProducts = await response.json();
                 if (Array.isArray(apiProducts)) {

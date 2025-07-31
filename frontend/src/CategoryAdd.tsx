@@ -1,16 +1,71 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { apiCall, API_ENDPOINTS } from './config/api';
 
 const CategoryAdd: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [dragActive, setDragActive] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     image: ''
   });
+
+  // Convert file to base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Handle image file selection
+  const handleImageChange = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('حجم الصورة يجب أن يكون أقل من 10 ميجابايت');
+      return;
+    }
+
+    setImageFile(file);
+    const preview = URL.createObjectURL(file);
+    setImagePreview(preview);
+    setFormData({ ...formData, image: '' }); // Clear URL input when file is selected
+  };
+
+  // Handle drag and drop
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageChange(e.dataTransfer.files[0]);
+    }
+  };
+
+  // Remove image
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setFormData({ ...formData, image: '' });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,12 +78,27 @@ const CategoryAdd: React.FC = () => {
     setLoading(true);
 
     try {
-      console.log('🔄 Submitting category data:', formData);
+      console.log('🔄 Creating category with data:', formData);
+      
+      let imageUrl = formData.image;
+      
+      // Handle image upload using base64 if a file is selected
+      if (imageFile) {
+        try {
+          console.log('📤 Converting category image to base64...');
+          imageUrl = await convertFileToBase64(imageFile);
+          console.log('✅ Category image converted to base64 successfully');
+        } catch (uploadError) {
+          console.error('❌ Error converting category image:', uploadError);
+          toast.error('فشل في معالجة صورة التصنيف');
+          return;
+        }
+      }
       
       const categoryData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        image: formData.image || 'categories/default-category.jpg'
+        image: imageUrl || 'categories/default-category.jpg'
       };
 
       const result = await apiCall(API_ENDPOINTS.CATEGORIES, {
@@ -37,15 +107,15 @@ const CategoryAdd: React.FC = () => {
       });
 
       console.log('✅ Category created successfully:', result);
-      toast.success('تم إضافة التصنيف بنجاح!');
+      toast.success('تم إنشاء التصنيف بنجاح!');
       
       // Trigger a refresh in the main app
       window.dispatchEvent(new Event('categoriesUpdated'));
       navigate('/admin?tab=categories');
       
     } catch (error) {
-      console.error('❌ Error adding category:', error);
-      const errorMessage = error instanceof Error ? error.message : 'فشل في إضافة التصنيف';
+      console.error('❌ Error creating category:', error);
+      const errorMessage = error instanceof Error ? error.message : 'فشل في إنشاء التصنيف';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -142,28 +212,95 @@ const CategoryAdd: React.FC = () => {
                 {/* صورة التصنيف */}
                 <div>
                   <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
-                    رابط صورة التصنيف (اختياري)
+                    صورة التصنيف (اختياري)
                   </label>
                   
-                  <input
-                    type="url"
-                    name="image"
-                    value={formData.image}
-                    onChange={handleInputChange}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-all duration-200 text-sm sm:text-base"
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  {/* Image Upload Area */}
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      dragActive
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    {imagePreview ? (
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="معاينة الصورة"
+                          className="w-48 h-48 object-cover mx-auto rounded-lg shadow-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <p className="mt-4 text-sm text-gray-600">
+                          {imageFile ? 'صورة جديدة' : 'الصورة الحالية'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="py-8">
+                        <ImageIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <p className="text-lg font-medium text-gray-600 mb-2">
+                          اسحب الصورة هنا أو انقر للاختيار
+                        </p>
+                        <p className="text-sm text-gray-500 mb-4">
+                          حد أقصى: 10 ميجابايت • PNG, JPG, GIF
+                        </p>
+                      </div>
+                    )}
+                    
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleImageChange(e.target.files[0])}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    
+                    {!imagePreview && (
+                      <label
+                        htmlFor="image-upload"
+                        className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <Upload className="h-4 w-4 ml-2" />
+                        اختر صورة
+                      </label>
+                    )}
+                  </div>
                   
-                  {formData.image && (
-                    <div className="mt-3">
-                      <img
-                        src={formData.image}
-                        alt="معاينة الصورة"
-                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
+                  {/* URL Input Alternative */}
+                  {!imageFile && (
+                    <div className="mt-4">
+                      <div className="text-center text-sm text-gray-500 mb-2">أو</div>
+                      <input
+                        type="url"
+                        name="image"
+                        value={formData.image}
+                        onChange={handleInputChange}
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-all duration-200 text-sm sm:text-base"
+                        placeholder="أدخل رابط الصورة (https://example.com/image.jpg)"
                       />
+                      
+                      {formData.image && (
+                        <div className="mt-3">
+                          <img
+                            src={formData.image}
+                            alt="معاينة الصورة"
+                            className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -230,4 +367,4 @@ const CategoryAdd: React.FC = () => {
   );
 };
 
-export default CategoryAdd; 
+export default CategoryAdd;

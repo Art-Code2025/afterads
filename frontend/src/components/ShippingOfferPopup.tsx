@@ -4,16 +4,17 @@ import { X, Truck, Gift, Crown, Sparkles } from 'lucide-react';
 const ShippingOfferPopup: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    // Show popup after 2 seconds on each page load/refresh
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 2000);
+  // Popup is disabled - uncomment the useEffect below to enable it
+  // useEffect(() => {
+  //   // Show popup after 2 seconds on each page load/refresh
+  //   const timer = setTimeout(() => {
+  //     setIsVisible(true);
+  //   }, 2000);
 
-    return () => {
-      clearTimeout(timer);
-    };
-  }, []);
+  //   return () => {
+  //     clearTimeout(timer);
+  //   };
+  // }, []);}]}]}}
 
   const handleClose = () => {
     setIsVisible(false);
@@ -117,4 +118,4 @@ const ShippingOfferPopup: React.FC = () => {
   );
 };
 
-export default ShippingOfferPopup; 
+export default ShippingOfferPopup;

@@ -91,10 +91,9 @@ export const handler = async (event, context) => {
             let hasWishlist = false;
             
             if (!wishlistSnapshot.empty) {
-              const wishlistData = wishlistSnapshot.docs[0].data();
-              const items = wishlistData.items || [];
-              wishlistItemsCount = items.length;
-              hasWishlist = items.length > 0;
+              // Each document in wishlist collection is a separate wishlist item
+              wishlistItemsCount = wishlistSnapshot.size;
+              hasWishlist = wishlistSnapshot.size > 0;
             }
             
             customerData.wishlistItemsCount = wishlistItemsCount;
