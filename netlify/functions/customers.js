@@ -51,14 +51,69 @@ export const handler = async (event, context) => {
         const customersSnapshot = await getDocs(customersQuery);
         
         const customers = [];
-        customersSnapshot.forEach((doc) => {
-          customers.push({
-            id: doc.id,
-            ...doc.data()
-          });
-        });
         
-        console.log(`✅ Found ${customers.length} customers in Firestore`);
+        // Get cart and wishlist collections for statistics
+        const cartsCollection = collection(db, 'carts');
+        const wishlistsCollection = collection(db, 'wishlists');
+        
+        for (const doc of customersSnapshot.docs) {
+          const customerData = { id: doc.id, ...doc.data() };
+          
+          // Calculate cart statistics
+          try {
+            const cartQuery = query(cartsCollection, where('userId', '==', doc.id));
+            const cartSnapshot = await getDocs(cartQuery);
+            
+            let cartItemsCount = 0;
+            let hasCart = false;
+            
+            if (!cartSnapshot.empty) {
+              const cartData = cartSnapshot.docs[0].data();
+              const items = cartData.items || [];
+              cartItemsCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+              hasCart = items.length > 0;
+            }
+            
+            customerData.cartItemsCount = cartItemsCount;
+            customerData.hasCart = hasCart;
+          } catch (cartError) {
+            console.warn(`⚠️ Error fetching cart for customer ${doc.id}:`, cartError);
+            customerData.cartItemsCount = 0;
+            customerData.hasCart = false;
+          }
+          
+          // Calculate wishlist statistics
+          try {
+            const wishlistQuery = query(wishlistsCollection, where('userId', '==', doc.id));
+            const wishlistSnapshot = await getDocs(wishlistQuery);
+            
+            let wishlistItemsCount = 0;
+            let hasWishlist = false;
+            
+            if (!wishlistSnapshot.empty) {
+              const wishlistData = wishlistSnapshot.docs[0].data();
+              const items = wishlistData.items || [];
+              wishlistItemsCount = items.length;
+              hasWishlist = items.length > 0;
+            }
+            
+            customerData.wishlistItemsCount = wishlistItemsCount;
+            customerData.hasWishlist = hasWishlist;
+          } catch (wishlistError) {
+            console.warn(`⚠️ Error fetching wishlist for customer ${doc.id}:`, wishlistError);
+            customerData.wishlistItemsCount = 0;
+            customerData.hasWishlist = false;
+          }
+          
+          // Update last login if needed (this would be updated during login)
+          if (!customerData.lastLogin) {
+            customerData.lastLogin = customerData.createdAt;
+          }
+          
+          customers.push(customerData);
+        }
+        
+        console.log(`✅ Found ${customers.length} customers with activity stats`);
         
         return {
           statusCode: 200,
@@ -322,4 +377,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};
