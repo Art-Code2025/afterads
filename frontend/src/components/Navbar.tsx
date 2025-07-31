@@ -717,6 +717,26 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
                     <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:-translate-x-1 transition-all duration-300" />
                   </div>
                 </Link>
+
+                {/* جميع التصنيفات */}
+                <Link
+                  to="/categories"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`group w-full text-right block px-4 py-4 text-gray-700 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100/50 rounded-2xl transition-all duration-300 ease-out backdrop-blur-sm border border-transparent hover:border-gray-200/50 cursor-pointer text-base transform hover:scale-[1.02] ${
+                    isActive('/categories') ? 'bg-gradient-to-r from-gray-100 to-gray-50 border-gray-200/60 text-gray-900 shadow-md' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Grid className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="font-semibold">جميع التصنيفات</span>
+                      <div className="text-xs text-gray-500 mt-0.5">استكشف التصنيفات المتاحة</div>
+                    </div>
+                    <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-gray-600 group-hover:-translate-x-1 transition-all duration-300" />
+                  </div>
+                </Link>
               </div>
 
               {/* Categories Section */}

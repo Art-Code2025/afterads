@@ -42,12 +42,22 @@ const ThankYou: React.FC = () => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
 
-    // Get order data from navigation state
+    // Get order data from navigation state or localStorage
     if (location.state?.order) {
       setOrderData(location.state.order);
     } else {
-      // If no order data, redirect to home after 3 seconds
-      setTimeout(() => navigate('/'), 3000);
+      // Try to get from localStorage as fallback
+      const savedOrderData = localStorage.getItem('lastOrderData');
+      if (savedOrderData) {
+        try {
+          setOrderData(JSON.parse(savedOrderData));
+        } catch (error) {
+          console.error('Error parsing saved order data:', error);
+        }
+      } else {
+        // If no order data, redirect to home after 3 seconds
+        setTimeout(() => navigate('/'), 3000);
+      }
     }
   }, [location.state, navigate]);
 

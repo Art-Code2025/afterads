@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -67,6 +67,33 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
 
+  // Check if product is in wishlist on component mount
+  useEffect(() => {
+    try {
+      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      setIsWishlisted(wishlist.includes(Number(product.id)));
+    } catch (error) {
+      console.error('Error loading wishlist status:', error);
+    }
+  }, [product.id]);
+
+  // Listen for wishlist updates
+  useEffect(() => {
+    const handleWishlistUpdate = () => {
+      try {
+        const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+        setIsWishlisted(wishlist.includes(Number(product.id)));
+      } catch (error) {
+        console.error('Error updating wishlist status:', error);
+      }
+    };
+
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
+  }, [product.id]);
+
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -104,19 +131,45 @@ const ProductCard: React.FC<ProductCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    setIsWishlisted(!isWishlisted);
-    
-    if (onAddToWishlist) {
-      onAddToWishlist(product);
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
     }
     
-    toast.success(
-      isWishlisted ? 'تم حذف المنتج من المفضلة' : 'تم إضافة المنتج إلى المفضلة!',
-      {
-        position: "bottom-right",
-        autoClose: 2000,
+    try {
+      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const productId = product.id;
+      let newWishlist;
+      
+      if (isWishlisted) {
+         // Remove from wishlist
+         newWishlist = wishlist.filter((id: number) => id !== Number(productId));
+         setIsWishlisted(false);
+         toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
+       } else {
+         // Add to wishlist
+         newWishlist = [...wishlist, Number(productId)];
+         setIsWishlisted(true);
+         toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
+       }
+      
+      // Save to localStorage
+      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+      
+      // Dispatch event
+      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+      
+      // Call parent callback if provided
+      if (onAddToWishlist) {
+        onAddToWishlist(product);
       }
-    );
+      
+    } catch (error) {
+      console.error('Error updating wishlist:', error);
+      toast.error('حدث خطأ أثناء تحديث المفضلة');
+    }
   };
 
   const getScentStrengthDots = (strength: string) => {

@@ -28,6 +28,7 @@ const CategoryAdd = React.lazy(() => import('./CategoryAdd'));
 const CategoryEdit = React.lazy(() => import('./CategoryEdit'));
 const CouponForm = React.lazy(() => import('./components/CouponForm'));
 const AllProducts = React.lazy(() => import('./components/AllProducts'));
+const AllCategories = React.lazy(() => import('./components/AllCategories'));
 const ThankYou = React.lazy(() => import('./components/ThankYou'));
 const About = React.lazy(() => import('./pages/About'));
 const Contact = React.lazy(() => import('./pages/Contact'));
@@ -137,6 +138,7 @@ const LayoutWrapper: React.FC = () => {
             {/* E-commerce Routes */}
             <Route path="/" element={<App />} />
             <Route path="/products" element={<AllProducts />} />
+            <Route path="/categories" element={<AllCategories />} />
             {/* Single product route that handles both IDs and slugs */}
             <Route path="/product/:id" element={<ProductDetail />} />
             {/* SEO-friendly category routes */}

@@ -526,6 +526,39 @@ const Checkout: React.FC = () => {
       
       console.log('✅ [Checkout] Order created successfully:', result);
 
+      // Prepare order data for ThankYou page
+      const thankYouOrderData = {
+        id: result.id || result.orderNumber,
+        orderNumber: result.orderNumber || result.id,
+        items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          size: item.size
+        })),
+        userData: {
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          address: userData.address,
+          city: userData.city,
+          region: userData.region,
+          postalCode: userData.postalCode,
+          buildingNumber: userData.buildingNumber,
+          floor: userData.floor,
+          apartment: userData.apartment,
+          landmark: userData.landmark
+        },
+        paymentMethod: selectedPaymentMethod,
+        total: total,
+        estimatedDelivery: selectedShippingZone?.estimatedDays || 'خلال 2-3 أيام عمل'
+      };
+
+      // Save order data to localStorage for ThankYou page
+      localStorage.setItem('lastOrderData', JSON.stringify(thankYouOrderData));
+
       // Clear cart
       localStorage.removeItem('cartItems');
       localStorage.removeItem('cart'); // إزالة المفتاح القديم أيضاً
@@ -536,7 +569,7 @@ const Checkout: React.FC = () => {
 
       // Navigate to thank you page
       navigate('/thank-you', { 
-        state: { order: result },
+        state: { order: thankYouOrderData },
         replace: true 
       });
 

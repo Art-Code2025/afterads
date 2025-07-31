@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, Heart, User, Menu, X, LogOut } from 'lucide-react';
+import AuthModal from './AuthModal';
+import { toast } from 'react-toastify';
 
 const FleurNavbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [user, setUser] = useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,11 +26,25 @@ const FleurNavbar: React.FC = () => {
       setWishlistCount(Array.isArray(wishlist) ? wishlist.length : 0);
     };
 
+    // Load user data
+    const loadUser = () => {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          localStorage.removeItem('user');
+        }
+      }
+    };
+
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('cartUpdated', updateCounts);
     window.addEventListener('wishlistUpdated', updateCounts);
     
     updateCounts();
+    loadUser();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -32,6 +52,33 @@ const FleurNavbar: React.FC = () => {
       window.removeEventListener('wishlistUpdated', updateCounts);
     };
   }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isUserMenuOpen && !(event.target as Element).closest('.relative')) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isUserMenuOpen]);
+
+  const handleLoginSuccess = (userData: any) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setIsAuthModalOpen(false);
+    toast.success(`مرحباً ${userData.name}! تم تسجيل الدخول بنجاح`);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    setIsUserMenuOpen(false);
+    toast.success('تم تسجيل الخروج بنجاح');
+    navigate('/');
+  };
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -68,10 +115,42 @@ const FleurNavbar: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-[#C4A484]/20 to-[#D4B896]/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </Link>
 
-            <button className="group relative p-3 rounded-full hover:bg-[#C4A484]/20 transition-all duration-300">
-              <User className="w-5 h-5 text-[#8B5A3C] group-hover:text-[#6B4226] transition-colors" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#C4A484]/20 to-[#D4B896]/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => user ? setIsUserMenuOpen(!isUserMenuOpen) : setIsAuthModalOpen(true)}
+                className="group relative p-3 rounded-full hover:bg-[#C4A484]/20 transition-all duration-300"
+              >
+                <User className="w-5 h-5 text-[#8B5A3C] group-hover:text-[#6B4226] transition-colors" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#C4A484]/20 to-[#D4B896]/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
+              </button>
+              
+              {/* User Menu Dropdown */}
+              {user && isUserMenuOpen && (
+                <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-[#C4A484]/30 z-50">
+                  <div className="p-3 border-b border-[#C4A484]/20">
+                    <p className="text-sm font-medium text-[#8B5A3C]">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <div className="p-2">
+                    <Link 
+                      to="/dashboard" 
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[#8B5A3C] hover:bg-[#C4A484]/10 rounded-md transition-colors"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      الملف الشخصي
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      تسجيل الخروج
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Center Navigation - Desktop */}
@@ -152,8 +231,15 @@ const FleurNavbar: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </nav>
   );
 };
 
-export default FleurNavbar; 
+export default FleurNavbar;

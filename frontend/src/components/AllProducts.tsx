@@ -185,7 +185,7 @@ const AllProducts: React.FC = () => {
             <div>
               <select
                 value={selectedCategory || ''}
-                onChange={(e) => handleCategoryFilter(e.target.value ? parseInt(e.target.value) : null)}
+                onChange={(e) => handleCategoryFilter(e.target.value || null)}
                 className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 text-sm sm:text-base"
               >
                 <option value="">جميع التصنيفات</option>
