@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { ordersAPI } from '../utils/api';
 import { 
   ShoppingCart, 
   User, 
@@ -445,43 +446,49 @@ const Checkout: React.FC = () => {
     setLoading(true);
     
     try {
+      // تحضير بيانات الطلب بالتنسيق المطلوب للـ API
       const orderData = {
-        items: cartItems,
-        userData,
-        shippingZone: selectedShippingZone,
+        customerName: userData.name,
+        customerEmail: userData.email,
+        customerPhone: userData.phone,
+        address: userData.address,
+        city: userData.city,
+        region: userData.region,
+        postalCode: userData.postalCode,
+        buildingNumber: userData.buildingNumber,
+        floor: userData.floor,
+        apartment: userData.apartment,
+        landmark: userData.landmark,
+        items: cartItems.map(item => ({
+          productId: item.id,
+          productName: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          totalPrice: item.price * item.quantity,
+          selectedOptions: {
+            size: item.size
+          },
+          productImage: item.image
+        })),
+        subtotal,
+        shippingCost: finalShippingCost,
+        couponDiscount,
+        total,
         paymentMethod: selectedPaymentMethod,
-        appliedCoupon,
-        totals: {
-          subtotal,
-          couponDiscount,
-          shippingCost: finalShippingCost,
-          total
-        },
+        paymentStatus: 'pending',
+        status: 'pending',
+        notes: orderNotes,
         isGift,
         giftMessage,
-        orderNotes,
-        preferredDeliveryTime
+        preferredDeliveryTime,
+        shippingZone: selectedShippingZone,
+        appliedCoupon
       };
 
-      console.log('📦 [Checkout] Submitting order:', orderData);
+      console.log('📦 [Checkout] Submitting order to API:', orderData);
 
-      // محاكاة إرسال الطلب
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // إنشاء بيانات الطلب المحاكية
-      const result = {
-        order: {
-          id: `MW${Date.now().toString().slice(-6)}`,
-          orderNumber: `MW${Date.now().toString().slice(-6)}`,
-          items: cartItems,
-          userData,
-          paymentMethod: selectedPaymentMethod,
-          total,
-          estimatedDelivery: 'خلال 2-3 أيام عمل',
-          status: 'pending',
-          createdAt: new Date().toISOString()
-        }
-      };
+      // إرسال الطلب إلى API
+      const result = await ordersAPI.create(orderData);
       
       console.log('✅ [Checkout] Order created successfully:', result);
 
@@ -495,7 +502,7 @@ const Checkout: React.FC = () => {
 
       // Navigate to thank you page
       navigate('/thank-you', { 
-        state: { order: result.order },
+        state: { order: result },
         replace: true 
       });
 
