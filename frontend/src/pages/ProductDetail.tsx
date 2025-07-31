@@ -376,8 +376,18 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const handleAddToWishlist = () => {
+  const handleAddToWishlist = async () => {
+    if (!product) return;
+    
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
+    }
+    
     try {
+      const user = JSON.parse(userData);
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       let newWishlist;
       
@@ -653,4 +663,4 @@ const ProductDetail: React.FC = () => {
   );
 };
 
-export default ProductDetail; 
+export default ProductDetail;

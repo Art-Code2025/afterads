@@ -143,6 +143,13 @@ const ProductDetail: React.FC = () => {
   const addToWishlist = async () => {
     if (!product) return;
     
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
+    }
+    
     try {
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       const productId = product.id;

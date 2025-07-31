@@ -118,15 +118,8 @@ const App: React.FC = () => {
     loadWishlist();
   }, []);
 
-  // Save wishlist to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('wishlist', JSON.stringify(wishlist));
-      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: wishlist }));
-    } catch (error) {
-      console.error('خطأ في حفظ المفضلة:', error);
-    }
-  }, [wishlist]);
+  // Note: Wishlist is saved to localStorage directly in handleWishlistToggle function
+  // No need for automatic saving useEffect to avoid infinite loops
 
   const handleCategoriesUpdate = () => {
     fetchCategoriesWithProducts();
@@ -181,10 +174,7 @@ const App: React.FC = () => {
       setCategoryProducts(groupedData);
       setError(null);
       
-      // Show success message only if we have data
-      if (validProducts.length > 0 || validCategories.length > 0) {
-        toast.success(`تم تحميل البيانات من قاعدة البيانات بنجاح!`);
-      }
+      // Data loaded successfully - no need to show message to user
 
     } catch (error) {
       console.error('❌ Error fetching data:', error);
@@ -248,6 +238,13 @@ const App: React.FC = () => {
 
   // Handle wishlist toggle
   const handleWishlistToggle = (productId: number, productName: string) => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
+    }
+    
     try {
       setWishlist(prev => {
         const isInWishlist = prev.includes(productId);
@@ -262,6 +259,12 @@ const App: React.FC = () => {
           newWishlist = [...prev, productId];
           toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
         }
+        
+        // Save to localStorage
+        localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+        
+        // Dispatch wishlist updated event
+        window.dispatchEvent(new CustomEvent('wishlistUpdated'));
         
         return newWishlist;
       });

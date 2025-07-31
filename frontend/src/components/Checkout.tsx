@@ -204,6 +204,40 @@ const Checkout: React.FC = () => {
     }
   ];
 
+  // Load user data for auto-fill
+  useEffect(() => {
+    const loadUserData = () => {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser);
+          console.log('👤 [Checkout] Loading user data for auto-fill:', user);
+          
+          // Auto-fill user data in checkout form
+          setUserData({
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            address: user.address || '',
+            city: user.city || '',
+            region: user.region || '',
+            postalCode: user.postalCode || '',
+            buildingNumber: user.buildingNumber || '',
+            floor: user.floor || '',
+            apartment: user.apartment || '',
+            landmark: user.landmark || ''
+          });
+          
+          console.log('✅ [Checkout] User data auto-filled successfully');
+        } catch (error) {
+          console.error('❌ [Checkout] Error parsing user data:', error);
+        }
+      }
+    };
+    
+    loadUserData();
+  }, []);
+
   // Load cart data
   useEffect(() => {
     const loadCartData = () => {

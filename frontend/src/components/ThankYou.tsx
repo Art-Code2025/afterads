@@ -177,10 +177,32 @@ const ThankYou: React.FC = () => {
                           <Phone className="w-4 h-4 text-gray-500" />
                           <span>{orderData.userData.phone}</span>
                         </div>
-                      <div className="flex items-center gap-3">
-                          <MapPin className="w-4 h-4 text-gray-500" />
-                          <span>{orderData.userData.city}</span>
-                      </div>
+                        <div className="flex items-center gap-3">
+                          <Mail className="w-4 h-4 text-gray-500" />
+                          <span>{orderData.userData.email}</span>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                          <div className="flex-1">
+                            <div>{orderData.userData.address}</div>
+                            <div className="text-gray-500">
+                              {orderData.userData.city}, {orderData.userData.region}
+                              {orderData.userData.postalCode && ` - ${orderData.userData.postalCode}`}
+                            </div>
+                            {(orderData.userData.buildingNumber || orderData.userData.floor || orderData.userData.apartment) && (
+                              <div className="text-gray-500 text-xs mt-1">
+                                {orderData.userData.buildingNumber && `مبنى ${orderData.userData.buildingNumber}`}
+                                {orderData.userData.floor && ` - الطابق ${orderData.userData.floor}`}
+                                {orderData.userData.apartment && ` - شقة ${orderData.userData.apartment}`}
+                              </div>
+                            )}
+                            {orderData.userData.landmark && (
+                              <div className="text-gray-500 text-xs mt-1">
+                                علامة مميزة: {orderData.userData.landmark}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </>
                     )}
                   </div>
@@ -369,4 +391,4 @@ const ThankYou: React.FC = () => {
   );
 };
 
-export default ThankYou; 
+export default ThankYou;

@@ -42,28 +42,51 @@ const Wishlist: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // For serverless, we'll use localStorage only for now
-      // This can be implemented later with Firebase Auth user-specific wishlist storage
       const savedWishlist = localStorage.getItem('wishlist');
       if (savedWishlist) {
         const wishlistData = JSON.parse(savedWishlist);
         
-        if (Array.isArray(wishlistData)) {
-          // If it's just an array of IDs, we need to fetch product details
-          // For now, we'll use cached products from localStorage
+        if (Array.isArray(wishlistData) && wishlistData.length > 0) {
+          // Try to get cached products first
+          let allProducts = [];
           const cachedProducts = localStorage.getItem('cachedAllProducts');
+          
           if (cachedProducts) {
-            const allProducts = JSON.parse(cachedProducts);
+            try {
+              allProducts = JSON.parse(cachedProducts);
+            } catch (e) {
+              console.warn('Failed to parse cached products');
+            }
+          }
+          
+          // If no cached products or empty, try to fetch from API
+          if (!allProducts || allProducts.length === 0) {
+            try {
+              const response = await fetch('/api/products');
+              if (response.ok) {
+                const apiProducts = await response.json();
+                if (Array.isArray(apiProducts)) {
+                  allProducts = apiProducts;
+                  // Cache the products for future use
+                  localStorage.setItem('cachedAllProducts', JSON.stringify(allProducts));
+                }
+              }
+            } catch (apiError) {
+              console.warn('Failed to fetch products from API:', apiError);
+            }
+          }
+          
+          // Filter wishlist products
+          if (allProducts && allProducts.length > 0) {
             const wishlistProducts = allProducts.filter((product: Product) => 
               wishlistData.includes(product.id)
             );
             setWishlistProducts(wishlistProducts);
           } else {
-            // No cached products, set empty array
+            // If still no products available, show empty state
             setWishlistProducts([]);
           }
         } else {
-          // Legacy format or corrupted data
           setWishlistProducts([]);
         }
       } else {
