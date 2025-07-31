@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إصلاح سلة التسوق - Cart Storage Fix</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #c82333; }
+        .success-btn { background: #28a745; }
+        .success-btn:hover { background: #218838; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 إصلاح سلة التسوق</h1>
+        <p>هذه الأداة تساعد في إصلاح مشكلة "السلة فارغة" عن طريق تنظيف localStorage</p>
+        
+        <div id="status"></div>
+        
+        <div style="margin: 20px 0;">
+            <button onclick="checkStorageStatus()">فحص حالة التخزين</button>
+            <button onclick="fixCartStorage()" class="success-btn">إصلاح السلة</button>
+            <button onclick="clearAllCartData()" class="danger">مسح جميع بيانات السلة</button>
+        </div>
+        
+        <div id="details"></div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function showDetails(content) {
+            const detailsDiv = document.getElementById('details');
+            detailsDiv.innerHTML = `<h3>تفاصيل التخزين:</h3><pre>${content}</pre>`;
+        }
+
+        function checkStorageStatus() {
+            try {
+                const oldCart = localStorage.getItem('cart');
+                const newCart = localStorage.getItem('cartItems');
+                const user = localStorage.getItem('user');
+                
+                let report = '=== تقرير حالة التخزين ===\n\n';
+                
+                // تحقق من السلة القديمة
+                if (oldCart) {
+                    try {
+                        const oldCartData = JSON.parse(oldCart);
+                        report += `✅ السلة القديمة (cart): موجودة\n`;
+                        report += `   - عدد العناصر: ${Array.isArray(oldCartData) ? oldCartData.length : 'غير صحيح'}\n`;
+                        if (Array.isArray(oldCartData) && oldCartData.length > 0) {
+                            report += `   - أول عنصر: ${oldCartData[0].product?.name || 'غير معروف'}\n`;
+                        }
+                    } catch (e) {
+                        report += `❌ السلة القديمة (cart): تالفة\n`;
+                    }
+                } else {
+                    report += `📭 السلة القديمة (cart): غير موجودة\n`;
+                }
+                
+                // تحقق من السلة الجديدة
+                if (newCart) {
+                    try {
+                        const newCartData = JSON.parse(newCart);
+                        report += `✅ السلة الجديدة (cartItems): موجودة\n`;
+                        report += `   - عدد العناصر: ${Array.isArray(newCartData) ? newCartData.length : 'غير صحيح'}\n`;
+                        if (Array.isArray(newCartData) && newCartData.length > 0) {
+                            report += `   - أول عنصر: ${newCartData[0].product?.name || 'غير معروف'}\n`;
+                        }
+                    } catch (e) {
+                        report += `❌ السلة الجديدة (cartItems): تالفة\n`;
+                    }
+                } else {
+                    report += `📭 السلة الجديدة (cartItems): غير موجودة\n`;
+                }
+                
+                // تحقق من المستخدم
+                if (user) {
+                    try {
+                        const userData = JSON.parse(user);
+                        report += `👤 المستخدم: مسجل الدخول (${userData.name || userData.email || 'غير معروف'})\n`;
+                    } catch (e) {
+                        report += `❌ بيانات المستخدم: تالفة\n`;
+                    }
+                } else {
+                    report += `👤 المستخدم: غير مسجل (ضيف)\n`;
+                }
+                
+                // تشخيص المشكلة
+                report += '\n=== التشخيص ===\n';
+                if (oldCart && !newCart) {
+                    report += '🔧 المشكلة: السلة موجودة في المكان القديم فقط\n';
+                    report += '💡 الحل: نقل السلة من "cart" إلى "cartItems"\n';
+                } else if (!oldCart && !newCart) {
+                    report += '📭 المشكلة: لا توجد سلة محفوظة\n';
+                    report += '💡 الحل: إضافة منتجات جديدة للسلة\n';
+                } else if (oldCart && newCart) {
+                    report += '⚠️ المشكلة: السلة موجودة في مكانين\n';
+                    report += '💡 الحل: دمج السلتين وحذف القديمة\n';
+                } else {
+                    report += '✅ الحالة: السلة في المكان الصحيح\n';
+                }
+                
+                showDetails(report);
+                showStatus('تم فحص حالة التخزين بنجاح', 'success');
+                
+            } catch (error) {
+                showStatus(`خطأ في فحص التخزين: ${error.message}`, 'error');
+                console.error('Storage check error:', error);
+            }
+        }
+
+        function fixCartStorage() {
+            try {
+                showStatus('جاري إصلاح السلة...', 'info');
+                
+                const oldCart = localStorage.getItem('cart');
+                const newCart = localStorage.getItem('cartItems');
+                
+                let fixed = false;
+                let message = '';
+                
+                // إذا كانت السلة القديمة موجودة والجديدة فارغة أو غير موجودة
+                if (oldCart && (!newCart || JSON.parse(newCart).length === 0)) {
+                    try {
+                        const oldCartData = JSON.parse(oldCart);
+                        if (Array.isArray(oldCartData) && oldCartData.length > 0) {
+                            localStorage.setItem('cartItems', oldCart);
+                            message += `✅ تم نقل ${oldCartData.length} عنصر من السلة القديمة\n`;
+                            fixed = true;
+                        }
+                    } catch (e) {
+                        message += `❌ فشل في تحليل السلة القديمة\n`;
+                    }
+                }
+                
+                // دمج السلتين إذا كانتا موجودتين
+                if (oldCart && newCart) {
+                    try {
+                        const oldCartData = JSON.parse(oldCart);
+                        const newCartData = JSON.parse(newCart);
+                        
+                        if (Array.isArray(oldCartData) && Array.isArray(newCartData)) {
+                            const mergedCart = [...newCartData];
+                            let addedCount = 0;
+                            
+                            oldCartData.forEach(oldItem => {
+                                const existsInNew = newCartData.find(newItem => 
+                                    newItem.productId === oldItem.productId &&
+                                    JSON.stringify(newItem.selectedOptions) === JSON.stringify(oldItem.selectedOptions)
+                                );
+                                
+                                if (!existsInNew) {
+                                    mergedCart.push(oldItem);
+                                    addedCount++;
+                                }
+                            });
+                            
+                            if (addedCount > 0) {
+                                localStorage.setItem('cartItems', JSON.stringify(mergedCart));
+                                message += `✅ تم دمج ${addedCount} عنصر إضافي\n`;
+                                fixed = true;
+                            }
+                        }
+                    } catch (e) {
+                        message += `❌ فشل في دمج السلتين\n`;
+                    }
+                }
+                
+                // حذف السلة القديمة
+                if (oldCart) {
+                    localStorage.removeItem('cart');
+                    message += `🗑️ تم حذف السلة القديمة\n`;
+                    fixed = true;
+                }
+                
+                // تحديث عداد السلة
+                const finalCart = localStorage.getItem('cartItems');
+                if (finalCart) {
+                    try {
+                        const cartData = JSON.parse(finalCart);
+                        const totalItems = cartData.reduce((sum, item) => sum + (item.quantity || 1), 0);
+                        message += `📊 إجمالي العناصر: ${totalItems}\n`;
+                        
+                        // إرسال حدث لتحديث العداد في الموقع
+                        window.dispatchEvent(new CustomEvent('cartCountChanged', { detail: totalItems }));
+                    } catch (e) {
+                        message += `⚠️ تعذر حساب عدد العناصر\n`;
+                    }
+                }
+                
+                if (fixed) {
+                    showStatus('تم إصلاح السلة بنجاح! 🎉', 'success');
+                    showDetails(message + '\n✅ يمكنك الآن العودة للموقع وتحديث الصفحة');
+                } else {
+                    showStatus('لا توجد مشاكل تحتاج إصلاح', 'info');
+                    showDetails('السلة تعمل بشكل صحيح');
+                }
+                
+            } catch (error) {
+                showStatus(`خطأ في إصلاح السلة: ${error.message}`, 'error');
+                console.error('Fix error:', error);
+            }
+        }
+
+        function clearAllCartData() {
+            if (confirm('هل أنت متأكد من حذف جميع بيانات السلة؟ لا يمكن التراجع عن هذا الإجراء!')) {
+                try {
+                    localStorage.removeItem('cart');
+                    localStorage.removeItem('cartItems');
+                    localStorage.removeItem('lastCartCount');
+                    
+                    // إرسال حدث لتحديث العداد
+                    window.dispatchEvent(new CustomEvent('cartCountChanged', { detail: 0 }));
+                    
+                    showStatus('تم مسح جميع بيانات السلة', 'warning');
+                    showDetails('تم حذف:\n- cart\n- cartItems\n- lastCartCount\n\nيمكنك الآن البدء من جديد');
+                } catch (error) {
+                    showStatus(`خطأ في مسح البيانات: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // تشغيل فحص أولي عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            checkStorageStatus();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,11 @@
+{
+  "name": "mawasiem-netlify-functions",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "firebase": "^10.14.1",
+    "firebase-admin": "^13.4.0",
+    "cloudinary": "^1.41.0",
+    "multiparty": "^4.2.3"
+  }
+} 

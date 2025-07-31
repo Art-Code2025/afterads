@@ -1,0 +1,589 @@
+/* Import only critical optimizations */
+@import './styles/ultraFastCart.css';
+@import './styles/instantCart.css';
+@import './styles/mobile-enhancements.css';
+
+/* Import Google Fonts for Zico Perfume Brand */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Cinzel:wght@400;500;600&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Global Styles for Zico Perfume Brand */
+  body {
+    margin: 0;
+    font-family: 'Cairo', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    direction: rtl;
+    background: #fafafa;
+    color: #4A0E1A;
+    min-height: 100vh;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  }
+
+  /* Arabic text styling */
+  [lang="ar"], .arabic {
+    font-family: 'Cairo', 'Tajawal', 'Almarai', sans-serif;
+  }
+
+  /* English text styling */
+  [lang="en"], .english {
+    font-family: 'Playfair Display', 'Cormorant Garamond', serif;
+  }
+
+  /* Luxury headings */
+  .luxury-heading {
+    font-family: 'Cinzel', 'Playfair Display', serif;
+    background: linear-gradient(135deg, #8B1538 0%, #A91B47 50%, #D4AF37 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .english-heading {
+    @apply font-english;
+  }
+}
+
+@layer components {
+  /* Zico Brand Components */
+  .card {
+    @apply bg-white rounded-2xl shadow-zico border border-beige-300 overflow-hidden;
+  }
+  
+  .zico-text {
+    @apply text-zico-primary font-semibold;
+  }
+
+  .burgundy-text {
+    @apply text-burgundy-700 font-semibold;
+  }
+
+  .beige-text {
+    @apply text-beige-600 font-medium;
+  }
+  
+  /* Perfume-specific components */
+  .perfume-card {
+    @apply bg-white rounded-3xl shadow-zico-lg border border-beige-300 overflow-hidden hover:shadow-zico-xl transition-all duration-500 transform hover:-translate-y-2;
+  }
+
+  .perfume-card-group {
+    @apply group;
+  }
+
+  .perfume-bottle-container {
+    @apply relative overflow-hidden bg-gradient-to-br from-beige-50 to-beige-100 aspect-square flex items-center justify-center;
+  }
+
+  .perfume-shimmer {
+    @apply absolute inset-0 bg-shimmer-gradient bg-[length:1000px_100%] animate-shimmer opacity-0 transition-opacity duration-500;
+  }
+
+  .perfume-shimmer:hover {
+    opacity: 1;
+  }
+
+  .fragrance-notes {
+    @apply flex flex-wrap gap-2 mt-3;
+  }
+
+  .fragrance-note {
+    @apply bg-beige-100 text-beige-700 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .luxury-badge {
+    @apply bg-gradient-to-r from-zico-gold to-yellow-400 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg;
+  }
+
+  .scent-strength {
+    @apply flex items-center gap-1;
+  }
+
+  .strength-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .strength-dot.active {
+    @apply bg-zico-primary;
+  }
+
+  .strength-dot.inactive {
+    @apply bg-beige-300;
+  }
+
+  /* Button Components */
+  .btn-zico {
+    @apply bg-gradient-to-r from-zico-primary to-zico-secondary text-white font-bold py-3 px-6 rounded-xl shadow-zico hover:shadow-zico-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-zico-primary/30;
+  }
+
+  .btn-zico-outline {
+    @apply border-2 border-zico-primary text-zico-primary font-bold py-3 px-6 rounded-xl hover:bg-zico-primary hover:text-white transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-zico-primary/30;
+  }
+
+  .btn-zico-ghost {
+    @apply text-zico-primary font-bold py-3 px-6 rounded-xl hover:bg-zico-primary/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-zico-primary/30;
+  }
+
+  /* Responsive utilities */
+  .container-responsive {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+  
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl;
+  }
+  
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
+  }
+  
+  .grid-responsive-1 {
+    @apply grid grid-cols-1;
+  }
+  
+  .grid-responsive-2 {
+    @apply grid grid-cols-1 sm:grid-cols-2;
+  }
+  
+  .grid-responsive-3 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .grid-responsive-4 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+  
+  .grid-responsive-5 {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5;
+  }
+  
+  .padding-responsive {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+  
+  .margin-responsive {
+    @apply m-4 sm:m-6 lg:m-8;
+  }
+  
+  /* Button responsive utilities */
+  .btn-responsive {
+    @apply px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base rounded-lg sm:rounded-xl;
+  }
+  
+  .btn-responsive-lg {
+    @apply px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg rounded-xl sm:rounded-2xl;
+  }
+  
+  /* Card responsive utilities */
+  .card-responsive {
+    @apply rounded-lg sm:rounded-xl lg:rounded-2xl p-4 sm:p-6 lg:p-8;
+  }
+  
+  .card-responsive-sm {
+    @apply rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6;
+  }
+  
+  /* Gap responsive utilities */
+  .gap-responsive {
+    @apply gap-4 sm:gap-6 lg:gap-8;
+  }
+  
+  .gap-responsive-sm {
+    @apply gap-2 sm:gap-4 lg:gap-6;
+  }
+  
+  /* Icon responsive utilities */
+  .icon-responsive {
+    @apply w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6;
+  }
+  
+  .icon-responsive-lg {
+    @apply w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10;
+  }
+  
+  /* Image responsive utilities */
+  .img-responsive {
+    @apply w-full h-auto object-cover;
+  }
+  
+  .aspect-responsive {
+    @apply aspect-square sm:aspect-video lg:aspect-[4/3];
+  }
+  
+  /* Spacing responsive utilities */
+  .space-y-responsive > * + * {
+    @apply mt-4 sm:mt-6 lg:mt-8;
+  }
+  
+  .space-x-responsive > * + * {
+    @apply ml-4 sm:ml-6 lg:ml-8;
+  }
+  
+  /* Border radius responsive */
+  .rounded-responsive {
+    @apply rounded-lg sm:rounded-xl lg:rounded-2xl;
+  }
+  
+  /* Shadow responsive */
+  .shadow-responsive {
+    @apply shadow-md sm:shadow-lg lg:shadow-xl;
+  }
+
+  /* Brand Section - Ensure visibility on mobile */
+  .brand-section {
+    @apply flex flex-col items-center min-h-[100px] overflow-visible z-50;
+  }
+
+  /* Social Media Icons - Ensure visibility and high z-index */
+  .social-media-icons {
+    @apply flex flex-wrap justify-center items-center gap-4 !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 60px !important;
+    z-index: 50 !important;
+  }
+
+  /* Ensure social media icons are visible on small screens */
+  @media (max-width: 640px) {
+    .social-media-icons {
+      flex-wrap: wrap !important;
+      justify-content: center !important;
+      padding: 8px !important;
+      min-height: 80px !important;
+    }
+    .brand-section {
+      min-height: 120px !important;
+      padding: 8px !important;
+      overflow: visible !important;
+    }
+  }
+
+  /* Perfume-specific animations */
+  .bottle-glow {
+    @apply relative;
+  }
+
+  .bottle-glow::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #8B1538, #A91B47, #C4A484, #D4AF37);
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .bottle-glow:hover::before {
+    opacity: 1;
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  /* Zico brand hero effects */
+  .zico-hero-bg {
+    background: linear-gradient(135deg, #FAF8F5 0%, #F5F1EB 25%, #C4A484 50%, #8B1538 75%, #4A0E1A 100%);
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Perfume mist effect */
+  .perfume-mist {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .perfume-mist::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: mist-flow 3s ease-in-out infinite;
+  }
+
+  @keyframes mist-flow {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: -100%; }
+  }
+
+  /* Additional Modern UI Classes */
+  .text-gradient-white {
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #f8fafc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Enhanced Responsive Typography */
+  .text-responsive-3xl {
+    font-size: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .text-responsive-base {
+    font-size: clamp(0.875rem, 2.5vw, 1.125rem);
+  }
+
+  /* Modern Animations */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  .delay-100 {
+    animation-delay: 0.1s;
+  }
+
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .delay-300 {
+    animation-delay: 0.3s;
+  }
+
+  /* New Professional Animations */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(147, 51, 234, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(147, 51, 234, 0.8);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Glass morphism effects */
+  .glass {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(209, 213, 219, 0.3);
+  }
+
+  .glass-dark {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(17, 24, 39, 0.75);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+  }
+
+  /* Gradient text utilities */
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-pink {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-blue {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Enhanced hover effects */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Professional card styles */
+  .card-premium {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200/50 hover:shadow-purple-500/20 transition-all duration-500;
+  }
+
+  .card-premium:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(147, 51, 234, 0.15);
+  }
+}
+
+/* Custom Shadows for Zico Brand */
+.shadow-zico {
+  box-shadow: 0 4px 20px rgba(139, 21, 56, 0.15);
+}
+
+.shadow-zico-lg {
+  box-shadow: 0 8px 30px rgba(139, 21, 56, 0.2);
+}
+
+.shadow-zico-xl {
+  box-shadow: 0 12px 40px rgba(139, 21, 56, 0.25);
+}
+
+.shadow-beige {
+  box-shadow: 0 4px 20px rgba(196, 164, 132, 0.15);
+}
+
+.shadow-beige-lg {
+  box-shadow: 0 8px 30px rgba(196, 164, 132, 0.2);
+}
+
+/* Professional shadows */
+.shadow-premium {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-premium-lg {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-premium-xl {
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12), 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Text utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out;
+}

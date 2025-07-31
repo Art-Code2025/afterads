@@ -1,0 +1,30 @@
+# متغيرات البيئة المطلوبة في Netlify Dashboard
+# Site settings > Environment variables
+
+# الأهم: API Base URL
+VITE_API_BASE_URL=/.netlify/functions
+
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=AIzaSyAr-8KXPyqsqcwiDSiIbyn6alhFcQCN4gU
+VITE_FIREBASE_AUTH_DOMAIN=perfum-ac.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=perfum-ac
+VITE_FIREBASE_STORAGE_BUCKET=perfum-ac.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=429622096271
+VITE_FIREBASE_APP_ID=1:429622096271:web:88876e9ae849344a5d1bfa
+
+# Cloudinary Configuration
+VITE_CLOUDINARY_CLOUD_NAME=dfbup2swi
+VITE_CLOUDINARY_UPLOAD_PRESET=perfume
+
+# Admin Configuration
+ADMIN_REGISTRATION_KEY=mawasiem-admin-2024
+
+# Build Configuration
+NODE_VERSION=22
+
+# تعليمات:
+# 1. اذهب إلى Netlify Dashboard
+# 2. اختر موقعك (perfum-sa)
+# 3. Site settings > Environment variables
+# 4. أضف كل متغير من المتغيرات أعلاه
+# 5. اعمل Deploy جديد 
