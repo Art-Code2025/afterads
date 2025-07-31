@@ -819,7 +819,6 @@ const App: React.FC = () => {
       {/* Shipping Offer Popup */}
       <ShippingOfferPopup />
     </div>
-      )}
     </>
   );
 }
