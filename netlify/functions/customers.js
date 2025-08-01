@@ -52,9 +52,10 @@ export const handler = async (event, context) => {
         
         const customers = [];
         
-        // Get cart and wishlist collections for statistics
+        // Get cart, wishlist, and orders collections for statistics
         const cartsCollection = collection(db, 'carts');
         const wishlistsCollection = collection(db, 'wishlists');
+        const ordersCollection = collection(db, 'orders');
         
         for (const doc of customersSnapshot.docs) {
           const customerData = { id: doc.id, ...doc.data() };
@@ -102,6 +103,61 @@ export const handler = async (event, context) => {
             console.warn(`⚠️ Error fetching wishlist for customer ${doc.id}:`, wishlistError);
             customerData.wishlistItemsCount = 0;
             customerData.hasWishlist = false;
+          }
+          
+          // Calculate orders statistics
+          try {
+            // Query orders by customerEmail since orders might not have userId field
+            const customerEmail = customerData.email;
+            let ordersQuery;
+            
+            // Try to find orders by userId first, then by customerEmail
+            try {
+              ordersQuery = query(ordersCollection, where('userId', '==', doc.id));
+              let ordersSnapshot = await getDocs(ordersQuery);
+              
+              // If no orders found by userId, try by customerEmail
+              if (ordersSnapshot.empty && customerEmail) {
+                ordersQuery = query(ordersCollection, where('customerEmail', '==', customerEmail));
+                ordersSnapshot = await getDocs(ordersQuery);
+              }
+              
+              let totalOrders = ordersSnapshot.size;
+              let totalSpent = 0;
+              let lastOrderDate = null;
+              
+              if (!ordersSnapshot.empty) {
+                // Calculate total spent and find last order date
+                ordersSnapshot.forEach((orderDoc) => {
+                  const orderData = orderDoc.data();
+                  if (orderData.status !== 'cancelled') {
+                    totalSpent += orderData.total || 0;
+                  }
+                  
+                  // Find the most recent order date
+                  if (orderData.createdAt) {
+                    const orderDate = new Date(orderData.createdAt);
+                    if (!lastOrderDate || orderDate > new Date(lastOrderDate)) {
+                      lastOrderDate = orderData.createdAt;
+                    }
+                  }
+                });
+              }
+              
+              customerData.totalOrders = totalOrders;
+              customerData.totalSpent = totalSpent;
+              customerData.lastOrderDate = lastOrderDate;
+            } catch (orderQueryError) {
+              console.warn(`⚠️ Error in orders query for customer ${doc.id}:`, orderQueryError);
+              customerData.totalOrders = 0;
+              customerData.totalSpent = 0;
+              customerData.lastOrderDate = null;
+            }
+          } catch (ordersError) {
+            console.warn(`⚠️ Error fetching orders for customer ${doc.id}:`, ordersError);
+            customerData.totalOrders = 0;
+            customerData.totalSpent = 0;
+            customerData.lastOrderDate = null;
           }
           
           // Update last login if needed (this would be updated during login)

@@ -391,13 +391,15 @@ const ProductDetail: React.FC = () => {
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       let newWishlist;
       
+      const productId = Number(product.id);
+      
       if (isWishlisted) {
         // Remove from wishlist
-        newWishlist = wishlist.filter((id: number) => id !== product.id);
+        newWishlist = wishlist.filter((id: number) => id !== productId);
         toast.info(`تم إزالة ${product.name} من المفضلة`);
       } else {
         // Add to wishlist
-        newWishlist = [...wishlist, product.id];
+        newWishlist = [...wishlist, productId];
         toast.success(`تم إضافة ${product.name} إلى المفضلة!`);
       }
       

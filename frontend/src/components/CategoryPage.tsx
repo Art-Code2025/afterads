@@ -317,7 +317,14 @@ const CategoryPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
               <div key={`${product.id}-${categoryId || 'unknown'}`} className="transform transition-all duration-200 hover:scale-105">
-                <ProductCard product={product} />
+                <ProductCard 
+                  product={{
+                    ...product,
+                    image: product.mainImage, // تحويل mainImage إلى image للتوافق مع ProductCard
+                    category: category?.name || '',
+                    inStock: (product.stock || 0) > 0
+                  }} 
+                />
               </div>
             ))}
           </div>

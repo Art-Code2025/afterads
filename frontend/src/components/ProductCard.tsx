@@ -66,6 +66,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
   // Check if product is in wishlist on component mount
   useEffect(() => {
@@ -131,6 +132,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // Prevent multiple clicks
+    if (isWishlistLoading) {
+      return;
+    }
+    
     // Check if user is logged in
     const userData = localStorage.getItem('user');
     if (!userData) {
@@ -138,19 +144,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
     
+    setIsWishlistLoading(true);
+    
     try {
       const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const productId = product.id;
+      const productId = Number(product.id);
       let newWishlist;
       
       if (isWishlisted) {
          // Remove from wishlist
-         newWishlist = wishlist.filter((id: number) => id !== Number(productId));
+         newWishlist = wishlist.filter((id: number) => id !== productId);
          setIsWishlisted(false);
          toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
        } else {
          // Add to wishlist
-         newWishlist = [...wishlist, Number(productId)];
+         newWishlist = [...wishlist, productId];
          setIsWishlisted(true);
          toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
        }
@@ -169,6 +177,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     } catch (error) {
       console.error('Error updating wishlist:', error);
       toast.error('حدث خطأ أثناء تحديث المفضلة');
+    } finally {
+      // Add a small delay to prevent rapid clicking
+      setTimeout(() => {
+        setIsWishlistLoading(false);
+      }, 500);
     }
   };
 
@@ -262,13 +275,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Wishlist Button */}
           <button
             onClick={handleAddToWishlist}
-            className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-300 group/heart"
+            disabled={isWishlistLoading}
+            className={`absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-300 group/heart ${
+              isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             <Heart 
               className={`w-4 h-4 transition-all duration-300 group-hover/heart:scale-110 ${
                 isWishlisted 
                   ? 'text-red-500 fill-red-500' 
                   : 'text-gray-400 hover:text-red-500'
+              } ${
+                isWishlistLoading ? 'animate-pulse' : ''
               }`} 
             />
           </button>

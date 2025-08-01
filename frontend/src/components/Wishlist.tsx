@@ -43,10 +43,17 @@ const Wishlist: React.FC = () => {
       setError(null);
       
       const savedWishlist = localStorage.getItem('wishlist');
+      console.log('Saved wishlist:', savedWishlist);
+      
       if (savedWishlist) {
         const wishlistData = JSON.parse(savedWishlist);
+        console.log('Parsed wishlist data:', wishlistData);
         
         if (Array.isArray(wishlistData) && wishlistData.length > 0) {
+          // Convert all wishlist IDs to numbers for consistent comparison
+          const wishlistIds = wishlistData.map(id => Number(id));
+          console.log('Wishlist IDs:', wishlistIds);
+          
           // Try to get cached products first
           let allProducts = [];
           const cachedProducts = localStorage.getItem('cachedAllProducts');
@@ -54,6 +61,7 @@ const Wishlist: React.FC = () => {
           if (cachedProducts) {
             try {
               allProducts = JSON.parse(cachedProducts);
+              console.log('Found cached products:', allProducts.length);
             } catch (e) {
               console.warn('Failed to parse cached products');
             }
@@ -61,35 +69,47 @@ const Wishlist: React.FC = () => {
           
           // If no cached products or empty, try to fetch from API
           if (!allProducts || allProducts.length === 0) {
+            console.log('Fetching products from API...');
             try {
               const response = await fetch('/.netlify/functions/products');
               if (response.ok) {
                 const apiProducts = await response.json();
-                if (Array.isArray(apiProducts)) {
+                console.log('API products response:', apiProducts);
+                if (Array.isArray(apiProducts) && apiProducts.length > 0) {
                   allProducts = apiProducts;
                   // Cache the products for future use
                   localStorage.setItem('cachedAllProducts', JSON.stringify(allProducts));
+                  console.log('Cached products for future use');
                 }
+              } else {
+                console.error('API response not ok:', response.status);
               }
             } catch (apiError) {
               console.warn('Failed to fetch products from API:', apiError);
             }
           }
           
-          // Filter wishlist products
+          // Filter wishlist products with better ID matching
           if (allProducts && allProducts.length > 0) {
-            const wishlistProducts = allProducts.filter((product: Product) => 
-              wishlistData.includes(product.id)
-            );
+            console.log('All products:', allProducts.map((p: Product) => ({ id: p.id, name: p.name })));
+            const wishlistProducts = allProducts.filter((product: Product) => {
+              const productId = Number(product.id);
+              const isInWishlist = wishlistIds.includes(productId);
+              console.log(`Product ${product.name} (ID: ${productId}) in wishlist:`, isInWishlist);
+              return isInWishlist;
+            });
+            console.log('Filtered wishlist products:', wishlistProducts);
             setWishlistProducts(wishlistProducts);
           } else {
-            // If still no products available, show empty state
+            console.log('No products available to filter');
             setWishlistProducts([]);
           }
         } else {
+          console.log('Wishlist is empty or invalid');
           setWishlistProducts([]);
         }
       } else {
+        console.log('No wishlist found in localStorage');
         setWishlistProducts([]);
       }
     } catch (error) {
