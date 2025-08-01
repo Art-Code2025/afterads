@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار المفضلة</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .heart {
+            color: #dc3545;
+            font-size: 20px;
+        }
+        .heart.filled {
+            color: #dc3545;
+        }
+        .heart.empty {
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 اختبار وظائف المفضلة</h1>
+        
+        <div class="test-section">
+            <h3>📋 حالة المفضلة الحالية</h3>
+            <div id="wishlist-status"></div>
+            <button onclick="refreshStatus()">تحديث الحالة</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>➕ اختبار إضافة منتج</h3>
+            <p>اختبار إضافة منتج برقم 1 للمفضلة</p>
+            <button onclick="addToWishlist(1, 'منتج تجريبي 1')">إضافة المنتج 1</button>
+            <button onclick="addToWishlist(2, 'منتج تجريبي 2')">إضافة المنتج 2</button>
+            <button onclick="addToWishlist(3, 'منتج تجريبي 3')">إضافة المنتج 3</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>❌ اختبار إزالة منتج</h3>
+            <p>اختبار إزالة منتج من المفضلة</p>
+            <button onclick="removeFromWishlist(1, 'منتج تجريبي 1')">إزالة المنتج 1</button>
+            <button onclick="removeFromWishlist(2, 'منتج تجريبي 2')">إزالة المنتج 2</button>
+            <button onclick="removeFromWishlist(3, 'منتج تجريبي 3')">إزالة المنتج 3</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔄 اختبار التبديل</h3>
+            <p>اختبار تبديل حالة المنتج في المفضلة</p>
+            <button onclick="toggleWishlist(1, 'منتج تجريبي 1')">تبديل المنتج 1</button>
+            <button onclick="toggleWishlist(2, 'منتج تجريبي 2')">تبديل المنتج 2</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>🗑️ مسح الكل</h3>
+            <button onclick="clearWishlist()" style="background-color: #dc3545;">مسح جميع المنتجات</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 سجل الأحداث</h3>
+            <div id="log" style="background: #f8f9fa; padding: 10px; border-radius: 5px; max-height: 200px; overflow-y: auto;"></div>
+            <button onclick="clearLog()">مسح السجل</button>
+        </div>
+    </div>
+
+    <script>
+        // محاكاة تسجيل الدخول
+        localStorage.setItem('user', JSON.stringify({id: 1, name: 'مستخدم تجريبي'}));
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logEntry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#333';
+            logEntry.style.marginBottom = '5px';
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function refreshStatus() {
+            try {
+                const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                const statusDiv = document.getElementById('wishlist-status');
+                
+                if (wishlist.length === 0) {
+                    statusDiv.innerHTML = '<p class="error">المفضلة فارغة</p>';
+                } else {
+                    statusDiv.innerHTML = `
+                        <p class="success">المفضلة تحتوي على ${wishlist.length} منتج</p>
+                        <p><strong>المنتجات:</strong> ${wishlist.join(', ')}</p>
+                    `;
+                }
+                log(`تم تحديث الحالة: ${wishlist.length} منتج في المفضلة`, 'info');
+            } catch (error) {
+                log(`خطأ في تحديث الحالة: ${error.message}`, 'error');
+            }
+        }
+        
+        function addToWishlist(productId, productName) {
+            try {
+                const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                
+                if (wishlist.includes(productId)) {
+                    log(`❌ المنتج ${productName} موجود بالفعل في المفضلة`, 'error');
+                    return;
+                }
+                
+                const newWishlist = [...wishlist, productId];
+                localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+                
+                // إرسال حدث التحديث
+                window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+                
+                log(`✅ تم إضافة ${productName} للمفضلة`, 'success');
+                refreshStatus();
+            } catch (error) {
+                log(`❌ خطأ في إضافة ${productName}: ${error.message}`, 'error');
+            }
+        }
+        
+        function removeFromWishlist(productId, productName) {
+            try {
+                const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                
+                if (!wishlist.includes(productId)) {
+                    log(`❌ المنتج ${productName} غير موجود في المفضلة`, 'error');
+                    return;
+                }
+                
+                const newWishlist = wishlist.filter(id => id !== productId);
+                localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+                
+                // إرسال حدث التحديث
+                window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+                
+                log(`🗑️ تم إزالة ${productName} من المفضلة`, 'info');
+                refreshStatus();
+            } catch (error) {
+                log(`❌ خطأ في إزالة ${productName}: ${error.message}`, 'error');
+            }
+        }
+        
+        function toggleWishlist(productId, productName) {
+            try {
+                const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                let newWishlist;
+                
+                if (wishlist.includes(productId)) {
+                    newWishlist = wishlist.filter(id => id !== productId);
+                    log(`🔄 تم إزالة ${productName} من المفضلة (تبديل)`, 'info');
+                } else {
+                    newWishlist = [...wishlist, productId];
+                    log(`🔄 تم إضافة ${productName} للمفضلة (تبديل)`, 'success');
+                }
+                
+                localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+                
+                // إرسال حدث التحديث
+                window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+                
+                refreshStatus();
+            } catch (error) {
+                log(`❌ خطأ في تبديل ${productName}: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearWishlist() {
+            if (confirm('هل أنت متأكد من مسح جميع المنتجات من المفضلة؟')) {
+                localStorage.setItem('wishlist', JSON.stringify([]));
+                
+                // إرسال حدث التحديث
+                window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: [] }));
+                
+                log('🗑️ تم مسح جميع المنتجات من المفضلة', 'info');
+                refreshStatus();
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // الاستماع لأحداث تحديث المفضلة
+        window.addEventListener('wishlistUpdated', function(event) {
+            log(`📡 تم استقبال حدث تحديث المفضلة: ${event.detail ? event.detail.length : 'غير محدد'} منتج`, 'info');
+        });
+        
+        // تحديث الحالة عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStatus();
+            log('🚀 تم تحميل صفحة اختبار المفضلة', 'info');
+        });
+    </script>
+</body>
+</html>

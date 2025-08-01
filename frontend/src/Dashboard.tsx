@@ -352,21 +352,64 @@ const Dashboard: React.FC = () => {
   
   const fetchCustomerStats = async () => {
     try {
-      // Simplified customer stats - just count from existing data
+      // Calculate basic customer stats
+      const total = customers.length;
+      const active = customers.filter(c => c.status === 'active').length;
+      const thisMonth = customers.filter(c => {
+        const created = new Date(c.createdAt);
+        const now = new Date();
+        return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+      }).length;
+      
+      // Calculate wishlist and cart stats from enriched customer data
+      let totalWishlistItems = 0;
+      let totalCartItems = 0;
+      let customersWithCart = 0;
+      let customersWithWishlist = 0;
+      
+      // Sum up data from all customers
+      customers.forEach(customer => {
+        if (customer.wishlistItemsCount && customer.wishlistItemsCount > 0) {
+          totalWishlistItems += customer.wishlistItemsCount;
+          customersWithWishlist++;
+        }
+        if (customer.cartItemsCount && customer.cartItemsCount > 0) {
+          totalCartItems += customer.cartItemsCount;
+          customersWithCart++;
+        }
+      });
+      
+      // Calculate averages
+      const avgCartItems = customersWithCart > 0 ? Math.round(totalCartItems / customersWithCart) : 0;
+      
       const stats = {
-        total: customers.length,
-        active: customers.filter(c => c.status === 'active').length,
-        thisMonth: customers.filter(c => {
-          const created = new Date(c.createdAt);
-          const now = new Date();
-          return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-        }).length
+        total,
+        active,
+        thisMonth,
+        totalWishlistItems,
+        avgCartItems
       };
+      
+      console.log('📊 Customer Stats Calculated:', {
+        ...stats,
+        customersWithCart,
+        customersWithWishlist,
+        totalCartItems
+      });
       setCustomerStats(stats);
       return stats;
     } catch (error) {
       console.error('Error calculating customer stats:', error);
-      return null;
+      // Return default stats to prevent UI errors
+      const defaultStats = {
+        total: customers.length,
+        active: 0,
+        thisMonth: 0,
+        totalWishlistItems: 0,
+        avgCartItems: 0
+      };
+      setCustomerStats(defaultStats);
+      return defaultStats;
     }
   };
 
@@ -475,8 +518,58 @@ const Dashboard: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const data = await apiCall(API_ENDPOINTS.CUSTOMERS);
-      setCustomers(data || []);
-      setFilteredCustomers(data || []);
+      const customersData = data || [];
+      
+      // إضافة إحصائيات السلة والمفضلة لكل عميل
+      const enrichedCustomers = await Promise.all(customersData.map(async (customer: Customer) => {
+        let cartItemsCount = 0;
+        let wishlistItemsCount = 0;
+        let hasCart = false;
+        let hasWishlist = false;
+        
+        try {
+          // محاولة الحصول على بيانات السلة من الخادم
+          if (customer.id) {
+            try {
+              const cartResponse = await apiCall(API_ENDPOINTS.USER_CART_COUNT(customer.id));
+              if (cartResponse && cartResponse.success) {
+                cartItemsCount = cartResponse.data.totalQuantity || 0;
+                hasCart = cartItemsCount > 0;
+              }
+            } catch (cartError) {
+              console.warn(`⚠️ Could not fetch cart for customer ${customer.id}:`, cartError);
+            }
+            
+            // محاولة الحصول على بيانات المفضلة من localStorage (إذا كان العميل الحالي)
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            if (currentUser.id === customer.id) {
+              try {
+                const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+                if (Array.isArray(wishlist)) {
+                  wishlistItemsCount = wishlist.length;
+                  hasWishlist = wishlistItemsCount > 0;
+                }
+              } catch (wishlistError) {
+                console.warn(`⚠️ Could not parse wishlist for customer ${customer.id}:`, wishlistError);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ Error enriching customer ${customer.id}:`, error);
+        }
+        
+        return {
+          ...customer,
+          cartItemsCount,
+          wishlistItemsCount,
+          hasCart,
+          hasWishlist
+        };
+      }));
+      
+      console.log('✅ Customers enriched with cart/wishlist data:', enrichedCustomers.length);
+      setCustomers(enrichedCustomers);
+      setFilteredCustomers(enrichedCustomers);
     } catch (error) {
       console.error('Error fetching customers:', error);
       setCustomers([]);
@@ -500,10 +593,10 @@ const Dashboard: React.FC = () => {
   }, [currentTab]);
 
   useEffect(() => {
-    if (currentTab === 'customers') {
+    if (currentTab === 'customers' && customers.length > 0) {
       fetchCustomerStats();
     }
-  }, [currentTab]);
+  }, [currentTab, customers]);
 
   const handleOrderSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;

@@ -151,22 +151,32 @@ const ProductCard: React.FC<ProductCardProps> = ({
       const productId = Number(product.id);
       let newWishlist;
       
-      if (isWishlisted) {
+      // Check current state from localStorage to avoid conflicts
+      const currentlyInWishlist = wishlist.includes(productId);
+      
+      if (currentlyInWishlist) {
          // Remove from wishlist
          newWishlist = wishlist.filter((id: number) => id !== productId);
          setIsWishlisted(false);
          toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
        } else {
-         // Add to wishlist
-         newWishlist = [...wishlist, productId];
-         setIsWishlisted(true);
-         toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
+         // Add to wishlist - check if already exists to prevent duplicates
+         if (!wishlist.includes(productId)) {
+           newWishlist = [...wishlist, productId];
+           setIsWishlisted(true);
+           toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
+         } else {
+           // Already exists, just update UI state
+           newWishlist = wishlist;
+           setIsWishlisted(true);
+           toast.info(`${product.name} موجود بالفعل في المفضلة`);
+         }
        }
       
       // Save to localStorage
       localStorage.setItem('wishlist', JSON.stringify(newWishlist));
       
-      // Dispatch event
+      // Dispatch event with detail
       window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
       
       // Call parent callback if provided
@@ -177,11 +187,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
     } catch (error) {
       console.error('Error updating wishlist:', error);
       toast.error('حدث خطأ أثناء تحديث المفضلة');
+      // Reset state on error
+      try {
+        const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+        setIsWishlisted(wishlist.includes(Number(product.id)));
+      } catch (resetError) {
+        setIsWishlisted(false);
+      }
     } finally {
       // Add a small delay to prevent rapid clicking
       setTimeout(() => {
         setIsWishlistLoading(false);
-      }, 500);
+      }, 300);
     }
   };
 
