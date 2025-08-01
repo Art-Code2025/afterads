@@ -516,7 +516,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
           {/* Menu Button for Mobile - حجم مصغر ومتناسق */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="mobile-menu-button mobile-touch-target text-dark-200 hover:text-dark-100 p-2 sm:p-2.5 rounded-xl lg:hidden transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-700/50 shadow-md hover:shadow-lg z-[60] relative no-select"
+            className="mobile-menu-button mobile-touch-target text-dark-200 hover:text-dark-100 p-2 sm:p-2.5 rounded-xl lg:hidden transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-600/50 shadow-md hover:shadow-lg z-[60] relative no-select"
             style={{ 
               minWidth: '40px',
               minHeight: '40px'
@@ -526,7 +526,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
           </button>
 
           {/* Brand */}
-          <Link to="/" onClick={()=>{setIsMenuOpen(false);window.scrollTo(0,0);}} className="text-2xl font-extrabold text-red-400 select-none lg:absolute lg:right-8">
+          <Link to="/" onClick={()=>{setIsMenuOpen(false);window.scrollTo(0,0);}} className="text-2xl font-extrabold text-dark-400 select-none lg:absolute lg:right-8">
             Desi
           </Link>
 
@@ -540,7 +540,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
               {label:'Blog',to:'/blog'},
               {label:'Contact us',to:'/contact'}
             ].map(link=> (
-              <Link key={link.label} to={link.to} className="hover:text-red-400 transition-colors">
+              <Link key={link.label} to={link.to} className="hover:text-dark-400 transition-colors">
                 {link.label}
               </Link>
             ))}
@@ -551,7 +551,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
             {/* Cart Icon - حجم مصغر */}
             <Link 
               to="/cart" 
-              className="mobile-touch-target relative p-2 sm:p-2.5 text-dark-200 hover:text-dark-100 transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-700/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
+              className="mobile-touch-target relative p-2 sm:p-2.5 text-dark-200 hover:text-dark-100 transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-600/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
               style={{ 
                 pointerEvents: 'auto',
                 touchAction: 'manipulation',
@@ -563,18 +563,18 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
               {cartItemsCount > 0 && (
                 <span 
                   data-cart-count
-                  className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse border border-white"
+                  className="absolute -top-1 -right-1 bg-gradient-to-r from-dark-400 to-dark-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse border border-white"
                 >
                   {cartItemsCount > 99 ? '99+' : cartItemsCount}
                 </span>
               )}
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-dark-400/10 to-dark-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </Link>
 
             {/* Wishlist Icon - حجم مصغر */}
             <Link 
               to="/wishlist" 
-              className="mobile-touch-target relative p-2 sm:p-2.5 text-dark-200 hover:text-dark-100 transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-700/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
+              className="mobile-touch-target relative p-2 sm:p-2.5 text-dark-200 hover:text-dark-100 transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-600/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
               style={{ 
                 pointerEvents: 'auto',
                 touchAction: 'manipulation',
@@ -586,12 +586,12 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
               {wishlistItemsCount > 0 && (
                 <span 
                   data-wishlist-count
-                  className="absolute -top-1 -right-1 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse border border-white"
+                  className="absolute -top-1 -right-1 bg-gradient-to-r from-dark-400 to-dark-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse border border-white"
                 >
                   {wishlistItemsCount > 99 ? '99+' : wishlistItemsCount}
                 </span>
               )}
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-dark-400/10 to-dark-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </Link>
 
             {/* User Menu - حجم مصغر */}

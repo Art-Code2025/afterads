@@ -257,7 +257,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div
             key={i}
             className={`w-2 h-2 rounded-full ${
-              i < level ? 'bg-zico-primary' : 'bg-beige-300'
+              i < level ? 'bg-dark-400' : 'bg-dark-600'
             }`}
           />
         ))}
@@ -267,14 +267,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const getScentFamilyIcon = (family?: string) => {
     const iconMap: { [key: string]: JSX.Element } = {
-      'زهري': <Flower className="w-4 h-4 text-pink-500" />,
-      'شرقي': <Crown className="w-4 h-4 text-zico-gold" />,
-      'حمضي': <Leaf className="w-4 h-4 text-green-500" />,
-      'خشبي': <Wind className="w-4 h-4 text-amber-600" />,
-      'منعش': <Droplets className="w-4 h-4 text-blue-500" />
+      'زهري': <Flower className="w-4 h-4 text-dark-300" />,
+      'شرقي': <Crown className="w-4 h-4 text-dark-400" />,
+      'حمضي': <Leaf className="w-4 h-4 text-dark-400" />,
+      'خشبي': <Wind className="w-4 h-4 text-dark-500" />,
+      'منعش': <Droplets className="w-4 h-4 text-dark-400" />
     };
     
-    return family ? iconMap[family] || <Sparkles className="w-4 h-4 text-zico-primary" /> : null;
+    return family ? iconMap[family] || <Sparkles className="w-4 h-4 text-dark-400" /> : null;
   };
 
   const discountPercentage = product.originalPrice 
@@ -293,7 +293,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       initial="initial"
       animate="animate"
       whileHover="whileHover"
-      className={`perfume-card group cursor-pointer perspective-1000 bg-dark-800 border border-dark-700 rounded-xl shadow-sm hover:shadow-md ${className}`}
+      className={`perfume-card group cursor-pointer perspective-1000 bg-dark-800 border border-dark-600 rounded-xl shadow-sm hover:shadow-md ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -304,14 +304,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-5">
-            <div className="absolute top-4 left-4 w-16 h-16 border border-zico-primary rounded-full"></div>
-            <div className="absolute bottom-4 right-4 w-12 h-12 border border-beige-500 rounded-full"></div>
+            <div className="absolute top-4 left-4 w-16 h-16 border border-dark-400 rounded-full"></div>
+            <div className="absolute bottom-4 right-4 w-12 h-12 border border-dark-300 rounded-full"></div>
           </div>
 
           {/* Badges */}
           <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
             {product.isNew && (
-              <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+              <span className="bg-gradient-to-r from-dark-400 to-dark-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                 جديد
               </span>
             )}
@@ -322,7 +322,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             )}
             {discountPercentage && (
-              <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+              <span className="bg-gradient-to-r from-dark-500 to-dark-600 text-white px-2 py-1 rounded-full text-xs font-bold">
                 -{discountPercentage}%
               </span>
             )}
@@ -332,24 +332,24 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <button
             onClick={handleAddToWishlist}
             disabled={isWishlistLoading}
-            className={`absolute top-3 right-3 z-10 w-10 h-10 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group/heart transform hover:scale-110 ${
-              isWishlistLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'
+            className={`absolute top-3 right-3 z-10 w-10 h-10 bg-dark-100/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group/heart transform hover:scale-110 ${
+              isWishlistLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-dark-50'
             } ${
-              isWishlisted ? 'ring-2 ring-red-200' : ''
+              isWishlisted ? 'ring-2 ring-dark-400' : ''
             }`}
           >
             <Heart 
               className={`w-5 h-5 transition-all duration-300 ${
                 isWishlisted 
-                  ? 'text-red-500 fill-red-500 scale-110' 
-                  : 'text-gray-400 hover:text-red-500 group-hover/heart:scale-110'
+                  ? 'text-dark-400 fill-dark-400 scale-110' 
+                  : 'text-dark-600 hover:text-dark-400 group-hover/heart:scale-110'
               } ${
                 isWishlistLoading ? 'animate-pulse' : ''
               }`} 
             />
             {/* Animated Ring Effect */}
             {isWishlisted && (
-              <div className="absolute inset-0 rounded-full bg-red-100 animate-ping opacity-20"></div>
+              <div className="absolute inset-0 rounded-full bg-dark-300 animate-ping opacity-20"></div>
             )}
           </button>
 
@@ -375,7 +375,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="absolute w-1 h-1 bg-zico-gold rounded-full animate-float opacity-0 group-hover:opacity-60 transition-opacity duration-500"
+                  className="absolute w-1 h-1 bg-dark-400 rounded-full animate-float opacity-0 group-hover:opacity-60 transition-opacity duration-500"
                   style={{
                     left: `${20 + Math.random() * 60}%`,
                     top: `${20 + Math.random() * 60}%`,
@@ -394,7 +394,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 bg-gradient-to-r from-zico-primary to-zico-secondary text-white py-2 px-4 rounded-xl font-medium hover:shadow-zico-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                className="flex-1 bg-gradient-to-r from-dark-500 to-dark-600 text-white py-2 px-4 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span className="text-sm">أضف للسلة</span>

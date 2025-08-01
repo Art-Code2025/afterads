@@ -7,41 +7,41 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark Theme Colors - Based on #2a2a2a
+        // Dark Theme Colors - Based on #2a2a2a with cyan accent
         dark: {
-          50: '#f8f8f8',   // Very light gray
-          100: '#f0f0f0',  // Light gray
-          200: '#e0e0e0',  // Soft gray
-          300: '#c0c0c0',  // Medium light gray
-          400: '#a0a0a0',  // Medium gray
-          500: '#808080',  // Base gray
-          600: '#606060',  // Strong gray
-          700: '#404040',  // Dark gray
-          800: '#2a2a2a',  // Main dark color
-          900: '#1a1a1a',  // Deep dark
+          50: '#f0f7fa',   // Very light cyan-gray
+          100: '#e0f0f5',  // Light cyan-gray
+          200: '#c8e5f0',  // Soft cyan-gray
+          300: '#a0d5e5',  // Medium light cyan
+          400: '#70c0d8',  // Medium cyan
+          500: '#40a0c0',  // Base cyan
+          600: '#3080a0',  // Strong cyan
+          700: '#205060',  // Dark cyan-gray
+          800: '#2a3a45',  // Main dark cyan-gray
+          900: '#1a2530',  // Deep dark cyan-gray
         },
         accent: {
-          50: '#f5f5f5',   // Very light accent
-          100: '#eeeeee',  // Light accent
-          200: '#dddddd',  // Soft accent
-          300: '#bbbbbb',  // Medium light accent
-          400: '#999999',  // Medium accent
-          500: '#777777',  // Base accent
-          600: '#555555',  // Strong accent
-          700: '#333333',  // Dark accent
-          800: '#2a2a2a',  // Main accent
-          900: '#111111',  // Deep accent
+          50: '#f5f9fa',   // Very light cyan accent
+          100: '#e8f4f8',  // Light cyan accent
+          200: '#d0e8f0',  // Soft cyan accent
+          300: '#a8d0e0',  // Medium light cyan accent
+          400: '#70b0c8',  // Medium cyan accent
+          500: '#4090b0',  // Base cyan accent
+          600: '#307090',  // Strong cyan accent
+          700: '#205070',  // Dark cyan accent
+          800: '#2a3a45',  // Main cyan-gray accent
+          900: '#1a2530',  // Deep cyan-gray accent
         },
-        // Brand Specific Colors - Dark Theme
+        // Brand Specific Colors - Cyan-Gray Theme
         zico: {
-          primary: '#2a2a2a',    // Main dark
-          secondary: '#404040',  // Secondary dark
-          accent: '#606060',     // Medium gray
-          light: '#f0f0f0',      // Light gray
-          dark: '#1a1a1a',       // Deep dark
-          gold: '#D4AF37',       // Gold accent
-          rose: '#888888',       // Muted rose
-          cream: '#f8f8f8',      // Light cream
+          primary: '#2a3a45',    // Main cyan-gray
+          secondary: '#205060',  // Secondary cyan-gray
+          accent: '#40a0c0',     // Medium cyan
+          light: '#e0f0f5',      // Light cyan-gray
+          dark: '#1a2530',       // Deep cyan-gray
+          gold: '#40a0c0',       // Cyan accent (replacing gold)
+          rose: '#70c0d8',       // Light cyan (replacing rose)
+          cream: '#f0f7fa',      // Very light cyan (replacing cream)
         },
         // Redefine original colors for dark theme
         burgundy: {
@@ -68,18 +68,18 @@ export default {
           800: '#8a6b42',  // Very dark beige
           900: '#6b5235',  // Deep beige
         },
-        // New color scheme for dark theme
+        // New color scheme for cyan-gray theme
         gray: {
-          50: '#f8f8f8',
-          100: '#f0f0f0',
-          200: '#e0e0e0',
-          300: '#c0c0c0',
-          400: '#a0a0a0',
-          500: '#808080',
-          600: '#606060',
-          700: '#404040',
-          800: '#2a2a2a',
-          900: '#1a1a1a',
+          50: '#f0f7fa',  // Very light cyan-gray
+          100: '#e0f0f5', // Light cyan-gray
+          200: '#d0e8f0', // Soft cyan-gray
+          300: '#b0d0e0', // Medium light cyan-gray
+          400: '#90b8c8', // Medium cyan-gray
+          500: '#708090', // Base cyan-gray
+          600: '#506070', // Strong cyan-gray
+          700: '#304050', // Dark cyan-gray
+          800: '#2a3a45', // Main cyan-gray
+          900: '#1a2530', // Deep cyan-gray
         },
       },
       fontFamily: {
