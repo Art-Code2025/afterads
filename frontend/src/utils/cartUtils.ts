@@ -2,6 +2,7 @@ import { toast } from 'react-toastify';
 import { apiCall, API_ENDPOINTS } from '../config/api';
 
 // دالة موحدة لإضافة منتج إلى السلة - تدعم المستخدمين المسجلين والضيوف
+// محسنة للسرعة الفائقة - حفظ فوري في localStorage ومزامنة خلفية مع الخادم
 export const addToCartUnified = async (
   productId: string | number, // Support both string and number IDs
   productName: string,
@@ -23,16 +24,10 @@ export const addToCartUnified = async (
         ? mainImage
         : `/${mainImage}`;
 
-    console.log('🛒 [CartUtils] Adding to cart:', {
+    console.log('🛒 [CartUtils] Adding to cart (INSTANT MODE):', {
       productId,
       productName,
-      price,
-      quantity,
-      selectedOptions,
-      optionsPricing,
-      attachments,
-      hasProduct: !!product,
-      mainImage: formattedMainImage
+      quantity
     });
 
     // تحضير البيانات للطلب
@@ -60,53 +55,7 @@ export const addToCartUnified = async (
       }
     };
 
-    // محاولة الحصول على بيانات المستخدم
-    const userData = localStorage.getItem('user');
-    
-    if (userData) {
-      // المستخدم مسجل - حفظ في الخادم
-      try {
-        const user = JSON.parse(userData);
-        if (!user?.id) {
-          throw new Error('بيانات المستخدم غير صحيحة');
-        }
-
-        console.log('👤 [CartUtils] User is logged in, saving to server:', user.id);
-
-        const response = await apiCall(API_ENDPOINTS.USER_CART(user.id), {
-          method: 'POST',
-          body: JSON.stringify(requestBody)
-        });
-
-        console.log('✅ [CartUtils] Successfully added to server cart:', response);
-        
-        // تحديث localStorage أيضاً للتوافق مع النظام القديم
-        await updateLocalCartFromServer(user.id);
-        
-        toast.success(`تم إضافة ${productName} إلى السلة بنجاح! 🛒`, {
-          position: "top-center",
-          autoClose: 3000,
-          style: {
-            background: '#10B981',
-            color: 'white',
-            fontWeight: 'bold'
-          }
-        });
-
-        // إطلاق حدث لتحديث عداد السلة
-        window.dispatchEvent(new CustomEvent('cartUpdated'));
-        
-        return true;
-      } catch (serverError) {
-        console.error('❌ [CartUtils] Server error, falling back to localStorage:', serverError);
-        // في حالة فشل الخادم، احفظ في localStorage
-      }
-    }
-
-    // المستخدم غير مسجل أو فشل الخادم - حفظ في localStorage
-    console.log('💾 [CartUtils] Saving to localStorage');
-    
-    // الحصول على السلة الحالية من localStorage
+    // ⚡ INSTANT SAVE TO LOCALSTORAGE FIRST - للسرعة الفائقة
     const existingCart = localStorage.getItem('cartItems');
     let cartItems = [];
     
@@ -150,16 +99,17 @@ export const addToCartUnified = async (
       console.log('🆕 [CartUtils] Added new item to cart');
     }
 
-    // حفظ السلة المحدثة
+    // ⚡ INSTANT SAVE - حفظ فوري
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    console.log('💾 [CartUtils] Cart saved to localStorage:', cartItems.length, 'items');
+    console.log('💾 [CartUtils] Cart saved to localStorage INSTANTLY:', cartItems.length, 'items');
 
-    // إطلاق حدث لتحديث عداد السلة
+    // ⚡ INSTANT UI UPDATE - تحديث فوري للواجهة
     window.dispatchEvent(new CustomEvent('cartUpdated'));
 
-    toast.success(`تم إضافة ${productName} إلى السلة بنجاح! 🛒`, {
+    // ⚡ INSTANT SUCCESS MESSAGE - رسالة نجاح فورية
+    toast.success(`تم إضافة ${productName} إلى السلة! 🛒`, {
       position: "top-center",
-      autoClose: 3000,
+      autoClose: 2000, // تقليل وقت العرض
       style: {
         background: '#10B981',
         color: 'white',
@@ -167,11 +117,46 @@ export const addToCartUnified = async (
       }
     });
 
+    // 🔄 BACKGROUND SYNC - مزامنة خلفية مع الخادم (لا تنتظر النتيجة)
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      // مزامنة خلفية مع الخادم للمستخدمين المسجلين
+      syncCartToServerBackground(userData, requestBody).catch(error => {
+        console.warn('⚠️ [CartUtils] Background sync failed (user will not notice):', error);
+      });
+    }
+
     return true;
   } catch (error) {
     console.error('❌ [CartUtils] Error adding to cart:', error);
     toast.error('فشل في إضافة المنتج إلى السلة');
     return false;
+  }
+};
+
+// دالة مزامنة خلفية مع الخادم - لا تؤثر على سرعة الواجهة
+const syncCartToServerBackground = async (userData: string, requestBody: any): Promise<void> => {
+  try {
+    const user = JSON.parse(userData);
+    if (!user?.id) {
+      return;
+    }
+
+    console.log('🔄 [CartUtils] Background sync to server:', user.id);
+
+    const response = await apiCall(API_ENDPOINTS.USER_CART(user.id), {
+      method: 'POST',
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('✅ [CartUtils] Background sync successful:', response);
+    
+    // تحديث localStorage من الخادم في الخلفية
+    await updateLocalCartFromServer(user.id);
+    
+  } catch (error) {
+    console.error('❌ [CartUtils] Background sync failed:', error);
+    // لا نظهر خطأ للمستخدم - السلة المحلية تعمل بشكل طبيعي
   }
 };
 
@@ -348,4 +333,4 @@ export const getCart = async (): Promise<any[]> => {
     console.error('❌ [CartUtils] Error getting cart:', error);
     return [];
   }
-}; 
+};

@@ -151,27 +151,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
       const productId = Number(product.id);
       let newWishlist;
       
-      // Check current state from localStorage to avoid conflicts
+      // Toggle wishlist status - one click toggle
       const currentlyInWishlist = wishlist.includes(productId);
       
       if (currentlyInWishlist) {
-         // Remove from wishlist
-         newWishlist = wishlist.filter((id: number) => id !== productId);
-         setIsWishlisted(false);
-         toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
-       } else {
-         // Add to wishlist - check if already exists to prevent duplicates
-         if (!wishlist.includes(productId)) {
-           newWishlist = [...wishlist, productId];
-           setIsWishlisted(true);
-           toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
-         } else {
-           // Already exists, just update UI state
-           newWishlist = wishlist;
-           setIsWishlisted(true);
-           toast.info(`${product.name} موجود بالفعل في المفضلة`);
-         }
-       }
+        // Remove from wishlist
+        newWishlist = wishlist.filter((id: number) => id !== productId);
+        setIsWishlisted(false);
+        toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
+      } else {
+        // Add to wishlist
+        newWishlist = [...wishlist, productId];
+        setIsWishlisted(true);
+        toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
+      }
       
       // Save to localStorage
       localStorage.setItem('wishlist', JSON.stringify(newWishlist));
@@ -195,10 +188,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         setIsWishlisted(false);
       }
     } finally {
-      // Add a small delay to prevent rapid clicking
+      // Reduce delay for faster response
       setTimeout(() => {
         setIsWishlistLoading(false);
-      }, 300);
+      }, 100);
     }
   };
 

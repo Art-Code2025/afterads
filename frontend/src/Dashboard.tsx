@@ -439,15 +439,10 @@ const Dashboard: React.FC = () => {
     }
   }, [orders, currentTab, orderSearchTerm, orderStatusFilter]);
 
-  // Auto-refresh orders every 30 seconds when on orders tab
+  // تحميل الطلبات عند فتح التبويب فقط
   useEffect(() => {
     if (currentTab === 'orders') {
-      const interval = setInterval(() => {
-        console.log('🔄 Auto-refreshing orders...');
-        fetchOrders();
-      }, 30000);
-      
-      return () => clearInterval(interval);
+      fetchOrders();
     }
   }, [currentTab]);
 
@@ -514,48 +509,48 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // وظائف العملاء
+  // وظائف العملاء - محسنة للسرعة
   const fetchCustomers = async () => {
     try {
       const data = await apiCall(API_ENDPOINTS.CUSTOMERS);
       const customersData = data || [];
       
-      // إضافة إحصائيات السلة والمفضلة لكل عميل
+      // تحميل سريع للعملاء بدون إثراء البيانات أولاً
+      setCustomers(customersData);
+      setFilteredCustomers(customersData);
+      
+      // إثراء البيانات في الخلفية بدون انتظار
+      enrichCustomersData(customersData);
+      
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      setCustomers([]);
+      setFilteredCustomers([]);
+    }
+  };
+  
+  // دالة منفصلة لإثراء بيانات العملاء في الخلفية
+  const enrichCustomersData = async (customersData: Customer[]) => {
+    try {
+      // استخدام الدالة الجديدة من API للحصول على جميع البيانات مرة واحدة
       const enrichedCustomers = await Promise.all(customersData.map(async (customer: Customer) => {
         let cartItemsCount = 0;
         let wishlistItemsCount = 0;
         let hasCart = false;
         let hasWishlist = false;
         
-        try {
-          // محاولة الحصول على بيانات السلة من الخادم
-          if (customer.id) {
-            try {
-              const cartResponse = await apiCall(API_ENDPOINTS.USER_CART_COUNT(customer.id));
-              if (cartResponse && cartResponse.success) {
-                cartItemsCount = cartResponse.data.totalQuantity || 0;
-                hasCart = cartItemsCount > 0;
-              }
-            } catch (cartError) {
-              console.warn(`⚠️ Could not fetch cart for customer ${customer.id}:`, cartError);
+        // فقط للعميل الحالي نحصل على بيانات المفضلة من localStorage
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (currentUser.id === customer.id) {
+          try {
+            const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            if (Array.isArray(wishlist)) {
+              wishlistItemsCount = wishlist.length;
+              hasWishlist = wishlistItemsCount > 0;
             }
-            
-            // محاولة الحصول على بيانات المفضلة من localStorage (إذا كان العميل الحالي)
-            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-            if (currentUser.id === customer.id) {
-              try {
-                const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-                if (Array.isArray(wishlist)) {
-                  wishlistItemsCount = wishlist.length;
-                  hasWishlist = wishlistItemsCount > 0;
-                }
-              } catch (wishlistError) {
-                console.warn(`⚠️ Could not parse wishlist for customer ${customer.id}:`, wishlistError);
-              }
-            }
+          } catch (wishlistError) {
+            console.warn(`⚠️ Could not parse wishlist for customer ${customer.id}:`, wishlistError);
           }
-        } catch (error) {
-          console.warn(`⚠️ Error enriching customer ${customer.id}:`, error);
         }
         
         return {
@@ -567,28 +562,20 @@ const Dashboard: React.FC = () => {
         };
       }));
       
-      console.log('✅ Customers enriched with cart/wishlist data:', enrichedCustomers.length);
+      // تحديث البيانات بعد الإثراء
       setCustomers(enrichedCustomers);
       setFilteredCustomers(enrichedCustomers);
+      console.log('✅ Customers enriched with cart/wishlist data:', enrichedCustomers.length);
+      
     } catch (error) {
-      console.error('Error fetching customers:', error);
-      setCustomers([]);
-      setFilteredCustomers([]);
+      console.warn('⚠️ Error enriching customers data:', error);
     }
   };
 
-  // إضافة useEffect لتحديث العملاء كل 30 ثانية
+  // تحميل العملاء عند فتح التبويب فقط
   useEffect(() => {
     if (currentTab === 'customers') {
       fetchCustomers();
-      
-      // تحديث تلقائي كل 30 ثانية
-      const interval = setInterval(() => {
-        console.log('🔄 Auto-refreshing customers...');
-        fetchCustomers();
-      }, 30000);
-      
-      return () => clearInterval(interval);
     }
   }, [currentTab]);
 

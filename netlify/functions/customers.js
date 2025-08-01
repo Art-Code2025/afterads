@@ -52,113 +52,101 @@ export const handler = async (event, context) => {
         
         const customers = [];
         
-        // Get cart, wishlist, and orders collections for statistics
-        const cartsCollection = collection(db, 'carts');
-        const wishlistsCollection = collection(db, 'wishlists');
-        const ordersCollection = collection(db, 'orders');
+        // Get all collections data in parallel for better performance
+        const [cartsSnapshot, wishlistsSnapshot, ordersSnapshot] = await Promise.all([
+          getDocs(collection(db, 'carts')),
+          getDocs(collection(db, 'wishlists')),
+          getDocs(collection(db, 'orders'))
+        ]);
         
+        // Create maps for faster lookups
+        const cartsMap = new Map();
+        const wishlistsMap = new Map();
+        const ordersMap = new Map();
+        
+        // Process carts data
+        cartsSnapshot.forEach(cartDoc => {
+          const cartData = cartDoc.data();
+          const userId = cartData.userId;
+          if (userId) {
+            const items = cartData.items || [];
+            const cartItemsCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            cartsMap.set(userId, {
+              cartItemsCount,
+              hasCart: items.length > 0
+            });
+          }
+        });
+        
+        // Process wishlists data
+        wishlistsSnapshot.forEach(wishlistDoc => {
+          const wishlistData = wishlistDoc.data();
+          const userId = wishlistData.userId;
+          if (userId) {
+            if (!wishlistsMap.has(userId)) {
+              wishlistsMap.set(userId, 0);
+            }
+            wishlistsMap.set(userId, wishlistsMap.get(userId) + 1);
+          }
+        });
+        
+        // Process orders data
+        ordersSnapshot.forEach(orderDoc => {
+          const orderData = orderDoc.data();
+          const userId = orderData.userId;
+          const customerEmail = orderData.customerEmail;
+          
+          // Use userId if available, otherwise use customerEmail as key
+          const key = userId || customerEmail;
+          if (key) {
+            if (!ordersMap.has(key)) {
+              ordersMap.set(key, {
+                totalOrders: 0,
+                totalSpent: 0,
+                lastOrderDate: null
+              });
+            }
+            
+            const orderStats = ordersMap.get(key);
+            orderStats.totalOrders += 1;
+            
+            if (orderData.status !== 'cancelled') {
+              orderStats.totalSpent += orderData.total || 0;
+            }
+            
+            if (orderData.createdAt) {
+              const orderDate = new Date(orderData.createdAt);
+              if (!orderStats.lastOrderDate || orderDate > new Date(orderStats.lastOrderDate)) {
+                orderStats.lastOrderDate = orderData.createdAt;
+              }
+            }
+          }
+        });
+        
+        // Process customers with pre-calculated statistics
         for (const doc of customersSnapshot.docs) {
           const customerData = { id: doc.id, ...doc.data() };
           
-          // Calculate cart statistics
-          try {
-            const cartQuery = query(cartsCollection, where('userId', '==', doc.id));
-            const cartSnapshot = await getDocs(cartQuery);
-            
-            let cartItemsCount = 0;
-            let hasCart = false;
-            
-            if (!cartSnapshot.empty) {
-              const cartData = cartSnapshot.docs[0].data();
-              const items = cartData.items || [];
-              cartItemsCount = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-              hasCart = items.length > 0;
-            }
-            
-            customerData.cartItemsCount = cartItemsCount;
-            customerData.hasCart = hasCart;
-          } catch (cartError) {
-            console.warn(`⚠️ Error fetching cart for customer ${doc.id}:`, cartError);
-            customerData.cartItemsCount = 0;
-            customerData.hasCart = false;
-          }
+          // Get cart statistics
+          const cartStats = cartsMap.get(doc.id) || { cartItemsCount: 0, hasCart: false };
+          customerData.cartItemsCount = cartStats.cartItemsCount;
+          customerData.hasCart = cartStats.hasCart;
           
-          // Calculate wishlist statistics
-          try {
-            const wishlistQuery = query(wishlistsCollection, where('userId', '==', doc.id));
-            const wishlistSnapshot = await getDocs(wishlistQuery);
-            
-            let wishlistItemsCount = 0;
-            let hasWishlist = false;
-            
-            if (!wishlistSnapshot.empty) {
-              // Each document in wishlist collection is a separate wishlist item
-              wishlistItemsCount = wishlistSnapshot.size;
-              hasWishlist = wishlistSnapshot.size > 0;
-            }
-            
-            customerData.wishlistItemsCount = wishlistItemsCount;
-            customerData.hasWishlist = hasWishlist;
-          } catch (wishlistError) {
-            console.warn(`⚠️ Error fetching wishlist for customer ${doc.id}:`, wishlistError);
-            customerData.wishlistItemsCount = 0;
-            customerData.hasWishlist = false;
-          }
+          // Get wishlist statistics
+          const wishlistCount = wishlistsMap.get(doc.id) || 0;
+          customerData.wishlistItemsCount = wishlistCount;
+          customerData.hasWishlist = wishlistCount > 0;
           
-          // Calculate orders statistics
-          try {
-            // Query orders by customerEmail since orders might not have userId field
-            const customerEmail = customerData.email;
-            let ordersQuery;
-            
-            // Try to find orders by userId first, then by customerEmail
-            try {
-              ordersQuery = query(ordersCollection, where('userId', '==', doc.id));
-              let ordersSnapshot = await getDocs(ordersQuery);
-              
-              // If no orders found by userId, try by customerEmail
-              if (ordersSnapshot.empty && customerEmail) {
-                ordersQuery = query(ordersCollection, where('customerEmail', '==', customerEmail));
-                ordersSnapshot = await getDocs(ordersQuery);
-              }
-              
-              let totalOrders = ordersSnapshot.size;
-              let totalSpent = 0;
-              let lastOrderDate = null;
-              
-              if (!ordersSnapshot.empty) {
-                // Calculate total spent and find last order date
-                ordersSnapshot.forEach((orderDoc) => {
-                  const orderData = orderDoc.data();
-                  if (orderData.status !== 'cancelled') {
-                    totalSpent += orderData.total || 0;
-                  }
-                  
-                  // Find the most recent order date
-                  if (orderData.createdAt) {
-                    const orderDate = new Date(orderData.createdAt);
-                    if (!lastOrderDate || orderDate > new Date(lastOrderDate)) {
-                      lastOrderDate = orderData.createdAt;
-                    }
-                  }
-                });
-              }
-              
-              customerData.totalOrders = totalOrders;
-              customerData.totalSpent = totalSpent;
-              customerData.lastOrderDate = lastOrderDate;
-            } catch (orderQueryError) {
-              console.warn(`⚠️ Error in orders query for customer ${doc.id}:`, orderQueryError);
-              customerData.totalOrders = 0;
-              customerData.totalSpent = 0;
-              customerData.lastOrderDate = null;
-            }
-          } catch (ordersError) {
-            console.warn(`⚠️ Error fetching orders for customer ${doc.id}:`, ordersError);
-            customerData.totalOrders = 0;
-            customerData.totalSpent = 0;
-            customerData.lastOrderDate = null;
-          }
+          // Get orders statistics (try both userId and email)
+          const orderStatsById = ordersMap.get(doc.id) || { totalOrders: 0, totalSpent: 0, lastOrderDate: null };
+          const orderStatsByEmail = ordersMap.get(customerData.email) || { totalOrders: 0, totalSpent: 0, lastOrderDate: null };
+          
+          // Use the stats with more orders (prefer userId over email)
+          const orderStats = orderStatsById.totalOrders >= orderStatsByEmail.totalOrders ? orderStatsById : orderStatsByEmail;
+          
+          customerData.totalOrders = orderStats.totalOrders;
+          customerData.totalSpent = orderStats.totalSpent;
+          customerData.lastOrderDate = orderStats.lastOrderDate;
           
           // Update last login if needed (this would be updated during login)
           if (!customerData.lastLogin) {
