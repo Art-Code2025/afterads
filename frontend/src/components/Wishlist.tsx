@@ -42,88 +42,84 @@ const Wishlist: React.FC = () => {
     setError(null);
 
     try {
-      const savedWishlist = localStorage.getItem('wishlist');
-      const wishlistData = savedWishlist ? JSON.parse(savedWishlist) : [];
-      const wishlistIds = Array.isArray(wishlistData) ? wishlistData.map(id => Number(id)) : [];
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setWishlistProducts([]);
+        setLoading(false);
+        return;
+      }
 
-      // --- IMMEDIATE DISPLAY FROM CACHE --- 
-      const cachedProductsString = localStorage.getItem('cachedAllProducts');
-      if (cachedProductsString) {
+      const user = JSON.parse(userData);
+      if (!user?.id) {
+        setWishlistProducts([]);
+        setLoading(false);
+        return;
+      }
+
+      const { wishlistService } = await import('../services/wishlistService');
+      const wishlistItems = await wishlistService.getUserWishlist(user.id);
+      
+      if (wishlistItems.length === 0) {
+        setWishlistProducts([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch product details for each wishlist item
+      const productPromises = wishlistItems.map(async (item) => {
         try {
-          const allCachedProducts = JSON.parse(cachedProductsString);
-          const initialWishlist = allCachedProducts.filter((product: Product) =>
-            wishlistIds.includes(Number(product.id))
-          );
-          setWishlistProducts(initialWishlist);
-          console.log('📦 [Wishlist] Displaying from cached products initially.');
-        } catch (e) {
-          console.error('❌ [Wishlist] Failed to parse cached products for initial display:', e);
-        }
-      } else {
-        setWishlistProducts([]); // Clear if no cache
-      }
-      // --- END IMMEDIATE DISPLAY ---
-
-      if (wishlistIds.length > 0) {
-        console.log('🔄 [Wishlist] Fetching fresh products from API...');
-        const response = await fetch('/.netlify/functions/products');
-        if (response.ok) {
-          const apiProducts = await response.json();
-          let allProducts = [];
-          if (Array.isArray(apiProducts)) {
-            allProducts = apiProducts;
-          } else if (apiProducts && apiProducts.data && Array.isArray(apiProducts.data)) {
-            allProducts = apiProducts.data;
-          } else if (apiProducts && apiProducts.products && Array.isArray(apiProducts.products)) {
-            allProducts = apiProducts.products;
+          const response = await fetch(`/.netlify/functions/products/${item.productId}`);
+          if (response.ok) {
+            const product = await response.json();
+            return product;
           }
-
-          if (allProducts.length > 0) {
-            localStorage.setItem('cachedAllProducts', JSON.stringify(allProducts));
-            console.log('💾 [Wishlist] Cached products for future use (from API)');
-            const updatedWishlistProducts = allProducts.filter((product: Product) =>
-              wishlistIds.includes(Number(product.id))
-            );
-            setWishlistProducts(updatedWishlistProducts); // Update with fresh data
-            console.log('🎯 [Wishlist] Updated with fresh API data:', updatedWishlistProducts);
-          } else {
-            console.warn('⚠️ [Wishlist] No products in API response, keeping initial cached display.');
-          }
-        } else {
-          console.error('❌ [Wishlist] API response not ok:', response.status, 'Keeping initial cached display.');
+          return null;
+        } catch (error) {
+          console.error(`Error fetching product ${item.productId}:`, error);
+          return null;
         }
-      } else {
-        console.log('📭 [Wishlist] Wishlist is empty, no API fetch needed.');
-        setWishlistProducts([]); // Ensure empty if wishlist is empty
-      }
+      });
+      
+      const products = await Promise.all(productPromises);
+      const validProducts = products.filter(p => p !== null);
+      
+      setWishlistProducts(validProducts);
+      
     } catch (error) {
-      console.error('❌ [Wishlist] Error in loadWishlistProducts:', error);
-      setError('فشل في تحميل المفضلة');
-      setWishlistProducts([]); // Ensure empty on error
+      console.error('Error loading wishlist products:', error);
+      setError('حدث خطأ أثناء تحميل المفضلة');
     } finally {
       setLoading(false);
     }
   };
 
-  const removeFromWishlist = (productId: number, productName: string) => {
+  const removeFromWishlist = async (productId: number, productName: string) => {
     try {
-      const savedWishlist = localStorage.getItem('wishlist');
-      if (savedWishlist) {
-        const wishlistData = JSON.parse(savedWishlist);
-        const updatedWishlist = wishlistData.filter((id: number) => id !== productId);
-        localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-        
-        // Update local state
-        setWishlistProducts(prev => prev.filter(product => product.id !== productId));
-        
-        // Dispatch custom event
-        window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: updatedWishlist }));
-        
-        toast.success(`تم إزالة ${productName} من المفضلة`);
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        toast.info('يرجى تسجيل الدخول أولاً');
+        return;
       }
+
+      const user = JSON.parse(userData);
+      if (!user?.id) {
+        toast.info('يرجى تسجيل الدخول أولاً');
+        return;
+      }
+
+      const { wishlistService } = await import('../services/wishlistService');
+      await wishlistService.removeFromWishlist(user.id, productId.toString());
+      
+      // Update local state
+      setWishlistProducts(prev => prev.filter(product => product.id !== productId));
+      
+      // Dispatch custom event
+      window.dispatchEvent(new CustomEvent('wishlistUpdated'));
+      
+      toast.success(`تم إزالة ${productName} من المفضلة`);
     } catch (error) {
       console.error('Error removing from wishlist:', error);
-      toast.error('فشل في إزالة المنتج من المفضلة');
+      toast.error('حدث خطأ أثناء إزالة المنتج من المفضلة');
     }
   };
 
@@ -152,12 +148,31 @@ const Wishlist: React.FC = () => {
     }
   };
 
-  const clearWishlist = () => {
+  const clearWishlist = async () => {
     if (window.confirm('هل أنت متأكد من حذف جميع المنتجات من المفضلة؟')) {
-      localStorage.removeItem('wishlist');
-      setWishlistProducts([]);
-      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: [] }));
-      toast.success('تم مسح المفضلة');
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          toast.info('يرجى تسجيل الدخول أولاً');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        if (!user?.id) {
+          toast.info('يرجى تسجيل الدخول أولاً');
+          return;
+        }
+
+        const { wishlistService } = await import('../services/wishlistService');
+        await wishlistService.clearUserWishlist(user.id);
+        
+        setWishlistProducts([]);
+        window.dispatchEvent(new CustomEvent('wishlistUpdated'));
+        toast.success('تم مسح المفضلة');
+      } catch (error) {
+        console.error('Error clearing wishlist:', error);
+        toast.error('حدث خطأ أثناء مسح المفضلة');
+      }
     }
   };
 

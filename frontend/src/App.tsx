@@ -255,59 +255,48 @@ const App: React.FC = () => {
     }
   };
 
-  // Handle wishlist toggle
-  const handleWishlistToggle = (productId: number, productName: string) => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
-      return;
-    }
-    
+  // Handle wishlist toggle using backend API
+  const handleWishlistToggle = async (productId: number, productName: string) => {
     try {
-      // Get current wishlist from localStorage to ensure accuracy
-      const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const isInWishlist = currentWishlist.includes(productId);
-      let newWishlist;
-      
-      if (isInWishlist) {
-        // Remove from wishlist
-        newWishlist = currentWishlist.filter((id: number) => id !== productId);
-        toast.info(`تم إزالة ${productName} من المفضلة 💔`);
-      } else {
-        // Add to wishlist - prevent duplicates
-        if (!currentWishlist.includes(productId)) {
-          newWishlist = [...currentWishlist, productId];
-          toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
-        } else {
-          // Already exists
-          newWishlist = currentWishlist;
-          toast.info(`${productName} موجود بالفعل في المفضلة`);
-          return;
-        }
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+        return;
       }
+
+      const user = JSON.parse(userData);
+      if (!user?.id) {
+        toast.info('يرجى تسجيل الدخول أولاً');
+        return;
+      }
+
+      // Find the product details
+      const product = allProducts.find(p => p.id === productId);
+      if (!product) {
+        toast.error('المنتج غير موجود');
+        return;
+      }
+
+      // Import the service dynamically to avoid circular dependencies
+      const { wishlistService } = await import('./services/wishlistService');
       
-      // Update state
-      setWishlist(newWishlist);
-      
-      // Save to localStorage
-      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
-      
-      // Dispatch wishlist updated event with detail
-      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
-      
+      // Use the service to toggle wishlist
+      await wishlistService.toggleWishlist(user.id, {
+        id: productId.toString(),
+        name: product.name,
+        image: product.mainImage || '',
+        price: product.price,
+        originalPrice: product.originalPrice,
+        category: (product.categoryId || 'عام').toString(),
+      });
+
+      // Refresh wishlist from backend
+      const updatedWishlist = await wishlistService.getUserWishlist(user.id);
+      setWishlist(updatedWishlist.map(item => Number(item.productId)));
+
     } catch (error) {
       console.error('خطأ في تحديث المفضلة:', error);
       toast.error('حدث خطأ أثناء تحديث المفضلة');
-      // Reset wishlist state from localStorage on error
-      try {
-        const savedWishlist = localStorage.getItem('wishlist');
-        if (savedWishlist) {
-          setWishlist(JSON.parse(savedWishlist));
-        }
-      } catch (resetError) {
-        setWishlist([]);
-      }
     }
   };
 

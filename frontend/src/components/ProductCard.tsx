@@ -70,20 +70,45 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Check if product is in wishlist on component mount
   useEffect(() => {
-    try {
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      setIsWishlisted(wishlist.includes(Number(product.id)));
-    } catch (error) {
-      console.error('Error loading wishlist status:', error);
-    }
+    const checkWishlistStatus = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        if (!user?.id) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const { wishlistService } = await import('../services/wishlistService');
+        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
+        setIsWishlisted(isInWishlist);
+      } catch (error) {
+        console.error('Error loading wishlist status:', error);
+      }
+    };
+
+    checkWishlistStatus();
   }, [product.id]);
 
   // Listen for wishlist updates
   useEffect(() => {
-    const handleWishlistUpdate = () => {
+    const handleWishlistUpdate = async () => {
       try {
-        const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-        setIsWishlisted(wishlist.includes(Number(product.id)));
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const { wishlistService } = await import('../services/wishlistService');
+        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
+        setIsWishlisted(isInWishlist);
       } catch (error) {
         console.error('Error updating wishlist status:', error);
       }
@@ -128,7 +153,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleAddToWishlist = (e: React.MouseEvent) => {
+  const handleAddToWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -144,33 +169,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
     
+    const user = JSON.parse(userData);
+    if (!user?.id) {
+      toast.info('يرجى تسجيل الدخول أولاً');
+      return;
+    }
+    
     setIsWishlistLoading(true);
     
     try {
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const productId = Number(product.id);
-      let newWishlist;
+      const { wishlistService } = await import('../services/wishlistService');
       
-      // Toggle wishlist status - one click toggle
-      const currentlyInWishlist = wishlist.includes(productId);
+      // Toggle wishlist status using backend API
+      await wishlistService.toggleWishlist(user.id, {
+        id: product.id.toString(),
+        name: product.name,
+        image: product.image || '',
+        price: product.price,
+        originalPrice: product.originalPrice,
+        category: product.category || 'عام',
+      });
       
-      if (currentlyInWishlist) {
-        // Remove from wishlist
-        newWishlist = wishlist.filter((id: number) => id !== productId);
-        setIsWishlisted(false);
-        toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
-      } else {
-        // Add to wishlist
-        newWishlist = [...wishlist, productId];
-        setIsWishlisted(true);
+      // Update local state
+      setIsWishlisted(!isWishlisted);
+      
+      // Show appropriate toast message
+      if (!isWishlisted) {
         toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
+      } else {
+        toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
       }
       
-      // Save to localStorage
-      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
-      
-      // Dispatch event with detail
-      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('wishlistUpdated'));
       
       // Call parent callback if provided
       if (onAddToWishlist) {
@@ -180,15 +211,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     } catch (error) {
       console.error('Error updating wishlist:', error);
       toast.error('حدث خطأ أثناء تحديث المفضلة');
-      // Reset state on error
+      
+      // Refresh state from backend to ensure consistency
       try {
-        const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-        setIsWishlisted(wishlist.includes(Number(product.id)));
-      } catch (resetError) {
-        setIsWishlisted(false);
+        const { wishlistService } = await import('../services/wishlistService');
+        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
+        setIsWishlisted(isInWishlist);
+      } catch (refreshError) {
+        console.error('Error refreshing wishlist status:', refreshError);
       }
     } finally {
-      // Reduce delay for faster response
       setIsWishlistLoading(false);
     }
   };

@@ -20,17 +20,25 @@ interface Props {
 const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
   const [wishlist, setWishlist] = useState<number[]>([]);
   
-  // Load wishlist from localStorage
+  // Load wishlist from backend API
   useEffect(() => {
-    const loadWishlist = () => {
+    const loadWishlist = async () => {
       try {
-        const savedWishlist = localStorage.getItem('wishlist');
-        if (savedWishlist) {
-          const parsedWishlist = JSON.parse(savedWishlist);
-          if (Array.isArray(parsedWishlist)) {
-            setWishlist(parsedWishlist);
-          }
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          setWishlist([]);
+          return;
         }
+
+        const user = JSON.parse(userData);
+        if (!user?.id) {
+          setWishlist([]);
+          return;
+        }
+
+        const { wishlistService } = await import('../services/wishlistService');
+        const wishlistItems = await wishlistService.getUserWishlist(user.id);
+        setWishlist(wishlistItems.map(item => Number(item.productId)));
       } catch (error) {
         console.error('خطأ في تحميل المفضلة:', error);
         setWishlist([]);
@@ -40,18 +48,8 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
     loadWishlist();
     
     // Listen for wishlist updates from other components
-    const handleWishlistUpdate = (event: any) => {
-      try {
-        if (event.detail && Array.isArray(event.detail)) {
-          setWishlist(event.detail);
-        } else {
-          // Fallback to localStorage
-          loadWishlist();
-        }
-      } catch (error) {
-        console.error('خطأ في تحديث المفضلة:', error);
-        loadWishlist();
-      }
+    const handleWishlistUpdate = () => {
+      loadWishlist();
     };
     
     window.addEventListener('wishlistUpdated', handleWishlistUpdate);

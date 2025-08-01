@@ -245,42 +245,54 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
 
   const fetchWishlistCount = async () => {
     try {
-      // Always check localStorage first for wishlist count
-      const savedWishlist = localStorage.getItem('wishlist');
-      let wishlistCount = 0;
-      
-      if (savedWishlist) {
-        try {
-          const parsedWishlist = JSON.parse(savedWishlist);
-          if (Array.isArray(parsedWishlist)) {
-            wishlistCount = parsedWishlist.length;
-          }
-        } catch (parseError) {
-          console.error('❌ [Navbar] Error parsing wishlist from localStorage:', parseError);
-          wishlistCount = 0;
-        }
-      }
-      
-      console.log('📊 [Navbar] Wishlist count from localStorage:', wishlistCount);
-      setWishlistItemsCount(wishlistCount);
-      localStorage.setItem('lastWishlistCount', wishlistCount.toString());
-      
-      // Also save for current user if logged in
       const userData = localStorage.getItem('user');
-      if (userData) {
-        try {
-          const user = JSON.parse(userData);
-          if (user?.id) {
-            localStorage.setItem(`wishlistCount_${user.id}`, wishlistCount.toString());
-          }
-        } catch (error) {
-          console.error('❌ [Navbar] Error parsing user data:', error);
-        }
+      
+      if (!userData) {
+        // المستخدم غير مسجل - لا يوجد مفضلة
+        setWishlistItemsCount(0);
+        localStorage.setItem('lastWishlistCount', '0');
+        return;
       }
       
-      console.log('💾 [Navbar] Wishlist count saved to localStorage:', wishlistCount);
+      const user = JSON.parse(userData);
+      if (!user?.id) {
+        setWishlistItemsCount(0);
+        localStorage.setItem('lastWishlistCount', '0');
+        return;
+      }
+      
+      console.log('🔄 [Navbar] Fetching wishlist count for user:', user.id);
+      const { wishlistService } = await import('../services/wishlistService');
+      const count = await wishlistService.getWishlistCount(user.id);
+      
+      console.log('📊 [Navbar] Wishlist count fetched:', count);
+      setWishlistItemsCount(count);
+      
+      // حفظ العداد في localStorage بنفس طريقة cartUtils
+      localStorage.setItem('lastWishlistCount', count.toString());
+      localStorage.setItem(`wishlistCount_${user.id}`, count.toString());
+      
+      console.log('💾 [Navbar] Wishlist count saved to localStorage:', count);
     } catch (error) {
       console.error('❌ [Navbar] Error fetching wishlist count:', error);
+      
+      // في حالة الخطأ، حاول تحميل من localStorage كنسخة احتياطية
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setWishlistItemsCount(0);
+        localStorage.setItem('lastWishlistCount', '0');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      if (user?.id) {
+        const savedCount = localStorage.getItem(`wishlistCount_${user.id}`);
+        if (savedCount) {
+          setWishlistItemsCount(parseInt(savedCount));
+          return;
+        }
+      }
+      
       setWishlistItemsCount(0);
       localStorage.setItem('lastWishlistCount', '0');
     }
