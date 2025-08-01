@@ -176,7 +176,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
     
     const user = JSON.parse(userData);
-    console.log('👤 [ProductCard] Parsed user:', { id: user?.id, name: user?.name });
+    console.log('👤 [ProductCard] Parsed user:', { id: user?.id, email: user?.email, firstName: user?.firstName });
     
     if (!user?.id) {
       toast.info('يرجى تسجيل الدخول أولاً');

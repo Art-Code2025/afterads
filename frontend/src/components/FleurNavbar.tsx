@@ -66,10 +66,15 @@ const FleurNavbar: React.FC = () => {
   }, [isUserMenuOpen]);
 
   const handleLoginSuccess = (userData: any) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // Add name field for compatibility
+    const userWithName = {
+      ...userData,
+      name: userData.firstName ? `${userData.firstName} ${userData.lastName || ''}`.trim() : userData.email
+    };
+    setUser(userWithName);
+    localStorage.setItem('user', JSON.stringify(userWithName));
     setIsAuthModalOpen(false);
-    toast.success(`مرحباً ${userData.name}! تم تسجيل الدخول بنجاح`);
+    toast.success(`مرحباً ${userWithName.name}! تم تسجيل الدخول بنجاح`);
   };
 
   const handleLogout = () => {
