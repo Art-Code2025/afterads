@@ -448,9 +448,23 @@ const ProductDetail: React.FC = () => {
                   
                   <button
                     onClick={addToWishlist}
-                    className="px-6 py-4 border-2 border-brown-500 text-brown-500 rounded-xl hover:bg-brown-500 hover:text-white transition-all duration-300 transform hover:scale-105"
+                    className={`relative px-6 py-4 border-2 rounded-xl transition-all duration-300 transform hover:scale-105 group ${
+                      isWishlisted 
+                        ? 'border-red-500 bg-red-500 text-white shadow-lg shadow-red-200' 
+                        : 'border-brown-500 text-brown-500 hover:bg-brown-500 hover:text-white'
+                    }`}
                   >
-                    <Heart className="w-6 h-6" />
+                    <Heart 
+                      className={`w-6 h-6 transition-all duration-300 ${
+                        isWishlisted 
+                          ? 'fill-white text-white scale-110' 
+                          : 'group-hover:scale-110'
+                      }`} 
+                    />
+                    {/* Animated Ring Effect for Wishlisted Items */}
+                    {isWishlisted && (
+                      <div className="absolute inset-0 rounded-xl bg-red-100 animate-ping opacity-20"></div>
+                    )}
                   </button>
                 </div>
 

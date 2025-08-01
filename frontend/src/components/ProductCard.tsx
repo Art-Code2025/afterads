@@ -312,23 +312,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          {/* Wishlist Button */}
+          {/* Professional Wishlist Button */}
           <button
             onClick={handleAddToWishlist}
             disabled={isWishlistLoading}
-            className={`absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-all duration-300 group/heart ${
-              isWishlistLoading ? 'opacity-50 cursor-not-allowed' : ''
+            className={`absolute top-3 right-3 z-10 w-10 h-10 bg-white/95 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 group/heart transform hover:scale-110 ${
+              isWishlistLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white'
+            } ${
+              isWishlisted ? 'ring-2 ring-red-200' : ''
             }`}
           >
             <Heart 
-              className={`w-4 h-4 transition-all duration-300 group-hover/heart:scale-110 ${
+              className={`w-5 h-5 transition-all duration-300 ${
                 isWishlisted 
-                  ? 'text-red-500 fill-red-500' 
-                  : 'text-gray-400 hover:text-red-500'
+                  ? 'text-red-500 fill-red-500 scale-110' 
+                  : 'text-gray-400 hover:text-red-500 group-hover/heart:scale-110'
               } ${
                 isWishlistLoading ? 'animate-pulse' : ''
               }`} 
             />
+            {/* Animated Ring Effect */}
+            {isWishlisted && (
+              <div className="absolute inset-0 rounded-full bg-red-100 animate-ping opacity-20"></div>
+            )}
           </button>
 
           {/* Product Image */}
