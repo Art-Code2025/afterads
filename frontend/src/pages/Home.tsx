@@ -517,7 +517,7 @@ function Home() {
   `;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zico-cream to-beige-50">
+    <div className="min-h-screen bg-gradient-to-br from-dark-900 to-dark-800">
       <style>{animationStyles}</style>
       <ToastContainer position="top-left" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover draggable />
 
@@ -532,13 +532,13 @@ function Home() {
       </section>
 
       {/* Brand Story Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section className="py-16 lg:py-24 bg-dark-800">
         <div className="container-responsive">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-5xl font-bold luxury-heading mb-6">
               قصة براند زيكو
             </h2>
-            <p className="text-lg lg:text-xl text-beige-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg lg:text-xl text-dark-200 max-w-3xl mx-auto leading-relaxed">
               رحلة عطرية استثنائية تجمع بين التراث العربي الأصيل والحداثة العصرية، 
               لنقدم لك أرقى العطور التي تعكس شخصيتك المميزة
             </p>
@@ -552,11 +552,11 @@ function Home() {
                   alt="زيكو براند" 
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-br from-zico-primary/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-dark-600/40 to-transparent"></div>
                 <div className="absolute bottom-6 left-6 right-6">
-                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6">
-                    <h3 className="text-xl font-bold text-zico-primary mb-2">منذ 2020</h3>
-                    <p className="text-beige-700">نصنع العطور بحب وإتقان</p>
+                  <div className="bg-dark-700/90 backdrop-blur-sm rounded-2xl p-6 border border-dark-600">
+                    <h3 className="text-xl font-bold text-dark-100 mb-2">منذ 2020</h3>
+                    <p className="text-dark-300">نصنع العطور بحب وإتقان</p>
                   </div>
                 </div>
               </div>
@@ -564,12 +564,12 @@ function Home() {
             
             <div className="space-y-6">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-zico-primary to-zico-secondary rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <Crown className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-br from-dark-600 to-dark-700 rounded-2xl flex items-center justify-center flex-shrink-0 border border-dark-500">
+                  <Crown className="w-6 h-6 text-dark-100" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">جودة استثنائية</h3>
-                  <p className="text-beige-700">نختار أجود المواد الخام من جميع أنحاء العالم</p>
+                  <h3 className="text-xl font-bold text-dark-100 mb-2">جودة استثنائية</h3>
+                  <p className="text-dark-300">نختار أجود المواد الخام من جميع أنحاء العالم</p>
                 </div>
               </div>
               
@@ -578,8 +578,8 @@ function Home() {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">تصميم فريد</h3>
-                  <p className="text-beige-700">كل عطر يحكي قصة مختلفة ويعكس شخصية فريدة</p>
+                  <h3 className="text-xl font-bold text-dark-100 mb-2">تصميم فريد</h3>
+                  <p className="text-dark-300">كل عطر يحكي قصة مختلفة ويعكس شخصية فريدة</p>
                 </div>
               </div>
               
@@ -588,8 +588,8 @@ function Home() {
                   <Award className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">تقدير عالمي</h3>
-                  <p className="text-beige-700">حائزون على جوائز عالمية في صناعة العطور</p>
+                  <h3 className="text-xl font-bold text-dark-100 mb-2">تقدير عالمي</h3>
+                  <p className="text-dark-300">حائزون على جوائز عالمية في صناعة العطور</p>
                 </div>
               </div>
             </div>
@@ -598,13 +598,13 @@ function Home() {
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 lg:py-24 bg-gradient-to-br from-beige-50 to-beige-100">
+      <section className="py-16 lg:py-24 bg-gradient-to-br from-dark-800 to-dark-700">
         <div className="container-responsive">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-5xl font-bold luxury-heading mb-6">
               مجموعاتنا المميزة
             </h2>
-            <p className="text-lg text-beige-700 max-w-2xl mx-auto">
+            <p className="text-lg text-dark-200 max-w-2xl mx-auto">
               اكتشف مجموعة متنوعة من العطور المصممة خصيصاً لكل مناسبة وشخصية
             </p>
           </div>
@@ -614,7 +614,7 @@ function Home() {
               <Link
                 key={category.id}
                 to={`/category/${category.id}`}
-                className="group relative overflow-hidden rounded-3xl bg-white shadow-zico-lg hover:shadow-zico-xl transition-all duration-500 transform hover:-translate-y-2"
+                className="group relative overflow-hidden rounded-3xl bg-dark-800 shadow-dark-lg hover:shadow-dark-xl transition-all duration-500 transform hover:-translate-y-2"
               >
                 <div className="aspect-[3/4] relative overflow-hidden">
                   <img
@@ -660,13 +660,13 @@ function Home() {
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section className="py-16 lg:py-24 bg-dark-800">
         <div className="container-responsive">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-5xl font-bold luxury-heading mb-6">
               العطور الأكثر مبيعاً
             </h2>
-            <p className="text-lg text-beige-700 max-w-2xl mx-auto">
+            <p className="text-lg text-dark-200 max-w-2xl mx-auto">
               اكتشف العطور المفضلة لدى عملائنا والأكثر طلباً في المملكة
             </p>
           </div>
@@ -694,13 +694,13 @@ function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 lg:py-24 bg-gradient-to-br from-zico-primary to-zico-secondary">
+      <section className="py-16 lg:py-24 bg-gradient-to-br from-dark-700 to-dark-600">
         <div className="container-responsive">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">
               لماذا تختار زيكو؟
             </h2>
-            <p className="text-lg text-beige-100 max-w-2xl mx-auto">
+            <p className="text-lg text-dark-200 max-w-2xl mx-auto">
               نقدم لك تجربة تسوق استثنائية مع أفضل الخدمات والضمانات
             </p>
           </div>
@@ -716,7 +716,7 @@ function Home() {
                   {React.cloneElement(feature.icon, { className: "w-8 h-8 text-white" })}
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">{feature.title}</h3>
-                <p className="text-beige-100">{feature.description}</p>
+                <p className="text-dark-200">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -724,18 +724,18 @@ function Home() {
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-16 lg:py-24 bg-beige-50">
+      <section className="py-16 lg:py-24 bg-dark-800">
         <div className="container-responsive">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="bg-white rounded-3xl shadow-zico-xl p-8 lg:p-12">
-              <div className="w-16 h-16 bg-gradient-to-br from-zico-primary to-zico-secondary rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <div className="bg-dark-700 rounded-3xl shadow-dark-xl p-8 lg:p-12">
+              <div className="w-16 h-16 bg-gradient-to-br from-dark-600 to-dark-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Mail className="w-8 h-8 text-white" />
               </div>
               
               <h2 className="text-3xl lg:text-4xl font-bold luxury-heading mb-4">
                 اشترك في نشرتنا الإخبارية
               </h2>
-              <p className="text-lg text-beige-700 mb-8">
+              <p className="text-lg text-dark-200 mb-8">
                 احصل على آخر الأخبار والعروض الحصرية والمنتجات الجديدة قبل الجميع
               </p>
               
@@ -743,7 +743,7 @@ function Home() {
                 <input
                   type="email"
                   placeholder="بريدك الإلكتروني"
-                  className="flex-1 px-6 py-4 rounded-xl border border-beige-300 focus:outline-none focus:border-zico-primary focus:ring-2 focus:ring-zico-primary/20 transition-all duration-300"
+                  className="flex-1 px-6 py-4 rounded-xl border border-dark-500 bg-dark-600 text-dark-100 focus:outline-none focus:border-dark-400 focus:ring-2 focus:ring-dark-400/20 transition-all duration-300"
                 />
                 <button
                   type="submit"
@@ -753,7 +753,7 @@ function Home() {
                 </button>
               </form>
               
-              <p className="text-sm text-beige-600 mt-4">
+              <p className="text-sm text-dark-300 mt-4">
                 لن نشارك بريدك الإلكتروني مع أي طرف ثالث
               </p>
             </div>
@@ -762,36 +762,36 @@ function Home() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section className="py-16 lg:py-24 bg-dark-800">
         <div className="container-responsive">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold luxury-heading mb-6">
                 تواصل معنا
               </h2>
-              <p className="text-lg text-beige-700 mb-8">
+              <p className="text-lg text-dark-200 mb-8">
                 فريق خدمة العملاء لدينا جاهز لمساعدتك في أي وقت. 
                 تواصل معنا للحصول على استشارة مجانية حول أفضل العطور المناسبة لك
               </p>
               
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-zico-primary to-zico-secondary rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-dark-600 to-dark-500 rounded-xl flex items-center justify-center">
                     <Phone className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">اتصل بنا</p>
-                    <p className="text-beige-700">+966 50 123 4567</p>
+                    <p className="font-semibold text-dark-100">اتصل بنا</p>
+                    <p className="text-dark-200">+966 50 123 4567</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-zico-gold to-yellow-500 rounded-xl flex items-center justify-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-dark-600 to-dark-500 rounded-xl flex items-center justify-center">
                     <Mail className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">راسلنا</p>
-                    <p className="text-beige-700">info@zico-perfumes.com</p>
+                    <p className="font-semibold text-dark-100">راسلنا</p>
+                    <p className="text-dark-200">info@zico-perfumes.com</p>
                   </div>
                 </div>
               </div>
@@ -804,13 +804,13 @@ function Home() {
                   alt="تواصل معنا" 
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-br from-zico-primary/30 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-dark-600/30 to-transparent"></div>
                 
                 {/* Floating Contact Info */}
                 <div className="absolute top-6 left-6 right-6">
-                  <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4">
-                    <p className="text-zico-primary font-bold">خدمة عملاء 24/7</p>
-                    <p className="text-sm text-beige-700">نحن هنا لخدمتك</p>
+                  <div className="bg-dark-700/90 backdrop-blur-sm rounded-2xl p-4">
+                    <p className="text-dark-100 font-bold">خدمة عملاء 24/7</p>
+                    <p className="text-sm text-dark-200">نحن هنا لخدمتك</p>
                   </div>
                 </div>
               </div>

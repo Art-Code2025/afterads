@@ -7,7 +7,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Zico Perfume Brand Colors - Beige & Burgundy Theme
+        // Dark Theme Colors - Based on #2a2a2a
+        dark: {
+          50: '#f8f8f8',   // Very light gray
+          100: '#f0f0f0',  // Light gray
+          200: '#e0e0e0',  // Soft gray
+          300: '#c0c0c0',  // Medium light gray
+          400: '#a0a0a0',  // Medium gray
+          500: '#808080',  // Base gray
+          600: '#606060',  // Strong gray
+          700: '#404040',  // Dark gray
+          800: '#2a2a2a',  // Main dark color
+          900: '#1a1a1a',  // Deep dark
+        },
+        accent: {
+          50: '#f5f5f5',   // Very light accent
+          100: '#eeeeee',  // Light accent
+          200: '#dddddd',  // Soft accent
+          300: '#bbbbbb',  // Medium light accent
+          400: '#999999',  // Medium accent
+          500: '#777777',  // Base accent
+          600: '#555555',  // Strong accent
+          700: '#333333',  // Dark accent
+          800: '#2a2a2a',  // Main accent
+          900: '#111111',  // Deep accent
+        },
+        // Brand Specific Colors - Dark Theme
+        zico: {
+          primary: '#2a2a2a',    // Main dark
+          secondary: '#404040',  // Secondary dark
+          accent: '#606060',     // Medium gray
+          light: '#f0f0f0',      // Light gray
+          dark: '#1a1a1a',       // Deep dark
+          gold: '#D4AF37',       // Keep gold accent
+          rose: '#888888',       // Muted rose
+          cream: '#f8f8f8',      // Light cream
+        },
+        // Keep some original colors for dashboard
         burgundy: {
           50: '#fdf2f4',   // Very light burgundy
           100: '#fce7ea',  // Light burgundy
@@ -32,18 +68,6 @@ export default {
           800: '#8a6b42',  // Very dark beige
           900: '#6b5235',  // Deep beige
         },
-        // Zico Brand Specific Colors
-        zico: {
-          primary: '#8B1538',    // Main burgundy
-          secondary: '#A91B47',  // Secondary burgundy
-          accent: '#C4A484',     // Warm beige
-          light: '#F5F1EB',      // Cream beige
-          dark: '#4A0E1A',       // Deep burgundy
-          gold: '#D4AF37',       // Luxury gold accent
-          rose: '#E8B4B8',       // Soft rose
-          cream: '#FAF8F5',      // Warm cream
-        },
-        // Remove old cream and gold colors
       },
       fontFamily: {
         arabic: ['Cairo', 'Tajawal', 'Almarai', 'sans-serif'],
@@ -122,18 +146,24 @@ export default {
         },
       },
       backgroundImage: {
-        'gradient-zico': 'linear-gradient(135deg, #8B1538 0%, #A91B47 50%, #C4A484 100%)',
+        'gradient-zico': 'linear-gradient(135deg, #2a2a2a 0%, #404040 50%, #606060 100%)',
+        'gradient-dark': 'linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #404040 0%, #606060 100%)',
+        'shimmer-gradient': 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+        // Keep original gradients for dashboard
         'gradient-beige': 'linear-gradient(135deg, #F5F1EB 0%, #C4A484 100%)',
         'gradient-burgundy': 'linear-gradient(135deg, #4A0E1A 0%, #8B1538 100%)',
-        'shimmer-gradient': 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
       },
       boxShadow: {
-        'zico': '0 4px 20px rgba(139, 21, 56, 0.15)',
-        'zico-lg': '0 8px 30px rgba(139, 21, 56, 0.2)',
-        'zico-xl': '0 12px 40px rgba(139, 21, 56, 0.25)',
+        'zico': '0 4px 20px rgba(42, 42, 42, 0.3)',
+        'zico-lg': '0 8px 30px rgba(42, 42, 42, 0.4)',
+        'zico-xl': '0 12px 40px rgba(42, 42, 42, 0.5)',
+        'dark': '0 4px 20px rgba(26, 26, 26, 0.3)',
+        'dark-lg': '0 8px 30px rgba(26, 26, 26, 0.4)',
+        'inner-glow': 'inset 0 2px 4px rgba(255, 255, 255, 0.05)',
+        // Keep original shadows for dashboard
         'beige': '0 4px 20px rgba(196, 164, 132, 0.15)',
         'beige-lg': '0 8px 30px rgba(196, 164, 132, 0.2)',
-        'inner-glow': 'inset 0 2px 4px rgba(255, 255, 255, 0.1)',
       },
     },
   },

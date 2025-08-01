@@ -20,8 +20,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     direction: rtl;
-    background: #fafafa;
-    color: #4A0E1A;
+    background: #2a2a2a;
+    color: #f0f0f0;
     min-height: 100vh;
   }
 
@@ -42,10 +42,12 @@
   /* Luxury headings */
   .luxury-heading {
     font-family: 'Cinzel', 'Playfair Display', serif;
-    background: linear-gradient(135deg, #8B1538 0%, #A91B47 50%, #D4AF37 100%);
+    background: linear-gradient(135deg, #f0f0f0 0%, #c0c0c0 50%, #808080 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   .english-heading {
@@ -56,7 +58,7 @@
 @layer components {
   /* Zico Brand Components */
   .card {
-    @apply bg-white rounded-2xl shadow-zico border border-beige-300 overflow-hidden;
+    @apply bg-dark-700 rounded-2xl shadow-zico border border-dark-600 overflow-hidden text-dark-50;
   }
   
   .zico-text {
@@ -73,7 +75,7 @@
   
   /* Perfume-specific components */
   .perfume-card {
-    @apply bg-white rounded-3xl shadow-zico-lg border border-beige-300 overflow-hidden hover:shadow-zico-xl transition-all duration-500 transform hover:-translate-y-2;
+    @apply bg-dark-700 rounded-3xl shadow-zico-lg border border-dark-600 overflow-hidden hover:shadow-zico-xl transition-all duration-500 transform hover:-translate-y-2 text-dark-50;
   }
 
   .perfume-card-group {
@@ -81,7 +83,7 @@
   }
 
   .perfume-bottle-container {
-    @apply relative overflow-hidden bg-gradient-to-br from-beige-50 to-beige-100 aspect-square flex items-center justify-center;
+    @apply relative overflow-hidden bg-gradient-to-br from-dark-800 to-dark-700 aspect-square flex items-center justify-center;
   }
 
   .perfume-shimmer {
@@ -101,7 +103,7 @@
   }
 
   .luxury-badge {
-    @apply bg-gradient-to-r from-zico-gold to-yellow-400 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg;
+    @apply bg-gradient-to-r from-zico-gold to-yellow-400 text-dark-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg;
   }
 
   .scent-strength {
@@ -113,24 +115,24 @@
   }
 
   .strength-dot.active {
-    @apply bg-zico-primary;
+    @apply bg-dark-200;
   }
 
   .strength-dot.inactive {
-    @apply bg-beige-300;
+    @apply bg-dark-600;
   }
 
   /* Button Components */
   .btn-zico {
-    @apply bg-gradient-to-r from-zico-primary to-zico-secondary text-white font-bold py-3 px-6 rounded-xl shadow-zico hover:shadow-zico-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-zico-primary/30;
+    @apply bg-gradient-to-r from-dark-800 to-dark-700 text-dark-50 font-bold py-3 px-6 rounded-xl shadow-zico hover:shadow-zico-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-dark-600/30 border border-dark-600;
   }
 
   .btn-zico-outline {
-    @apply border-2 border-zico-primary text-zico-primary font-bold py-3 px-6 rounded-xl hover:bg-zico-primary hover:text-white transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-zico-primary/30;
+    @apply border-2 border-dark-600 text-dark-200 font-bold py-3 px-6 rounded-xl hover:bg-dark-700 hover:text-dark-50 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-dark-600/30;
   }
 
   .btn-zico-ghost {
-    @apply text-zico-primary font-bold py-3 px-6 rounded-xl hover:bg-zico-primary/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-zico-primary/30;
+    @apply text-dark-200 font-bold py-3 px-6 rounded-xl hover:bg-dark-700 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-dark-600/30;
   }
 
   /* Responsive utilities */
@@ -300,7 +302,7 @@
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(45deg, #8B1538, #A91B47, #C4A484, #D4AF37);
+    background: linear-gradient(45deg, #2a2a2a, #404040, #606060, #D4AF37);
     border-radius: inherit;
     z-index: -1;
     opacity: 0;
@@ -312,9 +314,9 @@
     animation: glow 2s ease-in-out infinite alternate;
   }
 
-  /* Zico brand hero effects */
+  /* Dark theme hero effects */
   .zico-hero-bg {
-    background: linear-gradient(135deg, #FAF8F5 0%, #F5F1EB 25%, #C4A484 50%, #8B1538 75%, #4A0E1A 100%);
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 25%, #404040 50%, #606060 75%, #808080 100%);
     background-size: 400% 400%;
     animation: gradient-shift 8s ease infinite;
   }
