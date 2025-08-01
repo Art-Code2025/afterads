@@ -516,7 +516,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
           {/* Menu Button for Mobile - حجم مصغر ومتناسق */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="mobile-menu-button mobile-touch-target text-gray-800 hover:text-gray-600 p-2 sm:p-2.5 rounded-xl lg:hidden transition-all duration-300 ease-out transform hover:scale-110 bg-white/60 backdrop-blur-xl border border-gray-300/50 shadow-md hover:shadow-lg z-[60] relative no-select"
+            className="mobile-menu-button mobile-touch-target text-dark-200 hover:text-dark-100 p-2 sm:p-2.5 rounded-xl lg:hidden transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-700/50 shadow-md hover:shadow-lg z-[60] relative no-select"
             style={{ 
               minWidth: '40px',
               minHeight: '40px'
@@ -526,12 +526,12 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
           </button>
 
           {/* Brand */}
-          <Link to="/" onClick={()=>{setIsMenuOpen(false);window.scrollTo(0,0);}} className="text-2xl font-extrabold text-red-600 select-none lg:absolute lg:right-8">
+          <Link to="/" onClick={()=>{setIsMenuOpen(false);window.scrollTo(0,0);}} className="text-2xl font-extrabold text-red-400 select-none lg:absolute lg:right-8">
             Desi
           </Link>
 
           {/* Centered Links */}
-          <ul className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 items-center gap-8 text-sm font-medium text-gray-700">
+          <ul className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 items-center gap-8 text-sm font-medium text-dark-200">
             {[
               {label:'Home',to:'/'},
               {label:'Products',to:'/products'},
@@ -540,7 +540,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
               {label:'Blog',to:'/blog'},
               {label:'Contact us',to:'/contact'}
             ].map(link=> (
-              <Link key={link.label} to={link.to} className="hover:text-red-600 transition-colors">
+              <Link key={link.label} to={link.to} className="hover:text-red-400 transition-colors">
                 {link.label}
               </Link>
             ))}
@@ -551,7 +551,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
             {/* Cart Icon - حجم مصغر */}
             <Link 
               to="/cart" 
-              className="mobile-touch-target relative p-2 sm:p-2.5 text-gray-700 hover:text-gray-800 transition-all duration-300 ease-out transform hover:scale-110 bg-white/60 backdrop-blur-xl border border-gray-300/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
+              className="mobile-touch-target relative p-2 sm:p-2.5 text-dark-200 hover:text-dark-100 transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-700/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
               style={{ 
                 pointerEvents: 'auto',
                 touchAction: 'manipulation',
@@ -574,7 +574,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
             {/* Wishlist Icon - حجم مصغر */}
             <Link 
               to="/wishlist" 
-              className="mobile-touch-target relative p-2 sm:p-2.5 text-gray-700 hover:text-gray-800 transition-all duration-300 ease-out transform hover:scale-110 bg-white/60 backdrop-blur-xl border border-gray-300/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
+              className="mobile-touch-target relative p-2 sm:p-2.5 text-dark-200 hover:text-dark-100 transition-all duration-300 ease-out transform hover:scale-110 bg-dark-800/60 backdrop-blur-xl border border-dark-700/50 rounded-xl shadow-md hover:shadow-lg group z-[60] no-select"
               style={{ 
                 pointerEvents: 'auto',
                 touchAction: 'manipulation',
@@ -599,7 +599,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
               <div className="relative z-[60]">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="mobile-touch-target flex items-center gap-1 sm:gap-2 text-gray-700 px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-white/70 to-gray-50/70 backdrop-blur-xl border border-gray-300/50 hover:bg-gradient-to-r hover:from-white/90 hover:to-gray-50/90 transition-all duration-300 ease-out transform hover:scale-105 shadow-md hover:shadow-lg group z-[60] no-select"
+                  className="mobile-touch-target flex items-center gap-1 sm:gap-2 text-dark-200 px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-dark-800/70 to-dark-700/70 backdrop-blur-xl border border-dark-600/50 hover:bg-gradient-to-r hover:from-dark-800/90 hover:to-dark-700/90 transition-all duration-300 ease-out transform hover:scale-105 shadow-md hover:shadow-lg group z-[60] no-select"
                   style={{ 
                     pointerEvents: 'auto',
                     touchAction: 'manipulation',
@@ -613,14 +613,14 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-gray-400/10 to-gray-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </button>
                 {isUserMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white/95 backdrop-blur-2xl rounded-xl shadow-xl border border-gray-200/60 py-2 animate-[slideInFromTop_0.3s_ease-out] z-[70]">
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-gray-50/30 to-white/40 rounded-xl" />
+                  <div className="absolute left-0 mt-2 w-48 bg-dark-800/95 backdrop-blur-2xl rounded-xl shadow-xl border border-dark-700/60 py-2 animate-[slideInFromTop_0.3s_ease-out] z-[70]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-dark-900/40 via-dark-800/30 to-dark-900/40 rounded-xl" />
                     <div className="relative">
                       <button
                         onClick={handleLogout}
-                        className="w-full text-right px-4 py-3 text-sm text-gray-700 hover:text-gray-800 hover:bg-gray-50/60 flex items-center gap-3 transition-all duration-300 ease-out group"
+                        className="w-full text-right px-4 py-3 text-sm text-dark-200 hover:text-dark-100 hover:bg-dark-700/60 flex items-center gap-3 transition-all duration-300 ease-out group"
                       >
-                        <LogOut size={16} className="group-hover:scale-110 transition-transform duration-300 text-red-500" />
+                        <LogOut size={16} className="group-hover:scale-110 transition-transform duration-300 text-red-400" />
                         <span className="font-medium">تسجيل خروج</span>
                       </button>
                     </div>
@@ -630,7 +630,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
             ) : (
               <button
                 onClick={openAuthModal}
-                className="mobile-touch-target relative bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl backdrop-blur-xl border border-pink-400/30 hover:from-pink-600 hover:to-rose-600 transition-all duration-300 ease-out transform hover:scale-105 shadow-md hover:shadow-lg font-medium group z-[60] no-select"
+                className="mobile-touch-target relative bg-gradient-to-r from-pink-600 to-rose-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl backdrop-blur-xl border border-pink-500/30 hover:from-pink-700 hover:to-rose-700 transition-all duration-300 ease-out transform hover:scale-105 shadow-md hover:shadow-lg font-medium group z-[60] no-select"
                 style={{ 
                   pointerEvents: 'auto',
                   touchAction: 'manipulation',
@@ -661,28 +661,28 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
         />
         
         {/* Mobile Menu Panel - لوحة القائمة */}
-        <div className={`absolute top-0 right-0 h-full w-80 sm:w-96 bg-white/98 backdrop-blur-3xl shadow-2xl border-l border-gray-200/60 transition-all duration-500 ease-out transform ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`absolute top-0 right-0 h-full w-80 sm:w-96 bg-dark-800/98 backdrop-blur-3xl shadow-2xl border-l border-dark-700/60 transition-all duration-500 ease-out transform ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           {/* Premium Background Effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-gray-50/80 to-white/95" />
-          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-gray-100/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-dark-900/95 via-dark-800/80 to-dark-900/95" />
+          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-dark-700/40 to-transparent" />
           
           {/* Content Container */}
           <div className="relative h-full flex flex-col overflow-y-auto">
             {/* Header Section */}
-            <div className="relative bg-gradient-to-r from-gray-50/90 to-white/90 backdrop-blur-sm border-b border-gray-200/60 p-6">
+            <div className="relative bg-gradient-to-r from-dark-800/90 to-dark-700/90 backdrop-blur-sm border-b border-dark-600/60 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-900 rounded-2xl flex items-center justify-center shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-pink-600 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg">
                     <Menu className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">القائمة الرئيسية</h3>
-                    <p className="text-sm text-gray-600">تصفح أقسام المتجر</p>
+                    <h3 className="text-xl font-bold text-dark-100">القائمة الرئيسية</h3>
+                    <p className="text-sm text-dark-300">تصفح أقسام المتجر</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsMenuOpen(false)}
-                  className="p-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100/60 rounded-2xl transition-all duration-300 group"
+                  className="p-3 text-dark-300 hover:text-dark-100 hover:bg-dark-700/60 rounded-2xl transition-all duration-300 group"
                 >
                   <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
                 </button>
@@ -808,12 +808,12 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
             </div>
 
             {/* Footer Section */}
-            <div className="relative mt-auto border-t border-gray-200/50 bg-gradient-to-r from-gray-50/60 to-white/60 p-6">
+            <div className="relative mt-auto border-t border-dark-700/50 bg-gradient-to-r from-dark-800/60 to-dark-700/60 p-6">
               <div className="text-center">
-                <div className="text-sm text-gray-600 mb-2">
+                <div className="text-sm text-dark-300 mb-2">
                   مرحباً بك في متجر
                 </div>
-                <div className="text-lg font-bold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+                <div className="text-lg font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
                   GHEM.STORE
                 </div>
               </div>

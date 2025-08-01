@@ -293,7 +293,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       initial="initial"
       animate="animate"
       whileHover="whileHover"
-      className={`perfume-card group cursor-pointer perspective-1000 ${className}`}
+      className={`perfume-card group cursor-pointer perspective-1000 bg-dark-800 border border-dark-700 rounded-xl shadow-sm hover:shadow-md ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -478,9 +478,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Price */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg text-brown-700">{(product.price || 0).toFixed(2)} ر.س</span>
+              <span className="font-bold text-lg text-dark-100">{(product.price || 0).toFixed(2)} ر.س</span>
               {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-gray-500 line-through text-sm">{(product.originalPrice || 0).toFixed(2)} ر.س</span>
+                <span className="text-dark-400 line-through text-sm">{(product.originalPrice || 0).toFixed(2)} ر.س</span>
               )}
             </div>
             
@@ -490,7 +490,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 product.inStock !== false ? 'bg-green-500' : 'bg-red-500'
               }`}></div>
               <span className={`text-xs ${
-                product.inStock !== false ? 'text-green-600' : 'text-red-600'
+                product.inStock !== false ? 'text-green-400' : 'text-red-400'
               }`}>
                 {product.inStock !== false ? 'متوفر' : 'غير متوفر'}
               </span>
@@ -499,17 +499,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Longevity & Sillage */}
           {(product.longevity || product.sillage) && (
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-beige-200">
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-dark-700">
               {product.longevity && (
                 <div className="text-center">
-                  <div className="text-xs text-beige-600">الثبات</div>
-                  <div className="text-xs font-medium text-gray-700">{product.longevity}</div>
+                  <div className="text-xs text-dark-300">الثبات</div>
+                  <div className="text-xs font-medium text-dark-100">{product.longevity}</div>
                 </div>
               )}
               {product.sillage && (
                 <div className="text-center">
-                  <div className="text-xs text-beige-600">الإنتشار</div>
-                  <div className="text-xs font-medium text-gray-700">{product.sillage}</div>
+                  <div className="text-xs text-dark-300">الإنتشار</div>
+                  <div className="text-xs font-medium text-dark-100">{product.sillage}</div>
                 </div>
               )}
             </div>

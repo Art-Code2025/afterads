@@ -112,40 +112,40 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
   const shown = products.slice(0, 3);
 
   return (
-    <section className="relative py-24 bg-gradient-to-br from-white via-[#FAF8F5]/50 to-white overflow-hidden">
+    <section className="relative py-24 bg-gradient-to-br from-dark-900 via-dark-800 to-dark-700 overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 right-20 w-40 h-40 bg-gradient-to-br from-[#C4A484]/20 to-[#D4B896]/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-32 left-16 w-32 h-32 bg-gradient-to-br from-[#E5D5C8]/15 to-[#C4A484]/15 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-20 right-20 w-40 h-40 bg-gradient-to-br from-dark-700/20 to-dark-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-32 left-16 w-32 h-32 bg-gradient-to-br from-dark-600/15 to-dark-500/15 rounded-full blur-2xl animate-pulse delay-1000"></div>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Header */}
         <div className="text-center space-y-6 mb-16">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-[#C4A484]/50">
+          <div className="inline-flex items-center gap-2 bg-dark-800/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-dark-600">
             <Star className="w-4 h-4 text-[#D4AF37] fill-[#D4AF37]" />
-            <span className="text-sm font-medium text-[#6B4226]">الأكثر مبيعاً</span>
-            <TrendingUp className="w-4 h-4 text-[#8B5A3C]" />
+            <span className="text-sm font-medium text-dark-100">الأكثر مبيعاً</span>
+            <TrendingUp className="w-4 h-4 text-dark-300" />
           </div>
 
           {/* Main Title */}
           <div className="space-y-4">
-            <h2 className="font-english text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#6B4226] via-[#8B5A3C] to-[#6B4226] bg-clip-text text-transparent">
+            <h2 className="font-english text-5xl md:text-6xl font-bold bg-gradient-to-r from-dark-100 via-dark-200 to-dark-100 bg-clip-text text-transparent">
               CUSTOMER
             </h2>
-            <h3 className="font-english text-4xl md:text-5xl font-light bg-gradient-to-r from-[#A67C52] via-[#C4A484] to-[#A67C52] bg-clip-text text-transparent">
+            <h3 className="font-english text-4xl md:text-5xl font-light bg-gradient-to-r from-dark-300 via-dark-200 to-dark-300 bg-clip-text text-transparent">
               FAVORITES
             </h3>
             
             {/* Decorative Line */}
             <div className="flex justify-center">
-              <div className="w-24 h-1 bg-gradient-to-r from-[#C4A484] to-[#D4B896] rounded-full"></div>
+              <div className="w-24 h-1 bg-gradient-to-r from-dark-600 to-dark-500 rounded-full"></div>
             </div>
           </div>
 
           {/* Description */}
-          <p className="text-[#8B5A3C] text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="text-dark-300 text-lg max-w-2xl mx-auto leading-relaxed">
             اكتشف العطور الأكثر حباً من قبل عملائنا المميزين. تشكيلة منتقاة بعناية من أفضل الروائح العالمية
           </p>
 
@@ -153,12 +153,12 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
           <div className="pt-4">
             <a
               href="#"
-              className="group inline-flex items-center gap-3 text-[#8B5A3C] hover:text-[#6B4226] transition-all duration-300"
+              className="group inline-flex items-center gap-3 text-dark-300 hover:text-dark-100 transition-all duration-300"
             >
               <span className="text-sm font-medium tracking-wider uppercase">جميع المنتجات الأكثر مبيعاً</span>
               <div className="flex items-center gap-1">
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                <div className="w-12 h-px bg-gradient-to-r from-[#C4A484] to-[#D4B896] group-hover:w-16 transition-all duration-300"></div>
+                <div className="w-12 h-px bg-gradient-to-r from-dark-500 to-dark-400 group-hover:w-16 transition-all duration-300"></div>
               </div>
             </a>
           </div>

@@ -58,7 +58,7 @@
 @layer components {
   /* Zico Brand Components */
   .card {
-    @apply bg-dark-700 rounded-2xl shadow-zico border border-dark-600 overflow-hidden text-dark-50;
+    @apply bg-dark-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 border border-dark-700 text-dark-50;
   }
   
   .zico-text {
@@ -75,7 +75,7 @@
   
   /* Perfume-specific components */
   .perfume-card {
-    @apply bg-dark-700 rounded-3xl shadow-zico-lg border border-dark-600 overflow-hidden hover:shadow-zico-xl transition-all duration-500 transform hover:-translate-y-2 text-dark-50;
+    @apply bg-dark-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border border-dark-700 text-dark-50;
   }
 
   .perfume-card-group {
@@ -87,7 +87,7 @@
   }
 
   .perfume-shimmer {
-    @apply absolute inset-0 bg-shimmer-gradient bg-[length:1000px_100%] animate-shimmer opacity-0 transition-opacity duration-500;
+    @apply absolute inset-0 bg-gradient-to-tr from-transparent via-dark-700/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none;
   }
 
   .perfume-shimmer:hover {
@@ -95,44 +95,44 @@
   }
 
   .fragrance-notes {
-    @apply flex flex-wrap gap-2 mt-3;
+    @apply flex flex-wrap gap-1.5;
   }
 
   .fragrance-note {
-    @apply bg-beige-100 text-beige-700 px-3 py-1 rounded-full text-xs font-medium;
+    @apply px-2 py-0.5 bg-dark-700 text-dark-100 text-xs rounded-full whitespace-nowrap;
   }
 
   .luxury-badge {
-    @apply bg-gradient-to-r from-zico-gold to-yellow-400 text-dark-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg;
+    @apply absolute top-2 right-2 bg-gradient-to-r from-[#D4AF37] to-[#A67C52] text-dark-900 px-3 py-1 rounded-full text-xs font-bold shadow-lg z-10;
   }
 
   .scent-strength {
     @apply flex items-center gap-1;
   }
 
-  .strength-dot {
+  .scent-strength-dot {
     @apply w-2 h-2 rounded-full;
   }
 
-  .strength-dot.active {
+  .scent-strength-dot-active {
     @apply bg-dark-200;
   }
 
-  .strength-dot.inactive {
+  .scent-strength-dot-inactive {
     @apply bg-dark-600;
   }
 
   /* Button Components */
   .btn-zico {
-    @apply bg-gradient-to-r from-dark-800 to-dark-700 text-dark-50 font-bold py-3 px-6 rounded-xl shadow-zico hover:shadow-zico-lg transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-dark-600/30 border border-dark-600;
+    @apply px-6 py-3 bg-gradient-to-r from-dark-700 to-dark-800 text-dark-100 rounded-full font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:from-dark-800 hover:to-dark-900 focus:ring-2 focus:ring-dark-600 focus:ring-opacity-50 focus:outline-none;
   }
 
   .btn-zico-outline {
-    @apply border-2 border-dark-600 text-dark-200 font-bold py-3 px-6 rounded-xl hover:bg-dark-700 hover:text-dark-50 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-dark-600/30;
+    @apply px-6 py-3 border-2 border-dark-600 text-dark-100 rounded-full font-medium hover:bg-dark-700 transition-all duration-300 focus:ring-2 focus:ring-dark-500 focus:ring-opacity-50 focus:outline-none;
   }
 
   .btn-zico-ghost {
-    @apply text-dark-200 font-bold py-3 px-6 rounded-xl hover:bg-dark-700 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-dark-600/30;
+    @apply px-4 py-2 text-dark-100 rounded-lg font-medium hover:bg-dark-700 transition-all duration-300 focus:ring-2 focus:ring-dark-600 focus:ring-opacity-50 focus:outline-none;
   }
 
   /* Responsive utilities */
@@ -313,12 +313,15 @@
     opacity: 1;
     animation: glow 2s ease-in-out infinite alternate;
   }
+  
+  /* Bottle Glow Effect */
+  .bottle-glow-effect {
+    @apply absolute inset-0 bg-gradient-to-br from-[#2a2a2a] to-[#D4AF37] rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-110;
+  }
 
   /* Dark theme hero effects */
   .zico-hero-bg {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 25%, #404040 50%, #606060 75%, #808080 100%);
-    background-size: 400% 400%;
-    animation: gradient-shift 8s ease infinite;
+    @apply absolute inset-0 bg-gradient-to-br from-dark-900 via-dark-800 to-dark-700 opacity-80;
   }
 
   @keyframes gradient-shift {

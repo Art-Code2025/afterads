@@ -39,11 +39,11 @@ export default {
           accent: '#606060',     // Medium gray
           light: '#f0f0f0',      // Light gray
           dark: '#1a1a1a',       // Deep dark
-          gold: '#D4AF37',       // Keep gold accent
+          gold: '#D4AF37',       // Gold accent
           rose: '#888888',       // Muted rose
           cream: '#f8f8f8',      // Light cream
         },
-        // Keep some original colors for dashboard
+        // Redefine original colors for dark theme
         burgundy: {
           50: '#fdf2f4',   // Very light burgundy
           100: '#fce7ea',  // Light burgundy
@@ -67,6 +67,19 @@ export default {
           700: '#a08052',  // Dark beige
           800: '#8a6b42',  // Very dark beige
           900: '#6b5235',  // Deep beige
+        },
+        // New color scheme for dark theme
+        gray: {
+          50: '#f8f8f8',
+          100: '#f0f0f0',
+          200: '#e0e0e0',
+          300: '#c0c0c0',
+          400: '#a0a0a0',
+          500: '#808080',
+          600: '#606060',
+          700: '#404040',
+          800: '#2a2a2a',
+          900: '#1a1a1a',
         },
       },
       fontFamily: {

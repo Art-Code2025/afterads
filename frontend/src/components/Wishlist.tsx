@@ -267,17 +267,17 @@ const ProfessionalWishlist: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-700 pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full mb-6 shadow-lg">
-            <Heart className="w-10 h-10 text-white fill-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-dark-700 to-dark-600 rounded-full mb-6 shadow-lg border border-dark-500">
+            <Heart className="w-10 h-10 text-dark-100 fill-dark-100" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl font-bold text-dark-100 mb-4">
             مفضلتي الشخصية
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-dark-300 max-w-2xl mx-auto">
             اكتشف مجموعتك المختارة من المنتجات المفضلة
           </p>
         </div>
@@ -285,24 +285,24 @@ const ProfessionalWishlist: React.FC = () => {
         {products.length > 0 ? (
           <>
             {/* Controls */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+            <div className="bg-dark-800 rounded-2xl shadow-sm border border-dark-700 p-6 mb-8">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 {/* Stats and Actions */}
                 <div className="flex items-center gap-4">
-                  <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                  <div className="bg-gradient-to-r from-dark-700 to-dark-600 text-dark-100 px-4 py-2 rounded-full text-sm font-medium border border-dark-500">
                     {products.length} منتج
                   </div>
                   <button
                     onClick={refreshWishlist}
                     disabled={isRefreshing}
-                    className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 text-dark-300 border border-dark-600 rounded-lg hover:bg-dark-700 transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     تحديث
                   </button>
                   <button
                     onClick={clearWishlist}
-                    className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-red-400 border border-red-900 rounded-lg hover:bg-dark-700 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                     مسح الكل
@@ -316,7 +316,7 @@ const ProfessionalWishlist: React.FC = () => {
                     <select
                       value={filterCategory}
                       onChange={(e) => setFilterCategory(e.target.value)}
-                      className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      className="px-3 py-2 border border-dark-600 rounded-lg text-sm bg-dark-800 text-dark-100 focus:ring-2 focus:ring-dark-500 focus:border-transparent"
                     >
                       <option value="all">جميع الفئات</option>
                       {categories.map(category => (
@@ -329,7 +329,7 @@ const ProfessionalWishlist: React.FC = () => {
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    className="px-3 py-2 border border-dark-600 rounded-lg text-sm bg-dark-800 text-dark-100 focus:ring-2 focus:ring-dark-500 focus:border-transparent"
                   >
                     <option value="newest">الأحدث</option>
                     <option value="oldest">الأقدم</option>
@@ -339,16 +339,16 @@ const ProfessionalWishlist: React.FC = () => {
                   </select>
 
                   {/* View Mode */}
-                  <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex border border-dark-600 rounded-lg overflow-hidden">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2 ${viewMode === 'grid' ? 'bg-pink-500 text-white' : 'text-gray-600 hover:bg-gray-50'} transition-colors`}
+                      className={`p-2 ${viewMode === 'grid' ? 'bg-dark-600 text-dark-100' : 'text-dark-300 hover:bg-dark-700'} transition-colors`}
                     >
                       <Grid className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`p-2 ${viewMode === 'list' ? 'bg-pink-500 text-white' : 'text-gray-600 hover:bg-gray-50'} transition-colors`}
+                      className={`p-2 ${viewMode === 'list' ? 'bg-dark-600 text-dark-100' : 'text-dark-300 hover:bg-dark-700'} transition-colors`}
                     >
                       <List className="w-4 h-4" />
                     </button>
