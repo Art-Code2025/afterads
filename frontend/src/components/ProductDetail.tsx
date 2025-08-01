@@ -60,6 +60,7 @@ const ProductDetail: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     const findAndSetProduct = async () => {
@@ -110,6 +111,69 @@ const ProductDetail: React.FC = () => {
     findAndSetProduct();
   }, [id, slug]);
 
+  // Check wishlist status
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!product) return;
+      
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        if (!user?.id) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const { wishlistService } = await import('../services/wishlistService');
+        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
+        setIsWishlisted(isInWishlist);
+      } catch (error) {
+        console.error('Error loading wishlist:', error);
+        setIsWishlisted(false);
+      }
+    };
+
+    checkWishlistStatus();
+  }, [product]);
+
+  // Listen for wishlist updates
+  useEffect(() => {
+    if (!product) return;
+    
+    const handleWishlistUpdate = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        if (!user?.id) {
+          setIsWishlisted(false);
+          return;
+        }
+
+        const { wishlistService } = await import('../services/wishlistService');
+        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
+        setIsWishlisted(isInWishlist);
+      } catch (error) {
+        console.error('Error updating wishlist status:', error);
+      }
+    };
+
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+    
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
+  }, [product]);
+
   const incrementQuantity = () => setQuantity(prev => Math.min(prev + 1, product?.stock || 1));
   const decrementQuantity = () => setQuantity(prev => Math.max(prev - 1, 1));
 
@@ -150,29 +214,40 @@ const ProductDetail: React.FC = () => {
       return;
     }
     
+    const user = JSON.parse(userData);
+    if (!user?.id) {
+      toast.info('يرجى تسجيل الدخول أولاً');
+      return;
+    }
+    
     try {
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const productId = product.id;
+      const { wishlistService } = await import('../services/wishlistService');
       
-      if (wishlist.includes(productId)) {
-        toast.info('المنتج موجود بالفعل في المفضلة');
-        return;
-      }
-      
-      wishlist.push(productId);
-      localStorage.setItem('wishlist', JSON.stringify(wishlist));
-      
-      window.dispatchEvent(new CustomEvent('wishlistUpdated'));
-      
-      toast.success(`تم إضافة ${product.name} إلى المفضلة! ❤️`, {
-        position: "top-center",
-        autoClose: 3000,
-        style: {
-          background: '#8B5A3C',
-          color: 'white',
-          fontWeight: 'bold'
-        }
+      // Use the service to toggle wishlist
+      const success = await wishlistService.toggleWishlist(user.id, {
+        id: product.id.toString(),
+        name: product.name,
+        image: product.mainImage || '',
+        price: product.price,
+        originalPrice: product.originalPrice,
+        category: product.categoryName || 'عام',
       });
+      
+      if (success) {
+        // Update local state
+        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
+        setIsWishlisted(isInWishlist);
+        
+        toast.success(`تم إضافة ${product.name} إلى المفضلة! ❤️`, {
+          position: "top-center",
+          autoClose: 3000,
+          style: {
+            background: '#8B5A3C',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        });
+      }
     } catch (error) {
       console.error('Error adding to wishlist:', error);
       toast.error('فشل في إضافة المنتج إلى المفضلة');

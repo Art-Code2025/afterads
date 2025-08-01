@@ -68,14 +68,18 @@ const Wishlist: React.FC = () => {
       // Fetch product details for each wishlist item
       const productPromises = wishlistItems.map(async (item) => {
         try {
-          const response = await fetch(`/.netlify/functions/products/${item.productId}`);
-          if (response.ok) {
-            const product = await response.json();
-            return product;
-          }
-          return null;
+          const { apiCall, API_ENDPOINTS } = await import('../config/api');
+          const product = await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(item.productId));
+          return product;
         } catch (error) {
-          console.error(`Error fetching product ${item.productId}:`, error);
+          console.warn(`Product ${item.productId} not found or deleted, skipping from wishlist:`, error);
+          // Remove the wishlist item for non-existent product
+          try {
+            const { wishlistService } = await import('../services/wishlistService');
+            await wishlistService.removeFromWishlist(user.id, item.productId.toString(), 'Product not found');
+          } catch (cleanupError) {
+            console.warn('Could not cleanup wishlist item:', cleanupError);
+          }
           return null;
         }
       });
@@ -93,7 +97,7 @@ const Wishlist: React.FC = () => {
     }
   };
 
-  const removeFromWishlist = async (productId: number, productName: string) => {
+  const removeFromWishlist = async (productId: string | number, productName: string) => {
     try {
       const userData = localStorage.getItem('user');
       if (!userData) {
@@ -123,9 +127,9 @@ const Wishlist: React.FC = () => {
     }
   };
 
-  const addToCart = async (productId: number, productName: string) => {
+  const addToCart = async (productId: string | number, productName: string) => {
     try {
-      const product = wishlistProducts.find(p => p.id === productId);
+      const product = wishlistProducts.find(p => p.id.toString() === productId.toString());
       if (!product) return;
 
       const success = await addToCartUnified(
