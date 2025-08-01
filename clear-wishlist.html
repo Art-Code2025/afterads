@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسح المفضلة</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #c0392b;
+        }
+        .info {
+            background: #3498db;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #2ecc71;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>مسح المفضلة</h1>
+        <p>اضغط على الزر أدناه لمسح جميع المنتجات من المفضلة الخاصة بك.</p>
+        
+        <div id="status"></div>
+        
+        <button onclick="clearWishlist()">مسح المفضلة بالكامل</button>
+        <button onclick="checkWishlist()">عرض عدد المنتجات في المفضلة</button>
+        <button onclick="logout()">تسجيل الخروج</button>
+    </div>
+
+    <script>
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function clearWishlist() {
+            try {
+                const userData = localStorage.getItem('user');
+                if (!userData) {
+                    updateStatus('يرجى تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                const user = JSON.parse(userData);
+                if (!user?.id) {
+                    updateStatus('لا يوجد معرف مستخدم', 'error');
+                    return;
+                }
+
+                updateStatus('جاري مسح المفضلة...', 'info');
+
+                // استخدام fetch لمسح المفضلة
+                const response = await fetch(`/.netlify/functions/wishlists/user/${user.id}/clear`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    updateStatus('تم مسح المفضلة بنجاح!', 'success');
+                    
+                    // مسح العداد من localStorage
+                    localStorage.removeItem(`wishlistCount_${user.id}`);
+                    localStorage.setItem('lastWishlistCount', '0');
+                    
+                    // إرسال حدث التحديث
+                    window.dispatchEvent(new CustomEvent('wishlistUpdated'));
+                    
+                    // إعادة تحميل الصفحة بعد ثانية
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const error = await response.json();
+                    updateStatus(`خطأ: ${error.error || 'حدث خطأ غير متوقع'}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(`خطأ في الاتصال: ${error.message}`, 'error');
+            }
+        }
+
+        function checkWishlist() {
+            const userData = localStorage.getItem('user');
+            if (!userData) {
+                updateStatus('لا يوجد مستخدم مسجل', 'info');
+                return;
+            }
+
+            const user = JSON.parse(userData);
+            const count = localStorage.getItem(`wishlistCount_${user.id}`);
+            const lastCount = localStorage.getItem('lastWishlistCount');
+            
+            updateStatus(`عدد المنتجات في المفضلة: ${count || lastCount || 'غير متاح'}`, 'info');
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('wishlistCount');
+            localStorage.setItem('lastWishlistCount', '0');
+            updateStatus('تم تسجيل الخروج بنجاح', 'success');
+            setTimeout(() => location.reload(), 1000);
+        }
+
+        // عرض الحالة عند تحميل الصفحة
+        window.onload = function() {
+            checkWishlist();
+        };
+    </script>
+</body>
+</html>

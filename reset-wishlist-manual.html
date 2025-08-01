@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعادة تعيين عدد المفضلة</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .reset-btn {
+            background: #e74c3c;
+        }
+        .reset-btn:hover {
+            background: #c0392b;
+        }
+        .info {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            text-align: right;
+        }
+        .current-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>إعادة تعيين عدد المفضلة</h1>
+        <p>العدد الحالي في المفضلة:</p>
+        <div class="current-count" id="currentCount">...</div>
+        
+        <div class="info">
+            <strong>ملاحظة:</strong> سيتم إعادة تعيين عدد المفضلة إلى 0
+        </div>
+        
+        <button class="reset-btn" onclick="resetToZero()">تعيين العدد إلى 0</button>
+        <button onclick="refreshPage()">تحديث الصفحة</button>
+        <button onclick="showInstructions()">عرض التعليمات</button>
+    </div>
+
+    <script>
+        function updateCurrentCount() {
+            let count = 0;
+            
+            // Check all possible sources for wishlist count
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    if (user?.id) {
+                        const userCount = localStorage.getItem(`wishlistCount_${user.id}`);
+                        if (userCount) count = parseInt(userCount) || 0;
+                    }
+                } catch (e) {}
+            }
+            
+            // Check general wishlist count
+            const lastCount = localStorage.getItem('lastWishlistCount');
+            if (lastCount && parseInt(lastCount) > count) {
+                count = parseInt(lastCount);
+            }
+            
+            // Check for old wishlist format
+            const oldWishlist = localStorage.getItem('wishlist');
+            if (oldWishlist) {
+                try {
+                    const items = JSON.parse(oldWishlist);
+                    if (Array.isArray(items)) {
+                        count = Math.max(count, items.length);
+                    }
+                } catch (e) {}
+            }
+            
+            document.getElementById('currentCount').textContent = count;
+            return count;
+        }
+
+        function resetToZero() {
+            if (confirm('هل أنت متأكد من إعادة تعيين عدد المفضلة إلى 0؟')) {
+                // Clear all wishlist-related localStorage items
+                const keysToRemove = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.toLowerCase().includes('wishlist')) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                keysToRemove.forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                
+                // Reset counts
+                localStorage.setItem('lastWishlistCount', '0');
+                
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        if (user?.id) {
+                            localStorage.setItem(`wishlistCount_${user.id}`, '0');
+                        }
+                    } catch (e) {}
+                }
+                
+                // Dispatch update event
+                window.dispatchEvent(new CustomEvent('wishlistUpdated'));
+                
+                alert('تم إعادة تعيين عدد المفضلة إلى 0 بنجاح!');
+                updateCurrentCount();
+            }
+        }
+
+        function refreshPage() {
+            window.location.reload();
+        }
+
+        function showInstructions() {
+            alert(`
+تعليمات إعادة تعيين عدد المفضلة:
+
+1. اضغط على زر "تعيين العدد إلى 0"
+2. أو افتح Console في المتصفح (F12) والصق الكود التالي:
+
+(function() {
+    const keys = [];
+    for(let i=0; i<localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if(key && key.toLowerCase().includes('wishlist')) keys.push(key);
+    }
+    keys.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('lastWishlistCount', '0');
+    window.dispatchEvent(new CustomEvent('wishlistUpdated'));
+    location.reload();
+})();
+            `);
+        }
+
+        // Update count on page load
+        window.onload = function() {
+            updateCurrentCount();
+        };
+    </script>
+</body>
+</html>

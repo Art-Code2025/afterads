@@ -108,7 +108,7 @@ const Wishlist: React.FC = () => {
       }
 
       const { wishlistService } = await import('../services/wishlistService');
-      await wishlistService.removeFromWishlist(user.id, productId.toString());
+      await wishlistService.removeFromWishlist(user.id, productId.toString(), productName);
       
       // Update local state
       setWishlistProducts(prev => prev.filter(product => product.id !== productId));

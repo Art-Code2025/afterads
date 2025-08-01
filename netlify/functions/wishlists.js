@@ -298,4 +298,4 @@ export const handler = async (event, context) => {
       body: JSON.stringify({ error: 'خطأ في الخادم: ' + error.message }),
     };
   }
-}; 
+};

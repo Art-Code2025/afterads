@@ -251,6 +251,8 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
         // المستخدم غير مسجل - لا يوجد مفضلة
         setWishlistItemsCount(0);
         localStorage.setItem('lastWishlistCount', '0');
+        // Force clear any cached wishlist data for guest
+        localStorage.removeItem('wishlist');
         return;
       }
       
@@ -281,6 +283,8 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
       if (!userData) {
         setWishlistItemsCount(0);
         localStorage.setItem('lastWishlistCount', '0');
+        // Force clear any cached wishlist data for guest
+        localStorage.removeItem('wishlist');
         return;
       }
       
