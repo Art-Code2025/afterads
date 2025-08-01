@@ -231,42 +231,14 @@ const Products: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [wishlist, setWishlist] = useState<number[]>([]);
 
-  // Load wishlist from backend API
+  // Wishlist functionality has been removed
   useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          setWishlist([]);
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        if (!user?.id) {
-          setWishlist([]);
-          return;
-        }
-
-        const { wishlistService } = await import('../services/wishlistService');
-        const wishlistItems = await wishlistService.getUserWishlist(user.id);
-        setWishlist(wishlistItems.map(item => Number(item.productId)));
-      } catch (error) {
-        console.error('خطأ في تحميل المفضلة:', error);
-        setWishlist([]);
-      }
-    };
-
-    loadWishlist();
+    // Initialize with empty wishlist
+    setWishlist([]);
     
-    // Listen for wishlist updates from other components
-    const handleWishlistUpdate = () => {
-      loadWishlist();
-    };
-    
-    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
-    
+    // Wishlist event listeners removed
     return () => {
-      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+      // No event listeners to clean up
     };
   }, []);
 
@@ -275,32 +247,32 @@ const Products: React.FC = () => {
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(product =>
+      filtered = filtered.filter((product) =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.scentFamily?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.fragranceNotes?.top?.some(note => note.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        product.fragranceNotes?.middle?.some(note => note.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        product.fragranceNotes?.base?.some(note => note.toLowerCase().includes(searchQuery.toLowerCase()))
+        product.fragranceNotes?.top?.some((note) => note.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        product.fragranceNotes?.middle?.some((note) => note.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        product.fragranceNotes?.base?.some((note) => note.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
     // Filter by category
     if (selectedCategory !== 'الكل') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+      filtered = filtered.filter((product) => product.category === selectedCategory);
     }
 
     // Filter by scent family
     if (selectedScentFamily !== 'الكل') {
-      filtered = filtered.filter(product => product.scentFamily === selectedScentFamily);
+      filtered = filtered.filter((product) => product.scentFamily === selectedScentFamily);
     }
 
     // Filter by concentration
     if (selectedConcentration !== 'الكل') {
-      filtered = filtered.filter(product => product.concentration === selectedConcentration);
+      filtered = filtered.filter((product) => product.concentration === selectedConcentration);
     }
 
     // Filter by price range
-    filtered = filtered.filter(product => 
+    filtered = filtered.filter((product) => 
       product.price >= selectedPriceRange.min && product.price <= selectedPriceRange.max
     );
 
@@ -325,50 +297,8 @@ const Products: React.FC = () => {
 
   // Handle wishlist toggle
   const handleWishlistToggle = (productId: string, productName: string) => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
-      return;
-    }
-    
-    try {
-      // Get current wishlist from localStorage to ensure accuracy
-      const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const productIdNum = Number(productId);
-      const isInWishlist = currentWishlist.includes(productIdNum);
-      let newWishlist;
-      
-      if (isInWishlist) {
-        // Remove from wishlist
-        newWishlist = currentWishlist.filter((id: number) => id !== productIdNum);
-        toast.info(`تم إزالة ${productName} من المفضلة 💔`);
-      } else {
-        // Add to wishlist - prevent duplicates
-        if (!currentWishlist.includes(productIdNum)) {
-          newWishlist = [...currentWishlist, productIdNum];
-          toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
-        } else {
-          // Already exists
-          newWishlist = currentWishlist;
-          toast.info(`${productName} موجود بالفعل في المفضلة`);
-          return;
-        }
-      }
-      
-      // Update state
-      setWishlist(newWishlist);
-      
-      // Save to localStorage
-      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
-      
-      // Dispatch event with detail
-      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
-      
-    } catch (error) {
-      console.error('خطأ في تحديث المفضلة:', error);
-      toast.error('حدث خطأ أثناء تحديث المفضلة');
-    }
+    // Wishlist functionality has been removed
+    toast.info('ميزة المفضلة غير متوفرة حالياً');
   };
 
   const getScentFamilyIcon = (family: string) => {

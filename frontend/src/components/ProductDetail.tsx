@@ -111,66 +111,17 @@ const ProductDetail: React.FC = () => {
     findAndSetProduct();
   }, [id, slug]);
 
-  // Check wishlist status
+  // Wishlist functionality has been removed
   useEffect(() => {
-    const checkWishlistStatus = async () => {
-      if (!product) return;
-      
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          setIsWishlisted(false);
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        if (!user?.id) {
-          setIsWishlisted(false);
-          return;
-        }
-
-        const { wishlistService } = await import('../services/wishlistService');
-        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
-        setIsWishlisted(isInWishlist);
-      } catch (error) {
-        console.error('Error loading wishlist:', error);
-        setIsWishlisted(false);
-      }
-    };
-
-    checkWishlistStatus();
+    setIsWishlisted(false);
   }, [product]);
 
-  // Listen for wishlist updates
+  // Wishlist update listener has been removed
   useEffect(() => {
     if (!product) return;
     
-    const handleWishlistUpdate = async () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          setIsWishlisted(false);
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        if (!user?.id) {
-          setIsWishlisted(false);
-          return;
-        }
-
-        const { wishlistService } = await import('../services/wishlistService');
-        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
-        setIsWishlisted(isInWishlist);
-      } catch (error) {
-        console.error('Error updating wishlist status:', error);
-      }
-    };
-
-    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
-    
     return () => {
-      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+      // Cleanup function - no longer needed for wishlist
     };
   }, [product]);
 
@@ -207,51 +158,8 @@ const ProductDetail: React.FC = () => {
   const addToWishlist = async () => {
     if (!product) return;
     
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
-      return;
-    }
-    
-    const user = JSON.parse(userData);
-    if (!user?.id) {
-      toast.info('يرجى تسجيل الدخول أولاً');
-      return;
-    }
-    
-    try {
-      const { wishlistService } = await import('../services/wishlistService');
-      
-      // Use the service to toggle wishlist
-      const success = await wishlistService.toggleWishlist(user.id, {
-        id: product.id.toString(),
-        name: product.name,
-        image: product.mainImage || '',
-        price: product.price,
-        originalPrice: product.originalPrice,
-        category: product.categoryName || 'عام',
-      });
-      
-      if (success) {
-        // Update local state
-        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
-        setIsWishlisted(isInWishlist);
-        
-        toast.success(`تم إضافة ${product.name} إلى المفضلة! ❤️`, {
-          position: "top-center",
-          autoClose: 3000,
-          style: {
-            background: '#8B5A3C',
-            color: 'white',
-            fontWeight: 'bold'
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error adding to wishlist:', error);
-      toast.error('فشل في إضافة المنتج إلى المفضلة');
-    }
+    // Wishlist functionality has been removed
+    toast.info('ميزة المفضلة غير متوفرة حالياً');
   };
 
   // Show loading state

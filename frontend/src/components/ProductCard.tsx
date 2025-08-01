@@ -68,58 +68,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
-  // Check wishlist status on mount and when user changes
+  // Wishlist functionality has been removed
   useEffect(() => {
-    const checkWishlistStatus = async () => {
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        setIsWishlisted(false);
-        return;
-      }
-      
-      try {
-        const user = JSON.parse(userData);
-        if (user?.id) {
-          const { wishlistService } = await import('../services/wishlistService');
-          const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
-          setIsWishlisted(isInWishlist);
-          console.log(`✅ [ProductCard] Wishlist status for ${product.name}:`, isInWishlist);
-        }
-      } catch (error) {
-        console.error('❌ [ProductCard] Error checking wishlist status:', error);
-        setIsWishlisted(false);
-      }
-    };
-    
-    checkWishlistStatus();
+    setIsWishlisted(false);
   }, [product.id]);
   
-  // Listen for wishlist updates
-  useEffect(() => {
-    const handleWishlistUpdate = async () => {
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        setIsWishlisted(false);
-        return;
-      }
-      
-      try {
-        const user = JSON.parse(userData);
-        if (user?.id) {
-          const { wishlistService } = await import('../services/wishlistService');
-          const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
-          setIsWishlisted(isInWishlist);
-          console.log(`🔄 [ProductCard] Wishlist updated for ${product.name}:`, isInWishlist);
-        }
-      } catch (error) {
-        console.error('❌ [ProductCard] Error updating wishlist status:', error);
-        setIsWishlisted(false);
-      }
-    };
-    
-    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
-    return () => window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
-  }, [product.id]);
+  // Wishlist update listener has been removed
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -158,86 +112,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('🔥 [ProductCard] handleAddToWishlist clicked for:', product.name);
+    // Wishlist functionality has been removed
+    toast.info('ميزة المفضلة غير متوفرة حالياً');
     
-    // Prevent multiple clicks
-    if (isWishlistLoading) {
-      console.log('⏳ [ProductCard] Already loading, ignoring click');
-      return;
-    }
-    
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    console.log('👤 [ProductCard] User data from localStorage:', userData ? 'Found' : 'Not found');
-    
-    if (!userData) {
-      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
-      return;
-    }
-    
-    const user = JSON.parse(userData);
-    console.log('👤 [ProductCard] Parsed user:', { id: user?.id, email: user?.email, firstName: user?.firstName });
-    
-    if (!user?.id) {
-      toast.info('يرجى تسجيل الدخول أولاً');
-      return;
-    }
-    
-    setIsWishlistLoading(true);
-    console.log('⏳ [ProductCard] Starting wishlist operation...');
-    
-    try {
-      const { wishlistService } = await import('../services/wishlistService');
-      console.log('📦 [ProductCard] wishlistService imported successfully');
-      
-      // Toggle wishlist status using backend API
-      const result = await wishlistService.toggleWishlist(user.id, {
-        id: product.id.toString(),
-        name: product.name,
-        image: product.image || '',
-        price: product.price,
-        originalPrice: product.originalPrice,
-        category: product.category || 'عام',
-      });
-      
-      console.log('✅ [ProductCard] toggleWishlist result:', result);
-      
-      // Update local state
-      setIsWishlisted(!isWishlisted);
-      console.log('🔄 [ProductCard] Local state updated:', !isWishlisted);
-      
-      // Show appropriate toast message
-      if (!isWishlisted) {
-        toast.success(`تم إضافة ${product.name} للمفضلة ❤️`);
-      } else {
-        toast.info(`تم إزالة ${product.name} من المفضلة 💔`);
-      }
-      
-      // Dispatch event to notify other components
-      window.dispatchEvent(new CustomEvent('wishlistUpdated'));
-      console.log('📡 [ProductCard] wishlistUpdated event dispatched');
-      
-      // Call parent callback if provided
-      if (onAddToWishlist) {
-        onAddToWishlist(product);
-      }
-      
-    } catch (error) {
-      console.error('❌ [ProductCard] Error updating wishlist:', error);
-      toast.error('حدث خطأ أثناء تحديث المفضلة');
-      
-      // Refresh state from backend to ensure consistency
-      try {
-        const { wishlistService } = await import('../services/wishlistService');
-        const isInWishlist = await wishlistService.isProductInWishlist(user.id, product.id.toString());
-        setIsWishlisted(isInWishlist);
-        console.log('🔄 [ProductCard] State refreshed from backend:', isInWishlist);
-      } catch (refreshError) {
-        console.error('❌ [ProductCard] Error refreshing wishlist state:', refreshError);
-      }
-    } finally {
-      setIsWishlistLoading(false);
-      console.log('✅ [ProductCard] Wishlist operation completed');
+    // Call parent callback if provided
+    if (onAddToWishlist) {
+      onAddToWishlist(product);
     }
   };
 

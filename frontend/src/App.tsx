@@ -113,27 +113,11 @@ const App: React.FC = () => {
       }
     };
 
-    loadWishlist();
-    
-    // Listen for wishlist updates from other components
-    const handleWishlistUpdate = (event: any) => {
-      try {
-        if (event.detail && Array.isArray(event.detail)) {
-          setWishlist(event.detail);
-        } else {
-          // Fallback to localStorage
-          loadWishlist();
-        }
-      } catch (error) {
-        console.error('خطأ في تحديث المفضلة:', error);
-        loadWishlist();
-      }
-    };
-    
-    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+    // Wishlist functionality has been removed
+    setWishlist([]);
     
     return () => {
-      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+      // Cleanup function - no event listeners to remove
     };
   }, []);
 
@@ -255,54 +239,15 @@ const App: React.FC = () => {
     }
   };
 
-  // Handle wishlist toggle using backend API
+  // Handle wishlist toggle - functionality removed
   const handleWishlistToggle = async (productId: number, productName: string) => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
-        return;
-      }
-
-      const user = JSON.parse(userData);
-      if (!user?.id) {
-        toast.info('يرجى تسجيل الدخول أولاً');
-        return;
-      }
-
-      // Find the product details
-      const product = allProducts.find(p => p.id === productId);
-      if (!product) {
-        toast.error('المنتج غير موجود');
-        return;
-      }
-
-      // Import the service dynamically to avoid circular dependencies
-      const { wishlistService } = await import('./services/wishlistService');
-      
-      // Use the service to toggle wishlist
-      await wishlistService.toggleWishlist(user.id, {
-        id: productId.toString(),
-        name: product.name,
-        image: product.mainImage || '',
-        price: product.price,
-        originalPrice: product.originalPrice,
-        category: (product.categoryId || 'عام').toString(),
-      });
-
-      // Refresh wishlist from backend
-      const updatedWishlist = await wishlistService.getUserWishlist(user.id);
-      setWishlist(updatedWishlist.map(item => Number(item.productId)));
-
-    } catch (error) {
-      console.error('خطأ في تحديث المفضلة:', error);
-      toast.error('حدث خطأ أثناء تحديث المفضلة');
-    }
+    // Wishlist functionality has been removed
+    toast.info('ميزة المفضلة غير متوفرة حالياً');
   };
 
-  // Check if product is in wishlist
+  // Wishlist functionality has been removed
   const isInWishlist = (productId: number) => {
-    return wishlist.includes(productId);
+    return false;
   };
 
   // Loading Component
@@ -495,180 +440,18 @@ const App: React.FC = () => {
       {/* DISCOVER NEW SECTION */}
       <DiscoverNewSection />
 
-      {/* Our Store Section */}
-      <section className="relative py-24 bg-gradient-to-br from-white via-[#FAF8F5]/30 to-white overflow-hidden">
-        {/* Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-40 h-40 bg-gradient-to-br from-[#C4A484]/20 to-[#D4B896]/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-32 right-16 w-48 h-48 bg-gradient-to-br from-[#E5D5C8]/15 to-[#C4A484]/15 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/3 w-24 h-24 bg-gradient-to-br from-[#D4B896]/20 to-[#E5D5C8]/20 rounded-full blur-2xl animate-pulse delay-2000"></div>
-                          </div>
-                          
-        <div className="relative z-10 container mx-auto px-6 lg:px-12">
-          <div className="text-center mb-16">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-[#C4A484]/50 mb-6">
-              <div className="w-2 h-2 bg-[#8B5A3C] rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-[#6B4226]">متجرنا المميز</span>
-              <div className="w-2 h-2 bg-[#A67C52] rounded-full animate-pulse delay-500"></div>
-                              </div>
-
-            {/* Main Title */}
-            <div className="space-y-4 mb-8">
-              <h2 className="font-english text-5xl lg:text-6xl font-bold bg-gradient-to-r from-[#6B4226] via-[#8B5A3C] to-[#6B4226] bg-clip-text text-transparent">
-                OUR STORE
-              </h2>
-              <div className="flex justify-center">
-                <div className="w-24 h-1 bg-gradient-to-r from-[#C4A484] to-[#D4B896] rounded-full"></div>
-              </div>
-            </div>
-            
-            <p className="text-[#8B5A3C] text-lg max-w-2xl mx-auto leading-relaxed">
-              اكتشف مجموعتنا الحصرية من أفخر العطور العالمية المختارة بعناية لتناسب جميع الأذواق والمناسبات
-            </p>
-          </div>
-          
-          {/* Filter Tabs */}
-          <div className="flex justify-center mb-16">
-            <div className="flex flex-wrap gap-2 bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-xl border border-[#C4A484]/50">
-              {['All', 'Featured', 'Top selling', 'Sale', 'New'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    activeTab === tab 
-                      ? 'bg-gradient-to-r from-[#8B5A3C] to-[#A67C52] text-white shadow-lg' 
-                      : 'text-[#8B5A3C] hover:text-[#6B4226] hover:bg-[#C4A484]/10'
-                  }`}
-                >
-                  {tab === 'All' ? 'الكل' : 
-                   tab === 'Featured' ? 'مميز' :
-                   tab === 'Top selling' ? 'الأكثر مبيعاً' :
-                   tab === 'Sale' ? 'تخفيضات' :
-                   tab === 'New' ? 'جديد' : tab}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* Products Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
-            {filteredProducts.slice(0, 8).map((product, index) => (
-                  <div
-                    key={product.id}
-                className="group relative animate-fade-in-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                {/* Glow Effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#C4A484]/10 to-[#D4B896]/10 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500 scale-110"></div>
-                
-                <div className="relative card-premium hover-lift">
-                  <div className="aspect-square bg-gradient-to-br from-[#FAF8F5] to-[#F5F1EB] relative overflow-hidden rounded-t-2xl">
-                          <img
-                            src={buildImageUrl(product.mainImage)}
-                            alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      loading="lazy"
-                            onError={(e) => {
-                        console.log('❌ Image failed to load:', product.mainImage);
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE2MCIgcj0iMzAiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTE1MCAyMDBMMTgwIDE3MEwyMDAgMTkwTDI0MCAyNTBIMTUwVjIwMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHRleHQgeD0iMjAwIiB5PSIzMDAiIGZpbGw9IiM2QjczODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtZmFtaWx5PSJBcmlhbCI+2YTYpyDYqtmI2KzYryDYtdmI2LHYqTwvdGV4dD4KPC9zdmc+'; 
-                      }}
-                    />
-                    
-                    {/* Sale Badge */}
-                    {product.originalPrice && product.originalPrice > product.price && (
-                      <div className="absolute top-4 left-4 bg-gradient-to-r from-[#8B5A3C] to-[#A67C52] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg animate-pulse">
-                        تخفيض
-                          </div>
-                    )}
-                          
-                          {/* Wishlist Button */}
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleWishlistToggle(product.id, product.name);
-                              }}
-                      className={`absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-                        isInWishlist(product.id) ? 'text-[#8B5A3C] bg-[#C4A484]/20' : 'text-[#A67C52] hover:text-[#8B5A3C]'
-                      }`}
-                    >
-                      <Heart className={`w-5 h-5 ${isInWishlist(product.id) ? 'fill-[#8B5A3C]' : ''}`} />
-                            </button>
-
-                    {/* Quick View Overlay */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                      <Link 
-                        to={`/product/${product.id}`}
-                        className="bg-white/90 backdrop-blur-sm text-[#8B5A3C] px-4 py-2 rounded-full font-medium shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 hover:bg-white hover:text-[#6B4226]"
-                      >
-                        عرض التفاصيل
-                      </Link>
-                                </div>
-                                </div>
-                  
-                  <div className="p-6 text-center space-y-4">
-                    {/* Rating */}
-                    <div className="flex justify-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-4 h-4 ${
-                            i < (product.rating || 0) ? 'text-[#D4AF37] fill-[#D4AF37]' : 'text-[#C4A484]'
-                          }`}
-                        />
-                      ))}
-                          </div>
-                          
-                    <div>
-                      <Link to={`/product/${product.id}`} className="block hover:text-[#8B5A3C] transition-colors">
-                        <h3 className="font-semibold text-[#6B4226] mb-1 line-clamp-1 hover:text-[#8B5A3C] transition-colors">{product.brand || product.name}</h3>
-                        <p className="text-sm text-[#A67C52] line-clamp-2">{product.name}</p>
-                                </Link>
-                    </div>
-                    
-                                  <div className="flex items-center justify-center gap-3">
-                      <span className="text-[#8B5A3C] font-bold text-lg">${product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-[#C4A484] line-through text-sm">${product.originalPrice}</span>
-                      )}
-                                  </div>
-                                  
-                                  <button
-                      onClick={() => handleAddToCart(product.id, product.name)}
-                      className="w-full bg-gradient-to-r from-[#8B5A3C] to-[#A67C52] hover:from-[#6B4226] hover:to-[#8B5A3C] text-white py-3 px-4 rounded-xl font-semibold shadow-lg hover:shadow-[#8B5A3C]/25 transition-all duration-300 transform hover:-translate-y-1"
-                    >
-                      إضافة للسلة
-                                  </button>
-                            </div>
-                        </div>
-                  </div>
-                ))}
-            </div>
-            
-          {/* View More Button */}
-          <div className="text-center mt-16">
-            <button className="group relative px-10 py-4 bg-gradient-to-r from-[#6B4226] to-[#8B5A3C] text-white rounded-full font-semibold shadow-2xl hover:shadow-[#8B5A3C]/25 transition-all duration-300 overflow-hidden">
-              <span className="relative z-10 flex items-center gap-2">
-                عرض المزيد من المنتجات
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A3C] to-[#6B4226] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Enhanced Professional Footer */}
-      <footer className="relative bg-gradient-to-br from-[#6B4226] via-[#8B5A3C] to-[#6B4226] text-white overflow-hidden" dir="rtl">
+      <footer className="relative bg-gradient-to-br from-dark-800 via-dark-900 to-dark-800 text-white overflow-hidden" dir="rtl">
         {/* Background Elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 right-20 w-40 h-40 bg-gradient-to-br from-[#A67C52]/10 to-[#C4A484]/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-32 left-16 w-48 h-48 bg-gradient-to-br from-[#C4A484]/10 to-[#D4B896]/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 right-20 w-40 h-40 bg-gradient-to-br from-dark-400/10 to-dark-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-32 left-16 w-48 h-48 bg-gradient-to-br from-dark-500/10 to-dark-600/10 rounded-full blur-3xl"></div>
   </div>
 
         {/* Top Wave */}
         <div className="absolute top-0 left-0 right-0">
-          <svg viewBox="0 0 1200 120" className="w-full h-16 fill-[#6B4226] transform rotate-180">
+          <svg viewBox="0 0 1200 120" className="w-full h-16 fill-dark-800 transform rotate-180">
             <path d="M0,60 C300,120 600,0 900,60 C1050,90 1150,30 1200,60 L1200,120 L0,120 Z" />
           </svg>
         </div>
@@ -680,10 +463,10 @@ const App: React.FC = () => {
               {/* Brand Section */}
               <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-4">
-                  <h3 className="text-4xl font-extrabold bg-gradient-to-r from-[#C4A484] via-[#D4B896] to-[#C4A484] bg-clip-text text-transparent select-none">
+                  <h3 className="text-4xl font-extrabold bg-gradient-to-r from-dark-400 via-dark-500 to-dark-400 bg-clip-text text-transparent select-none">
                     FLEUR
               </h3>
-                  <p className="text-[#E5D5C8] leading-relaxed max-w-md">
+                  <p className="text-dark-300 leading-relaxed max-w-md">
                     متجر عطور فاخر يقدم أحدث التشكيلات النسائية والرجالية من أرقى البراندات العالمية. 
                     نحن نؤمن بأن العطر ليس مجرد رائحة، بل هو تعبير عن الشخصية والأناقة.
                   </p>
@@ -694,10 +477,10 @@ const App: React.FC = () => {
                   <h4 className="text-lg font-semibold text-white">تابعنا على</h4>
                   <div className="flex gap-4">
                     {[
-                      { icon: FaInstagram, color: 'from-[#A67C52] to-[#C4A484]', label: 'Instagram' },
-                      { icon: FaTiktok, color: 'from-[#8B5A3C] to-[#A67C52]', label: 'TikTok' },
-                      { icon: FaSnapchatGhost, color: 'from-[#D4AF37] to-[#E5D5C8]', label: 'Snapchat' },
-                      { icon: FaWhatsapp, color: 'from-[#C4A484] to-[#D4B896]', label: 'WhatsApp' }
+                      { icon: FaInstagram, color: 'from-dark-400 to-dark-500', label: 'Instagram' },
+                      { icon: FaTiktok, color: 'from-dark-300 to-dark-400', label: 'TikTok' },
+                      { icon: FaSnapchatGhost, color: 'from-dark-500 to-dark-300', label: 'Snapchat' },
+                      { icon: FaWhatsapp, color: 'from-dark-500 to-dark-600', label: 'WhatsApp' }
                     ].map(({ icon: Icon, color, label }) => (
                       <a
                         key={label}
@@ -705,7 +488,7 @@ const App: React.FC = () => {
                         className={`group relative w-12 h-12 bg-gradient-to-r ${color} rounded-xl flex items-center justify-center shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1`}
                       >
                         <Icon className="w-6 h-6 text-white" />
-                        <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="absolute inset-0 bg-dark-900/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </a>
                     ))}
                   </div>
@@ -716,7 +499,7 @@ const App: React.FC = () => {
               <div className="space-y-6">
                 <h4 className="text-xl font-bold text-white relative">
                   روابط سريعة
-                  <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-[#C4A484] to-[#D4B896] rounded-full"></div>
+                  <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-dark-400 to-dark-500 rounded-full"></div>
                 </h4>
                 <ul className="space-y-3">
                   {[
@@ -729,9 +512,9 @@ const App: React.FC = () => {
                     <li key={to}>
                       <Link 
                         to={to} 
-                        className="group flex items-center gap-2 text-[#E5D5C8] hover:text-white transition-colors duration-300"
+                        className="group flex items-center gap-2 text-dark-300 hover:text-white transition-colors duration-300"
                       >
-                        <div className="w-1 h-1 bg-[#C4A484] rounded-full group-hover:w-2 transition-all duration-300"></div>
+                        <div className="w-1 h-1 bg-dark-400 rounded-full group-hover:w-2 transition-all duration-300"></div>
                         {label}
                       </Link>
                     </li>
@@ -743,33 +526,33 @@ const App: React.FC = () => {
               <div className="space-y-6">
                 <h4 className="text-xl font-bold text-white relative">
                   تواصل معنا
-                  <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-[#C4A484] to-[#D4B896] rounded-full"></div>
+                  <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-dark-400 to-dark-500 rounded-full"></div>
                 </h4>
                 <ul className="space-y-4">
-                  <li className="flex items-center gap-3 text-[#E5D5C8]">
-                    <div className="w-10 h-10 bg-gradient-to-r from-[#C4A484] to-[#D4B896] rounded-lg flex items-center justify-center shadow-lg">
+                  <li className="flex items-center gap-3 text-dark-300">
+                    <div className="w-10 h-10 bg-gradient-to-r from-dark-400 to-dark-500 rounded-lg flex items-center justify-center shadow-lg">
                       <span className="text-lg">📞</span>
                 </div>
                     <div>
-                      <div className="text-sm text-[#C4A484]">اتصل بنا</div>
+                      <div className="text-sm text-dark-400">اتصل بنا</div>
                       <div className="text-white font-medium">+966551064118</div>
                 </div>
                   </li>
-                  <li className="flex items-center gap-3 text-[#E5D5C8]">
-                    <div className="w-10 h-10 bg-gradient-to-r from-[#A67C52] to-[#C4A484] rounded-lg flex items-center justify-center shadow-lg">
+                  <li className="flex items-center gap-3 text-dark-300">
+                    <div className="w-10 h-10 bg-gradient-to-r from-dark-300 to-dark-400 rounded-lg flex items-center justify-center shadow-lg">
                       <span className="text-lg">✉️</span>
                 </div>
                     <div>
-                      <div className="text-sm text-[#C4A484]">البريد الإلكتروني</div>
+                      <div className="text-sm text-dark-400">البريد الإلكتروني</div>
                       <div className="text-white font-medium">info@fleur.store</div>
               </div>
                   </li>
-                  <li className="flex items-center gap-3 text-[#E5D5C8]">
-                    <div className="w-10 h-10 bg-gradient-to-r from-[#8B5A3C] to-[#A67C52] rounded-lg flex items-center justify-center shadow-lg">
+                  <li className="flex items-center gap-3 text-dark-300">
+                    <div className="w-10 h-10 bg-gradient-to-r from-dark-300 to-dark-400 rounded-lg flex items-center justify-center shadow-lg">
                       <span className="text-lg">📍</span>
                     </div>
                     <div>
-                      <div className="text-sm text-[#C4A484]">العنوان</div>
+                      <div className="text-sm text-dark-400">العنوان</div>
                       <div className="text-white font-medium">الرياض، السعودية</div>
                     </div>
                   </li>
@@ -778,20 +561,20 @@ const App: React.FC = () => {
           </div>
 
             {/* Newsletter Section */}
-            <div className="bg-gradient-to-r from-[#8B5A3C]/50 to-[#A67C52]/50 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-[#C4A484]/50">
+            <div className="bg-gradient-to-r from-dark-300/50 to-dark-400/50 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-dark-500/50">
               <div className="text-center space-y-6">
                 <div className="space-y-2">
                   <h4 className="text-2xl font-bold text-white">اشترك في النشرة الإخبارية</h4>
-                  <p className="text-[#E5D5C8]">كن أول من يعلم بأحدث العطور والعروض الحصرية</p>
+                  <p className="text-dark-300">كن أول من يعلم بأحدث العطور والعروض الحصرية</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
                   <input
                     type="email"
                     placeholder="أدخل بريدك الإلكتروني"
-                    className="flex-1 px-6 py-3 bg-white/10 backdrop-blur-sm border border-[#C4A484] rounded-xl text-white placeholder-[#C4A484] focus:outline-none focus:ring-2 focus:ring-[#C4A484]"
+                    className="flex-1 px-6 py-3 bg-white/10 backdrop-blur-sm border border-dark-500 rounded-xl text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-dark-400"
                   />
-                  <button className="px-8 py-3 bg-gradient-to-r from-[#C4A484] to-[#D4B896] text-[#6B4226] rounded-xl font-semibold shadow-lg hover:shadow-[#C4A484]/25 transition-all duration-300 hover:-translate-y-1">
+                  <button className="px-8 py-3 bg-gradient-to-r from-dark-400 to-dark-500 text-dark-950 rounded-xl font-semibold shadow-lg hover:shadow-dark-400/25 transition-all duration-300 hover:-translate-y-1">
                     اشتراك
                   </button>
                 </div>
@@ -799,17 +582,17 @@ const App: React.FC = () => {
             </div>
 
             {/* Bottom Bar */}
-            <div className="border-t border-[#C4A484]/50 pt-8">
+            <div className="border-t border-dark-500/50 pt-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="text-[#C4A484] text-sm text-center md:text-right">
+                <div className="text-dark-400 text-sm text-center md:text-right">
                   © 2025 FLEUR Perfume Store. جميع الحقوق محفوظة.
                 </div>
                 
                 <div className="flex flex-wrap justify-center gap-6 text-sm">
-                  <a href="#" className="text-[#C4A484] hover:text-white transition-colors">سياسة الخصوصية</a>
-                  <a href="#" className="text-[#C4A484] hover:text-white transition-colors">شروط الاستخدام</a>
-                  <a href="#" className="text-[#C4A484] hover:text-white transition-colors">سياسة الإرجاع</a>
-                  <a href="#" className="text-[#C4A484] hover:text-white transition-colors">الشحن والتوصيل</a>
+                  <a href="#" className="text-dark-400 hover:text-white transition-colors">سياسة الخصوصية</a>
+                  <a href="#" className="text-dark-400 hover:text-white transition-colors">شروط الاستخدام</a>
+                  <a href="#" className="text-dark-400 hover:text-white transition-colors">سياسة الإرجاع</a>
+                  <a href="#" className="text-dark-400 hover:text-white transition-colors">الشحن والتوصيل</a>
                 </div>
               </div>
             </div>
@@ -824,15 +607,15 @@ const App: React.FC = () => {
       <div className="fixed bottom-24 left-6 z-50">
         <Link
           to="/cart"
-          className="group relative w-16 h-16 bg-gradient-to-r from-[#8B5A3C] via-[#A67C52] to-[#C4A484] text-white rounded-2xl shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300 overflow-hidden"
+          className="group relative w-16 h-16 bg-gradient-to-r from-dark-300 via-dark-400 to-dark-500 text-white rounded-2xl shadow-2xl flex items-center justify-center hover:scale-110 transition-all duration-300 overflow-hidden"
         >
           {/* Glow Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#C4A484] to-[#D4B896] opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl blur-xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-dark-400 to-dark-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl blur-xl"></div>
           
           <div className="relative z-10">
             <ShoppingCart className="w-7 h-7 group-hover:scale-110 transition-transform duration-300" />
             {cartCount > 0 && (
-              <span className="absolute -top-3 -right-3 bg-gradient-to-r from-[#D4AF37] to-[#E5D5C8] text-[#6B4226] text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-bounce shadow-lg">
+              <span className="absolute -top-3 -right-3 bg-gradient-to-r from-dark-200 to-dark-300 text-dark-950 text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold animate-bounce shadow-lg">
                 {cartCount}
               </span>
             )}

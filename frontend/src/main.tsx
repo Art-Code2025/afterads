@@ -17,7 +17,6 @@ const ProductsByCategory = React.lazy(() => import('./components/ProductsByCateg
 const ShoppingCart = React.lazy(() => import('./components/ShoppingCart'));
 const CartDiagnostics = React.lazy(() => import('./components/CartDiagnostics'));
 const Checkout = React.lazy(() => import('./components/Checkout'));
-const Wishlist = React.lazy(() => import('./components/Wishlist'));
 const Login = React.lazy(() => import('./Login'));
 const Dashboard = React.lazy(() => import('./Dashboard'));
 const ServiceForm = React.lazy(() => import('./ServiceForm'));
@@ -148,7 +147,6 @@ const LayoutWrapper: React.FC = () => {
             <Route path="/cart/diagnostics" element={<CartDiagnostics />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/thank-you" element={<ThankYou />} />
-            <Route path="/wishlist" element={<Wishlist />} />
             
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />

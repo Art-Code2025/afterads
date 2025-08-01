@@ -482,15 +482,10 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // وظائف قائمة الأمنيات
+  // وظائف قائمة الأمنيات - تم إزالتها
   const fetchWishlistItems = async () => {
-    try {
-      const data = await apiCall('wishlist');
-      setWishlistItems(data || []);
-    } catch (error) {
-      console.error('Error fetching wishlist items:', error);
-      setWishlistItems([]);
-    }
+    // Wishlist functionality has been removed
+    setWishlistItems([]);
   };
 
   // وظائف الطلبات

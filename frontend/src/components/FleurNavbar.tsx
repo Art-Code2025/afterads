@@ -8,7 +8,6 @@ const FleurNavbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [user, setUser] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -21,9 +20,7 @@ const FleurNavbar: React.FC = () => {
 
     const updateCounts = () => {
       const cart = JSON.parse(localStorage.getItem('cartItems') || '[]');
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
       setCartCount(Array.isArray(cart) ? cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0) : 0);
-      setWishlistCount(Array.isArray(wishlist) ? wishlist.length : 0);
     };
 
     // Load user data
@@ -41,7 +38,6 @@ const FleurNavbar: React.FC = () => {
 
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('cartUpdated', updateCounts);
-    window.addEventListener('wishlistUpdated', updateCounts);
     
     updateCounts();
     loadUser();
@@ -49,7 +45,6 @@ const FleurNavbar: React.FC = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('cartUpdated', updateCounts);
-      window.removeEventListener('wishlistUpdated', updateCounts);
     };
   }, []);
 
@@ -99,16 +94,6 @@ const FleurNavbar: React.FC = () => {
               <Search className="w-5 h-5 text-dark-300 group-hover:text-dark-100 transition-colors" />
               <div className="absolute inset-0 bg-gradient-to-r from-dark-400/20 to-dark-500/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
             </button>
-            
-            <Link to="/wishlist" className="group relative p-3 rounded-full hover:bg-dark-400/20 transition-all duration-300">
-              <Heart className="w-5 h-5 text-dark-300 group-hover:text-dark-100 transition-colors" />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-dark-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold animate-pulse">
-                  {wishlistCount}
-                </span>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-r from-dark-400/20 to-dark-500/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-300"></div>
-            </Link>
 
             <Link to="/cart" className="group relative p-3 rounded-full hover:bg-dark-400/20 transition-all duration-300">
               <ShoppingCart className="w-5 h-5 text-dark-300 group-hover:text-dark-100 transition-colors" />

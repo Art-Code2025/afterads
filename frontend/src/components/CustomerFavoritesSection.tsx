@@ -20,91 +20,14 @@ interface Props {
 const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
   const [wishlist, setWishlist] = useState<number[]>([]);
   
-  // Load wishlist from backend API
+  // Wishlist functionality has been removed
   useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          setWishlist([]);
-          return;
-        }
-
-        const user = JSON.parse(userData);
-        if (!user?.id) {
-          setWishlist([]);
-          return;
-        }
-
-        const { wishlistService } = await import('../services/wishlistService');
-        const wishlistItems = await wishlistService.getUserWishlist(user.id);
-        setWishlist(wishlistItems.map(item => Number(item.productId)));
-      } catch (error) {
-        console.error('خطأ في تحميل المفضلة:', error);
-        setWishlist([]);
-      }
-    };
-
-    loadWishlist();
-    
-    // Listen for wishlist updates from other components
-    const handleWishlistUpdate = () => {
-      loadWishlist();
-    };
-    
-    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
-    
-    return () => {
-      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
-    };
+    setWishlist([]);
   }, []);
   
-  // Handle wishlist toggle
+  // Handle wishlist toggle - functionality has been removed
   const handleWishlistToggle = (productId: string, productName: string) => {
-    // Check if user is logged in
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
-      return;
-    }
-    
-    try {
-      // Get current wishlist from localStorage to ensure accuracy
-      const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      const productIdNum = Number(productId);
-      const isInWishlist = currentWishlist.includes(productIdNum);
-      let newWishlist;
-      
-      if (isInWishlist) {
-        // Remove from wishlist
-        newWishlist = currentWishlist.filter((id: number) => id !== productIdNum);
-        toast.info(`تم إزالة ${productName} من المفضلة 💔`);
-      } else {
-        // Add to wishlist - prevent duplicates
-        if (!currentWishlist.includes(productIdNum)) {
-          newWishlist = [...currentWishlist, productIdNum];
-          toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
-        } else {
-          // Already exists
-          newWishlist = currentWishlist;
-          toast.info(`${productName} موجود بالفعل في المفضلة`);
-          return;
-        }
-      }
-      
-      // Update state
-      setWishlist(newWishlist);
-      
-      // Save to localStorage
-      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
-      
-      // Dispatch event with detail
-      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
-      
-    } catch (error) {
-      console.error('خطأ في تحديث المفضلة:', error);
-      toast.error('حدث خطأ أثناء تحديث المفضلة');
-    }
+    toast.info('ميزة المفضلة غير متوفرة حالياً');
   };
   
   if (!products || products.length === 0) return null;
