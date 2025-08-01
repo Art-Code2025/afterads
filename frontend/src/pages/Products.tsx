@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Grid, List, Star, Crown, Sparkles, Droplets, Wind, Flower, Leaf, SlidersHorizontal, X } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
+import { toast } from 'react-toastify';
 
 // Sample perfume products data
 const samplePerfumes = [
@@ -228,6 +229,48 @@ const Products: React.FC = () => {
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
+  const [wishlist, setWishlist] = useState<number[]>([]);
+
+  // Load wishlist from localStorage and listen for updates
+  useEffect(() => {
+    const loadWishlist = () => {
+      try {
+        const savedWishlist = localStorage.getItem('wishlist');
+        if (savedWishlist) {
+          const parsedWishlist = JSON.parse(savedWishlist);
+          if (Array.isArray(parsedWishlist)) {
+            setWishlist(parsedWishlist);
+          }
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل المفضلة:', error);
+        setWishlist([]);
+      }
+    };
+
+    loadWishlist();
+    
+    // Listen for wishlist updates from other components
+    const handleWishlistUpdate = (event: any) => {
+      try {
+        if (event.detail && Array.isArray(event.detail)) {
+          setWishlist(event.detail);
+        } else {
+          // Fallback to localStorage
+          loadWishlist();
+        }
+      } catch (error) {
+        console.error('خطأ في تحديث المفضلة:', error);
+        loadWishlist();
+      }
+    };
+    
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+    
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     let filtered = products;
@@ -281,6 +324,54 @@ const Products: React.FC = () => {
 
     setFilteredProducts(filtered);
   }, [products, searchQuery, selectedCategory, selectedScentFamily, selectedConcentration, selectedPriceRange, sortBy]);
+
+  // Handle wishlist toggle
+  const handleWishlistToggle = (productId: string, productName: string) => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
+    }
+    
+    try {
+      // Get current wishlist from localStorage to ensure accuracy
+      const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const productIdNum = Number(productId);
+      const isInWishlist = currentWishlist.includes(productIdNum);
+      let newWishlist;
+      
+      if (isInWishlist) {
+        // Remove from wishlist
+        newWishlist = currentWishlist.filter((id: number) => id !== productIdNum);
+        toast.info(`تم إزالة ${productName} من المفضلة 💔`);
+      } else {
+        // Add to wishlist - prevent duplicates
+        if (!currentWishlist.includes(productIdNum)) {
+          newWishlist = [...currentWishlist, productIdNum];
+          toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
+        } else {
+          // Already exists
+          newWishlist = currentWishlist;
+          toast.info(`${productName} موجود بالفعل في المفضلة`);
+          return;
+        }
+      }
+      
+      // Update state
+      setWishlist(newWishlist);
+      
+      // Save to localStorage
+      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+      
+      // Dispatch event with detail
+      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+      
+    } catch (error) {
+      console.error('خطأ في تحديث المفضلة:', error);
+      toast.error('حدث خطأ أثناء تحديث المفضلة');
+    }
+  };
 
   const getScentFamilyIcon = (family: string) => {
     const iconMap: { [key: string]: JSX.Element } = {
@@ -516,6 +607,7 @@ const Products: React.FC = () => {
                     key={product.id}
                     product={product}
                     className={viewMode === 'list' ? 'flex flex-row max-w-none' : ''}
+                    onAddToWishlist={(product) => handleWishlistToggle(product.id.toString(), product.name)}
                   />
                 ))}
               </div>
@@ -552,4 +644,4 @@ const Products: React.FC = () => {
   );
 };
 
-export default Products; 
+export default Products;

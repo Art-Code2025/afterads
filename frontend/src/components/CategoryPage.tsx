@@ -39,6 +39,7 @@ const CategoryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
+  const [wishlist, setWishlist] = useState<number[]>([]);
 
   // Extract category ID from slug
   const categoryId = useMemo(() => {
@@ -77,6 +78,47 @@ const CategoryPage: React.FC = () => {
       }
     });
   }, [categoryProducts, searchTerm, sortBy]);
+
+  // Load wishlist from localStorage
+  useEffect(() => {
+    const loadWishlist = () => {
+      try {
+        const savedWishlist = localStorage.getItem('wishlist');
+        if (savedWishlist) {
+          const parsedWishlist = JSON.parse(savedWishlist);
+          if (Array.isArray(parsedWishlist)) {
+            setWishlist(parsedWishlist);
+          }
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل المفضلة:', error);
+        setWishlist([]);
+      }
+    };
+
+    loadWishlist();
+    
+    // Listen for wishlist updates from other components
+    const handleWishlistUpdate = (event: any) => {
+      try {
+        if (event.detail && Array.isArray(event.detail)) {
+          setWishlist(event.detail);
+        } else {
+          // Fallback to localStorage
+          loadWishlist();
+        }
+      } catch (error) {
+        console.error('خطأ في تحديث المفضلة:', error);
+        loadWishlist();
+      }
+    };
+    
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+    
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
+  }, []);
 
   // Fetch categories and products once on mount
   useEffect(() => {
@@ -171,6 +213,62 @@ const CategoryPage: React.FC = () => {
       setError('فشل في تحميل التصنيف');
     } finally {
       setCategoryLoading(false);
+    }
+  };
+
+  // Handle wishlist toggle
+  const handleWishlistToggle = (productId: number, productName: string) => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
+    }
+    
+    try {
+      // Get current wishlist from localStorage to ensure accuracy
+      const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const isInWishlist = currentWishlist.includes(productId);
+      let newWishlist;
+      
+      if (isInWishlist) {
+        // Remove from wishlist
+        newWishlist = currentWishlist.filter((id: number) => id !== productId);
+        toast.info(`تم إزالة ${productName} من المفضلة 💔`);
+      } else {
+        // Add to wishlist - prevent duplicates
+        if (!currentWishlist.includes(productId)) {
+          newWishlist = [...currentWishlist, productId];
+          toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
+        } else {
+          // Already exists
+          newWishlist = currentWishlist;
+          toast.info(`${productName} موجود بالفعل في المفضلة`);
+          return;
+        }
+      }
+      
+      // Update state
+      setWishlist(newWishlist);
+      
+      // Save to localStorage
+      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+      
+      // Dispatch wishlist updated event with detail
+      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+      
+    } catch (error) {
+      console.error('خطأ في تحديث المفضلة:', error);
+      toast.error('حدث خطأ أثناء تحديث المفضلة');
+      // Reset wishlist state from localStorage on error
+      try {
+        const savedWishlist = localStorage.getItem('wishlist');
+        if (savedWishlist) {
+          setWishlist(JSON.parse(savedWishlist));
+        }
+      } catch (resetError) {
+        setWishlist([]);
+      }
     }
   };
 
@@ -323,7 +421,8 @@ const CategoryPage: React.FC = () => {
                     image: product.mainImage, // تحويل mainImage إلى image للتوافق مع ProductCard
                     category: category?.name || '',
                     inStock: (product.stock || 0) > 0
-                  }} 
+                  }}
+                  onAddToWishlist={(product) => handleWishlistToggle(Number(product.id), product.name)}
                 />
               </div>
             ))}

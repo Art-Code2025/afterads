@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Star, TrendingUp, ArrowRight } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 interface Product {
   id: number | string;
@@ -17,6 +18,97 @@ interface Props {
 }
 
 const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
+  const [wishlist, setWishlist] = useState<number[]>([]);
+  
+  // Load wishlist from localStorage
+  useEffect(() => {
+    const loadWishlist = () => {
+      try {
+        const savedWishlist = localStorage.getItem('wishlist');
+        if (savedWishlist) {
+          const parsedWishlist = JSON.parse(savedWishlist);
+          if (Array.isArray(parsedWishlist)) {
+            setWishlist(parsedWishlist);
+          }
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل المفضلة:', error);
+        setWishlist([]);
+      }
+    };
+
+    loadWishlist();
+    
+    // Listen for wishlist updates from other components
+    const handleWishlistUpdate = (event: any) => {
+      try {
+        if (event.detail && Array.isArray(event.detail)) {
+          setWishlist(event.detail);
+        } else {
+          // Fallback to localStorage
+          loadWishlist();
+        }
+      } catch (error) {
+        console.error('خطأ في تحديث المفضلة:', error);
+        loadWishlist();
+      }
+    };
+    
+    window.addEventListener('wishlistUpdated', handleWishlistUpdate);
+    
+    return () => {
+      window.removeEventListener('wishlistUpdated', handleWishlistUpdate);
+    };
+  }, []);
+  
+  // Handle wishlist toggle
+  const handleWishlistToggle = (productId: string, productName: string) => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتجات إلى المفضلة');
+      return;
+    }
+    
+    try {
+      // Get current wishlist from localStorage to ensure accuracy
+      const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+      const productIdNum = Number(productId);
+      const isInWishlist = currentWishlist.includes(productIdNum);
+      let newWishlist;
+      
+      if (isInWishlist) {
+        // Remove from wishlist
+        newWishlist = currentWishlist.filter((id: number) => id !== productIdNum);
+        toast.info(`تم إزالة ${productName} من المفضلة 💔`);
+      } else {
+        // Add to wishlist - prevent duplicates
+        if (!currentWishlist.includes(productIdNum)) {
+          newWishlist = [...currentWishlist, productIdNum];
+          toast.success(`تم إضافة ${productName} للمفضلة ❤️`);
+        } else {
+          // Already exists
+          newWishlist = currentWishlist;
+          toast.info(`${productName} موجود بالفعل في المفضلة`);
+          return;
+        }
+      }
+      
+      // Update state
+      setWishlist(newWishlist);
+      
+      // Save to localStorage
+      localStorage.setItem('wishlist', JSON.stringify(newWishlist));
+      
+      // Dispatch event with detail
+      window.dispatchEvent(new CustomEvent('wishlistUpdated', { detail: newWishlist }));
+      
+    } catch (error) {
+      console.error('خطأ في تحديث المفضلة:', error);
+      toast.error('حدث خطأ أثناء تحديث المفضلة');
+    }
+  };
+  
   if (!products || products.length === 0) return null;
 
   const shown = products.slice(0, 3);
@@ -104,6 +196,7 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
                     inStock: true,
                   }}
                   className="card-premium hover-lift border-0 shadow-premium group-hover:shadow-premium-xl"
+                  onAddToWishlist={(product) => handleWishlistToggle(product.id.toString(), product.name)}
                 />
               </div>
 

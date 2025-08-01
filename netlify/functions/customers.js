@@ -83,8 +83,9 @@ export const handler = async (event, context) => {
           const wishlistData = wishlistDoc.data();
           const userId = wishlistData.userId;
           if (userId) {
-            const items = wishlistData.items || []; // Assuming wishlist items are in an 'items' array
-            wishlistsMap.set(userId, items.length);
+            // Each wishlist document represents one item, not a collection of items
+            const currentCount = wishlistsMap.get(userId) || 0;
+            wishlistsMap.set(userId, currentCount + 1);
           }
         });
         
