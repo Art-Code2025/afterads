@@ -46,15 +46,15 @@ const TestimonialsSection: React.FC = () => {
   const { name, avatar, quote } = testimonials[index];
 
   return (
-    <section className="bg-beige-100 py-20">
+    <section className="bg-dark-800 py-20">
       <div className="container-responsive text-center space-y-12">
-        <h2 className="text-responsive-3xl font-luxury text-burgundy-700">
+        <h2 className="text-responsive-3xl font-luxury text-dark-200">
           آراء عملائنا
         </h2>
 
         <div className="relative max-w-2xl mx-auto">
-          <div className="bg-white rounded-responsive shadow-beige-lg p-10 space-y-6 animate-fade-in-up">
-            <p className="text-responsive-base leading-relaxed text-burgundy-800">
+          <div className="bg-dark-900 rounded-responsive shadow-dark-lg p-10 space-y-6 animate-fade-in-up">
+            <p className="text-responsive-base leading-relaxed text-dark-300">
               {quote}
             </p>
             <div className="flex items-center justify-center gap-4">
@@ -63,22 +63,22 @@ const TestimonialsSection: React.FC = () => {
                 alt={name}
                 className="w-12 h-12 rounded-full object-cover shadow-md"
               />
-              <span className="text-burgundy-700 font-semibold">{name}</span>
+              <span className="text-dark-200 font-semibold">{name}</span>
             </div>
           </div>
 
           {/* Navigation buttons */}
           <button
             onClick={prevTestimonial}
-            className="absolute -left-6 top-1/2 -translate-y-1/2 bg-white border border-beige-300 rounded-full p-2 shadow-sm hover:bg-beige-50 transition"
+            className="absolute -left-6 top-1/2 -translate-y-1/2 bg-dark-900 border border-dark-700 rounded-full p-2 shadow-sm hover:bg-dark-800 transition"
           >
-            <ChevronLeft className="w-5 h-5 text-burgundy-700" />
+            <ChevronLeft className="w-5 h-5 text-dark-200" />
           </button>
           <button
             onClick={nextTestimonial}
-            className="absolute -right-6 top-1/2 -translate-y-1/2 bg-white border border-beige-300 rounded-full p-2 shadow-sm hover:bg-beige-50 transition"
+            className="absolute -right-6 top-1/2 -translate-y-1/2 bg-dark-900 border border-dark-700 rounded-full p-2 shadow-sm hover:bg-dark-800 transition"
           >
-            <ChevronRight className="w-5 h-5 text-burgundy-700" />
+            <ChevronRight className="w-5 h-5 text-dark-200" />
           </button>
         </div>
       </div>
@@ -86,4 +86,4 @@ const TestimonialsSection: React.FC = () => {
   );
 };
 
-export default TestimonialsSection; 
+export default TestimonialsSection;
