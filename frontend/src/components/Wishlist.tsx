@@ -38,111 +38,68 @@ const Wishlist: React.FC = () => {
   }, []);
 
   const loadWishlistProducts = async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      
       const savedWishlist = localStorage.getItem('wishlist');
-      console.log('🔍 [Wishlist] Saved wishlist:', savedWishlist);
-      
-      if (savedWishlist) {
-        const wishlistData = JSON.parse(savedWishlist);
-        console.log('📋 [Wishlist] Parsed wishlist data:', wishlistData);
-        
-        if (Array.isArray(wishlistData) && wishlistData.length > 0) {
-          // Convert all wishlist IDs to numbers for consistent comparison
-          const wishlistIds = wishlistData.map(id => Number(id));
-          console.log('🔢 [Wishlist] Wishlist IDs:', wishlistIds);
-          
-          // Always fetch fresh products from API to ensure latest data
-          console.log('🔄 [Wishlist] Fetching fresh products from API...');
-          try {
-            const response = await fetch('/.netlify/functions/products');
-            if (response.ok) {
-              const apiProducts = await response.json();
-              console.log('📦 [Wishlist] API products response:', apiProducts);
-              
-              // Handle different response formats
-              let allProducts = [];
-              if (Array.isArray(apiProducts)) {
-                allProducts = apiProducts;
-              } else if (apiProducts && apiProducts.data && Array.isArray(apiProducts.data)) {
-                allProducts = apiProducts.data;
-              } else if (apiProducts && apiProducts.products && Array.isArray(apiProducts.products)) {
-                allProducts = apiProducts.products;
-              }
-              
-              if (allProducts.length > 0) {
-                // Cache the products for future use
-                localStorage.setItem('cachedAllProducts', JSON.stringify(allProducts));
-                console.log('💾 [Wishlist] Cached products for future use');
-                
-                // Filter wishlist products with better ID matching
-                console.log('🔍 [Wishlist] All products:', allProducts.map((p: Product) => ({ id: p.id, name: p.name })));
-                const wishlistProducts = allProducts.filter((product: Product) => {
-                  const productId = Number(product.id);
-                  const isInWishlist = wishlistIds.includes(productId);
-                  console.log(`✅ [Wishlist] Product ${product.name} (ID: ${productId}) in wishlist:`, isInWishlist);
-                  return isInWishlist;
-                });
-                console.log('🎯 [Wishlist] Filtered wishlist products:', wishlistProducts);
-                setWishlistProducts(wishlistProducts);
-              } else {
-                console.warn('⚠️ [Wishlist] No products in API response');
-                setWishlistProducts([]);
-              }
-            } else {
-              console.error('❌ [Wishlist] API response not ok:', response.status);
-              // Try to use cached products as fallback
-              const cachedProducts = localStorage.getItem('cachedAllProducts');
-              if (cachedProducts) {
-                try {
-                  const allProducts = JSON.parse(cachedProducts);
-                  const wishlistProducts = allProducts.filter((product: Product) => {
-                    return wishlistIds.includes(Number(product.id));
-                  });
-                  setWishlistProducts(wishlistProducts);
-                  console.log('📦 [Wishlist] Used cached products as fallback');
-                } catch (e) {
-                  console.error('❌ [Wishlist] Failed to parse cached products');
-                  setWishlistProducts([]);
-                }
-              } else {
-                setWishlistProducts([]);
-              }
-            }
-          } catch (apiError) {
-            console.error('❌ [Wishlist] Failed to fetch products from API:', apiError);
-            // Try to use cached products as fallback
-            const cachedProducts = localStorage.getItem('cachedAllProducts');
-            if (cachedProducts) {
-              try {
-                const allProducts = JSON.parse(cachedProducts);
-                const wishlistProducts = allProducts.filter((product: Product) => {
-                  return wishlistIds.includes(Number(product.id));
-                });
-                setWishlistProducts(wishlistProducts);
-                console.log('📦 [Wishlist] Used cached products as fallback after API error');
-              } catch (e) {
-                console.error('❌ [Wishlist] Failed to parse cached products');
-                setWishlistProducts([]);
-              }
-            } else {
-              setWishlistProducts([]);
-            }
-          }
-        } else {
-          console.log('📭 [Wishlist] Wishlist is empty or invalid');
-          setWishlistProducts([]);
+      const wishlistData = savedWishlist ? JSON.parse(savedWishlist) : [];
+      const wishlistIds = Array.isArray(wishlistData) ? wishlistData.map(id => Number(id)) : [];
+
+      // --- IMMEDIATE DISPLAY FROM CACHE --- 
+      const cachedProductsString = localStorage.getItem('cachedAllProducts');
+      if (cachedProductsString) {
+        try {
+          const allCachedProducts = JSON.parse(cachedProductsString);
+          const initialWishlist = allCachedProducts.filter((product: Product) =>
+            wishlistIds.includes(Number(product.id))
+          );
+          setWishlistProducts(initialWishlist);
+          console.log('📦 [Wishlist] Displaying from cached products initially.');
+        } catch (e) {
+          console.error('❌ [Wishlist] Failed to parse cached products for initial display:', e);
         }
       } else {
-        console.log('📭 [Wishlist] No wishlist found in localStorage');
-        setWishlistProducts([]);
+        setWishlistProducts([]); // Clear if no cache
+      }
+      // --- END IMMEDIATE DISPLAY ---
+
+      if (wishlistIds.length > 0) {
+        console.log('🔄 [Wishlist] Fetching fresh products from API...');
+        const response = await fetch('/.netlify/functions/products');
+        if (response.ok) {
+          const apiProducts = await response.json();
+          let allProducts = [];
+          if (Array.isArray(apiProducts)) {
+            allProducts = apiProducts;
+          } else if (apiProducts && apiProducts.data && Array.isArray(apiProducts.data)) {
+            allProducts = apiProducts.data;
+          } else if (apiProducts && apiProducts.products && Array.isArray(apiProducts.products)) {
+            allProducts = apiProducts.products;
+          }
+
+          if (allProducts.length > 0) {
+            localStorage.setItem('cachedAllProducts', JSON.stringify(allProducts));
+            console.log('💾 [Wishlist] Cached products for future use (from API)');
+            const updatedWishlistProducts = allProducts.filter((product: Product) =>
+              wishlistIds.includes(Number(product.id))
+            );
+            setWishlistProducts(updatedWishlistProducts); // Update with fresh data
+            console.log('🎯 [Wishlist] Updated with fresh API data:', updatedWishlistProducts);
+          } else {
+            console.warn('⚠️ [Wishlist] No products in API response, keeping initial cached display.');
+          }
+        } else {
+          console.error('❌ [Wishlist] API response not ok:', response.status, 'Keeping initial cached display.');
+        }
+      } else {
+        console.log('📭 [Wishlist] Wishlist is empty, no API fetch needed.');
+        setWishlistProducts([]); // Ensure empty if wishlist is empty
       }
     } catch (error) {
-      console.error('❌ [Wishlist] Error loading wishlist:', error);
+      console.error('❌ [Wishlist] Error in loadWishlistProducts:', error);
       setError('فشل في تحميل المفضلة');
-      setWishlistProducts([]);
+      setWishlistProducts([]); // Ensure empty on error
     } finally {
       setLoading(false);
     }

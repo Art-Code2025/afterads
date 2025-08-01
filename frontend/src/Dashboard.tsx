@@ -285,8 +285,6 @@ const Dashboard: React.FC = () => {
           setFilteredCategories([]);
         }
         
-        // Load other data with delay to avoid overwhelming the API
-        setTimeout(async () => {
           // Load coupons
           try {
             console.log('🔄 Attempting to load coupons...');
@@ -319,7 +317,7 @@ const Dashboard: React.FC = () => {
             setFilteredOrders([]);
           }
           
-          // Load customers
+          // Load customers immediately
           try {
             console.log('🔄 Attempting to load customers...');
             const customersResponse = await apiCall(API_ENDPOINTS.CUSTOMERS);
@@ -334,19 +332,18 @@ const Dashboard: React.FC = () => {
             setCustomers([]);
             setFilteredCustomers([]);
           }
-        }, 500); // Reduced delay
         
       } catch (error) {
         console.error('❌ Background loading error:', error);
         // Don't show error to user, just log it
         // Don't set error state that could cause redirects
+      } finally {
+        setLoading(false);
       }
     };
     
-    // Start background loading after a short delay
-    setTimeout(() => {
-      loadDataInBackground();
-    }, 100);
+    // Start background loading immediately
+    loadDataInBackground();
     
   }, []);
   

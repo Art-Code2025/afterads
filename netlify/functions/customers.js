@@ -83,10 +83,8 @@ export const handler = async (event, context) => {
           const wishlistData = wishlistDoc.data();
           const userId = wishlistData.userId;
           if (userId) {
-            if (!wishlistsMap.has(userId)) {
-              wishlistsMap.set(userId, 0);
-            }
-            wishlistsMap.set(userId, wishlistsMap.get(userId) + 1);
+            const items = wishlistData.items || []; // Assuming wishlist items are in an 'items' array
+            wishlistsMap.set(userId, items.length);
           }
         });
         

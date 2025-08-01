@@ -18,7 +18,7 @@ import { buildImageUrl } from '../config/api';
 import { addToCartUnified } from '../utils/cartUtils';
 
 interface Product {
-  id: string;
+  id: string | number;
   name: string;
   price: number;
   originalPrice?: number;
@@ -189,9 +189,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }
     } finally {
       // Reduce delay for faster response
-      setTimeout(() => {
-        setIsWishlistLoading(false);
-      }, 100);
+      setIsWishlistLoading(false);
     }
   };
 
