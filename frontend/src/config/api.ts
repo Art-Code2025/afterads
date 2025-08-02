@@ -220,12 +220,12 @@ export const API_ENDPOINTS = {
   CUSTOMER_BY_ID: (id: string | number) => `customers/${id}`,
   CUSTOMER_ORDERS: (id: string | number) => `customers/${id}/orders`,
   
-  // Cart - NEW
+  // Cart - NEW (Fixed to match serverless function routing)
   CART: 'cart',
-  USER_CART: (userId: string | number) => `cart/user/${userId}`,
-  USER_CART_COUNT: (userId: string | number) => `cart/user/${userId}/count`,
-  USER_CART_MERGE: (userId: string | number) => `cart/user/${userId}/merge`,
-  CART_ITEM: (itemId: string | number) => `cart/${itemId}`,
+  USER_CART: (userId: string | number) => `cart?userId=${userId}`,
+  USER_CART_COUNT: (userId: string | number) => `cart?userId=${userId}`,
+  USER_CART_MERGE: (userId: string | number) => `cart/merge`,
+  CART_ITEM: (itemId: string | number) => `cart?itemId=${itemId}`,
   
   // Dashboard
   DASHBOARD: 'dashboard',
@@ -256,4 +256,4 @@ export const API_ENDPOINTS = {
   CHECKOUT: 'orders', // Orders endpoint handles checkout
   HEALTH: 'dashboard', // Dashboard endpoint serves as health check
   notifications: `${getApiBaseUrl()}/.netlify/functions/notifications`
-}; 
+};

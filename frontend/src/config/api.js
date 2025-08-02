@@ -65,11 +65,12 @@ export const API_ENDPOINTS = {
   COUPONS: 'coupons',
   COUPON_BY_ID: (id) => `coupons/${id}`,
   
-  // Cart - NEW
+  // Cart - NEW (Fixed to match serverless function routing)
   CART: 'cart',
-  USER_CART: (userId) => `cart/user/${userId}`,
-  CART_ITEM: (itemId) => `cart/${itemId}`,
-  CLEAR_CART: (userId) => `cart/user/${userId}/clear`,
+  USER_CART: (userId) => `cart?userId=${userId}`,
+  CART_ITEM: (itemId) => `cart?itemId=${itemId}`,
+  CLEAR_CART: (userId) => `cart?userId=${userId}`,
+  USER_CART_MERGE: (userId) => `cart/merge`,
   
   // Wishlist - NEW
   WISHLISTS: 'wishlists',
@@ -174,4 +175,4 @@ export const apiCall = async (endpoint, options = {}) => {
       throw new Error(error.message || 'حدث خطأ غير متوقع');
     }
   }
-}; 
+};
