@@ -5,6 +5,18 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   
+  console.log('🌐 [API] Making request:', {
+    endpoint,
+    url,
+    method: options.method || 'GET',
+    hasBody: !!options.body,
+    timestamp: new Date().toISOString()
+  });
+  
+  if (options.body) {
+    console.log('📦 [API] Request body:', options.body);
+  }
+  
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
@@ -24,16 +36,36 @@ const apiRequest = async (endpoint, options = {}) => {
   };
 
   try {
+    console.log('📡 [API] Sending fetch request...');
     const response = await fetch(url, config);
     const data = await response.json();
     
+    console.log('📡 [API] Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+      data
+    });
+    
     if (!response.ok) {
+      console.error('❌ [API] Request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        data
+      });
       throw new Error(data.message || `HTTP error! status: ${response.status}`);
     }
     
+    console.log('✅ [API] Request successful:', data);
     return data;
   } catch (error) {
-    console.error(`API Error (${endpoint}):`, error);
+    console.error('💥 [API] Request Error:', {
+      endpoint,
+      url,
+      options,
+      error: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 };
@@ -91,29 +123,48 @@ export const categoriesAPI = {
 // Orders API
 export const ordersAPI = {
   getAll: (params = {}) => {
+    console.log('📋 [OrdersAPI] getAll called with params:', params);
     const searchParams = new URLSearchParams(params);
     return apiRequest(`/orders?${searchParams}`);
   },
   
-  getById: (id) => apiRequest(`/orders/${id}`),
+  getById: (id) => {
+    console.log('🔍 [OrdersAPI] getById called for order:', id);
+    return apiRequest(`/orders/${id}`);
+  },
   
-  create: (orderData) => apiRequest('/orders', {
-    method: 'POST',
-    body: JSON.stringify(orderData),
-  }),
+  create: (orderData) => {
+    console.log('📝 [OrdersAPI] create called with order data:', JSON.stringify(orderData, null, 2));
+    return apiRequest('/orders', {
+      method: 'POST',
+      body: JSON.stringify(orderData),
+    });
+  },
   
-  update: (id, orderData) => apiRequest(`/orders/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(orderData),
-  }),
+  update: (id, orderData) => {
+    console.log('✏️ [OrdersAPI] update called for order:', id, 'with data:', JSON.stringify(orderData, null, 2));
+    return apiRequest(`/orders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(orderData),
+    });
+  },
   
-  delete: (id) => apiRequest(`/orders/${id}`, {
-    method: 'DELETE',
-  }),
+  delete: (id) => {
+    console.log('🗑️ [OrdersAPI] delete called for order:', id);
+    return apiRequest(`/orders/${id}`, {
+      method: 'DELETE',
+    });
+  },
   
-  getStats: () => apiRequest('/orders/stats'),
+  getStats: () => {
+    console.log('📊 [OrdersAPI] getStats called');
+    return apiRequest('/orders/stats');
+  },
   
-  getByCustomer: (phone) => apiRequest(`/orders/customer/${phone}`),
+  getByCustomer: (phone) => {
+    console.log('👤 [OrdersAPI] getByCustomer called for phone:', phone);
+    return apiRequest(`/orders/customer/${phone}`);
+  },
 };
 
 // Coupons API
@@ -260,17 +311,26 @@ export const isAuthenticated = () => {
 
 // Payment API
 export const paymentAPI = {
-  createPaymentLink: (paymentData) => apiRequest('/payment/create', {
-    method: 'POST',
-    body: JSON.stringify(paymentData),
-  }),
+  createPaymentLink: (paymentData) => {
+    console.log('💳 [PaymentAPI] createPaymentLink called with:', JSON.stringify(paymentData, null, 2));
+    return apiRequest('/payment/create', {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  },
   
-  checkPaymentStatus: (orderId) => apiRequest(`/payment/status/${orderId}`),
+  checkPaymentStatus: (orderId) => {
+    console.log('🔍 [PaymentAPI] checkPaymentStatus called for order:', orderId);
+    return apiRequest(`/payment/status/${orderId}`);
+  },
   
-  processCallback: (callbackData) => apiRequest('/payment/callback', {
-    method: 'POST',
-    body: JSON.stringify(callbackData),
-  }),
+  processCallback: (callbackData) => {
+    console.log('📞 [PaymentAPI] processCallback called with:', JSON.stringify(callbackData, null, 2));
+    return apiRequest('/payment/callback', {
+      method: 'POST',
+      body: JSON.stringify(callbackData),
+    });
+  },
 };
 
 export default {

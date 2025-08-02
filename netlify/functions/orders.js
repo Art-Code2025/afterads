@@ -14,8 +14,19 @@ import {
 } from 'firebase/firestore';
 
 export const handler = async (event, context) => {
+  console.log('🚀 [Orders] Handler started');
+  console.log('📋 [Orders] Event details:', {
+    httpMethod: event.httpMethod,
+    path: event.path,
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters,
+    body: event.body ? 'Body present' : 'No body',
+    timestamp: new Date().toISOString()
+  });
+  
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
+    console.log('✅ [Orders] Handling CORS preflight request');
     return {
       statusCode: 200,
       headers: {
@@ -39,7 +50,12 @@ export const handler = async (event, context) => {
     const path = event.path;
     const pathSegments = path.split('/').filter(Boolean);
     
-    console.log('📋 Orders API - Method:', method, 'Path:', path);
+    console.log('📋 [Orders] Processing request:', {
+      method,
+      path,
+      pathSegments,
+      segmentsCount: pathSegments.length
+    });
 
     // GET /orders - Get all orders
     if (method === 'GET' && pathSegments[pathSegments.length - 1] === 'orders') {
@@ -214,10 +230,32 @@ export const handler = async (event, context) => {
 
     // POST /orders - Create new order
     if (method === 'POST') {
-      const body = event.body ? JSON.parse(event.body) : {};
-      console.log('➕ Creating new order for:', body.customerName);
+      console.log('📝 [Orders] POST request - Creating new order');
+      
+      let body;
+      try {
+        body = event.body ? JSON.parse(event.body) : {};
+        console.log('📦 [Orders] Parsed request body:', JSON.stringify(body, null, 2));
+      } catch (parseError) {
+        console.error('❌ [Orders] Error parsing request body:', parseError);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Invalid JSON in request body' }),
+        };
+      }
+      
+      console.log('👤 [Orders] Creating order for customer:', body.customerName);
+      console.log('📊 [Orders] Order details:', {
+        customerName: body.customerName,
+        customerPhone: body.customerPhone,
+        itemsCount: body.items ? body.items.length : 0,
+        total: body.total,
+        paymentMethod: body.paymentMethod
+      });
       
       try {
+        console.log('🔄 [Orders] Preparing order data for Firestore...');
         const orderData = {
           ...body,
           createdAt: new Date().toISOString(),
@@ -226,6 +264,9 @@ export const handler = async (event, context) => {
           paymentStatus: body.paymentStatus || 'pending'
         };
         
+        console.log('💾 [Orders] Final order data:', JSON.stringify(orderData, null, 2));
+        
+        console.log('🔥 [Orders] Adding document to Firestore...');
         const ordersCollection = collection(db, 'orders');
         const docRef = await addDoc(ordersCollection, orderData);
         
@@ -234,7 +275,9 @@ export const handler = async (event, context) => {
           ...orderData
         };
         
-        console.log('✅ Order created with ID:', docRef.id);
+        console.log('✅ [Orders] Order created successfully!');
+        console.log('🆔 [Orders] New order ID:', docRef.id);
+        console.log('📋 [Orders] Complete order object:', JSON.stringify(newOrder, null, 2));
         
         return {
           statusCode: 201,
@@ -242,7 +285,12 @@ export const handler = async (event, context) => {
           body: JSON.stringify(newOrder),
         };
       } catch (error) {
-        console.error('❌ Error creating order:', error);
+        console.error('❌ [Orders] Error creating order:', error);
+        console.error('❌ [Orders] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          code: error.code
+        });
         return {
           statusCode: 500,
           headers,
@@ -334,4 +382,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};

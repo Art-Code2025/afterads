@@ -442,11 +442,20 @@ const Checkout: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(4)) return;
+    console.log('🚀 [Checkout] handleSubmit started');
+    console.log('📋 [Checkout] Current step:', currentStep);
+    console.log('✅ [Checkout] Validation check for step 4...');
     
+    if (!validateStep(4)) {
+      console.log('❌ [Checkout] Validation failed for step 4');
+      return;
+    }
+    
+    console.log('✅ [Checkout] Validation passed, proceeding with order submission');
     setLoading(true);
     
     try {
+      console.log('📦 [Checkout] Preparing order data...');
       // تحضير بيانات الطلب بالتنسيق المطلوب للـ API
       const orderData = {
         customerName: userData.name,
@@ -478,17 +487,21 @@ const Checkout: React.FC = () => {
         appliedCoupon
       };
 
-      console.log('📦 [Checkout] Submitting order to API:', orderData);
+      console.log('📦 [Checkout] Order data prepared:', JSON.stringify(orderData, null, 2));
+      console.log('📦 [Checkout] Submitting order to API...');
 
       // إرسال الطلب إلى API
+      console.log('📡 [Checkout] Calling ordersAPI.create...');
       const result = await ordersAPI.create(orderData);
       
-      console.log('✅ [Checkout] Order created successfully:', result);
+      console.log('✅ [Checkout] Order created successfully:', JSON.stringify(result, null, 2));
+      console.log('🆔 [Checkout] Order ID:', result.id);
 
       // إذا كان الدفع إلكتروني، إنشاء رابط الدفع
+      console.log('💳 [Checkout] Checking payment method:', selectedPaymentMethod);
       if (selectedPaymentMethod === 'card') {
         try {
-          console.log('💳 [Checkout] Creating payment link...');
+          console.log('💳 [Checkout] Payment method is card, creating payment link...');
           
           const paymentData = {
             orderId: result.id,
@@ -505,13 +518,24 @@ const Checkout: React.FC = () => {
               quantity: item.quantity
             }))
           };
+          
+          console.log('💳 [Checkout] Payment data prepared:', JSON.stringify(paymentData, null, 2));
 
           // إنشاء رابط الدفع الإلكتروني
+          console.log('🔍 [Checkout] Checking if payment API is available...');
+          console.log('🔍 [Checkout] API object:', api);
+          console.log('🔍 [Checkout] Payment in API:', 'payment' in api);
+          
           if ('payment' in api && typeof (api as any).payment?.createPaymentLink === 'function') {
-const paymentResult = await (api as any).payment.createPaymentLink(paymentData);
+            console.log('✅ [Checkout] Payment API is available, calling createPaymentLink...');
+            const paymentResult = await (api as any).payment.createPaymentLink(paymentData);
+            
+            console.log('📡 [Checkout] Payment API response:', JSON.stringify(paymentResult, null, 2));
             
             if (paymentResult.success && paymentResult.paymentUrl) {
+              console.log('✅ [Checkout] Payment link created successfully:', paymentResult.paymentUrl);
               // حفظ بيانات الطلب المؤقتة في localStorage
+              console.log('💾 [Checkout] Saving temporary order data to localStorage...');
               const tempOrderData = {
                 orderId: result.id,
                 orderNumber: result.orderNumber || result.id,
@@ -532,23 +556,29 @@ const paymentResult = await (api as any).payment.createPaymentLink(paymentData);
                 estimatedDelivery: selectedShippingZone?.estimatedDays || 'خلال 2-3 أيام عمل'
               };
               
+              console.log('💾 [Checkout] Temp order data:', JSON.stringify(tempOrderData, null, 2));
               localStorage.setItem('pendingOrderData', JSON.stringify(tempOrderData));
               
               // توجيه المستخدم لصفحة الدفع
+              console.log('🌐 [Checkout] Redirecting to payment URL:', paymentResult.paymentUrl);
               window.location.href = paymentResult.paymentUrl;
               return;
             } else {
               console.error('❌ [Checkout] Failed to create payment link:', paymentResult);
+              console.error('❌ [Checkout] Payment result success:', paymentResult.success);
+              console.error('❌ [Checkout] Payment result paymentUrl:', paymentResult.paymentUrl);
               toast.error('فشل في إنشاء رابط الدفع. يرجى المحاولة مرة أخرى.');
               return;
             }
           } else {
               console.error('❌ [Checkout] Payment API not available');
+              console.error('❌ [Checkout] API structure:', Object.keys(api));
               toast.error('خدمة الدفع الإلكتروني غير متاحة حالياً. يرجى المحاولة مرة أخرى.');
               return;
             }
         } catch (paymentError) {
           console.error('❌ [Checkout] Payment creation error:', paymentError);
+          console.error('❌ [Checkout] Payment error details:', JSON.stringify(paymentError, null, 2));
           toast.error('فشل في إنشاء رابط الدفع. يرجى المحاولة مرة أخرى.');
           return;
         }
@@ -557,10 +587,17 @@ const paymentResult = await (api as any).payment.createPaymentLink(paymentData);
       // هذا الجزء لن يتم تنفيذه إلا في حالة عدم وجود دفع إلكتروني
       // (وهو غير مطلوب حالياً لأننا نستخدم الدفع الإلكتروني فقط)
       console.log('⚠️ [Checkout] No electronic payment - this should not happen');
+      console.log('⚠️ [Checkout] Selected payment method:', selectedPaymentMethod);
     } catch (error) {
       console.error('💥 [Checkout] Order submission error:', error);
+      console.error('💥 [Checkout] Error details:', JSON.stringify(error, null, 2));
+      if (error instanceof Error) {
+        console.error('💥 [Checkout] Error message:', error.message);
+        console.error('💥 [Checkout] Error stack:', error.stack);
+      }
       toast.error('حدث خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');
     } finally {
+      console.log('🏁 [Checkout] handleSubmit finished, setting loading to false');
       setLoading(false);
     }
   };

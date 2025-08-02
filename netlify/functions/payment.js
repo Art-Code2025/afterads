@@ -12,11 +12,15 @@ const PAYMOB_CONFIG = {
 const PAYMOB_BASE_URL = 'https://accept.paymob.com/api';
 
 export const handler = async (event, context) => {
-  console.log('💳 Payment API Called:', {
+  console.log('🚀 Payment API Handler Started:', {
     method: event.httpMethod,
     path: event.path,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    headers: event.headers,
+    queryStringParameters: event.queryStringParameters
   });
+  
+  console.log('📦 Request Body:', event.body);
 
   // Handle CORS
   if (event.httpMethod === 'OPTIONS') {
@@ -45,10 +49,15 @@ export const handler = async (event, context) => {
 
     // POST /payment/create - إنشاء رابط دفع جديد
     if (method === 'POST' && pathSegments.includes('create')) {
+      console.log('🎯 Entering payment/create endpoint');
       const body = event.body ? JSON.parse(event.body) : {};
+      console.log('📋 Parsed request body:', JSON.stringify(body, null, 2));
       console.log('💳 Creating payment link for order:', body.orderId);
 
       try {
+        console.log('🔐 Step 1: Getting Auth Token from Paymob');
+        console.log('🔑 Using API Key:', PAYMOB_CONFIG.API_KEY ? 'Present' : 'Missing');
+        
         // الخطوة 1: الحصول على Auth Token
         const authResponse = await fetch(`${PAYMOB_BASE_URL}/auth/tokens`, {
           method: 'POST',
@@ -60,73 +69,94 @@ export const handler = async (event, context) => {
           })
         });
 
+        console.log('📡 Auth response status:', authResponse.status);
         const authData = await authResponse.json();
+        console.log('🔐 Auth response data:', JSON.stringify(authData, null, 2));
+        
         if (!authData.token) {
+          console.error('❌ No token in auth response');
           throw new Error('فشل في الحصول على Auth Token');
         }
 
-        console.log('✅ Auth token received');
+        console.log('✅ Auth token received successfully');
 
+        console.log('📦 Step 2: Creating Order in Paymob');
+        const orderPayload = {
+          auth_token: authData.token,
+          delivery_needed: false,
+          amount_cents: Math.round(body.amount * 100), // تحويل للقروش
+          currency: 'EGP',
+          merchant_order_id: body.orderId,
+          items: body.items || []
+        };
+        console.log('📋 Order payload:', JSON.stringify(orderPayload, null, 2));
+        
         // الخطوة 2: إنشاء Order في Paymob
         const orderResponse = await fetch(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            auth_token: authData.token,
-            delivery_needed: false,
-            amount_cents: Math.round(body.amount * 100), // تحويل للقروش
-            currency: 'EGP',
-            merchant_order_id: body.orderId,
-            items: body.items || []
-          })
+          body: JSON.stringify(orderPayload)
         });
+        
+        console.log('📡 Order response status:', orderResponse.status);
 
         const orderData = await orderResponse.json();
+        console.log('📋 Paymob order response:', JSON.stringify(orderData, null, 2));
+        
         if (!orderData.id) {
-          throw new Error('فشل في إنشاء الطلب في Paymob');
+          console.error('❌ Paymob order creation failed:', orderData);
+          throw new Error(`فشل في إنشاء الطلب في Paymob: ${orderData.detail || orderData.message || 'Unknown error'}`);
         }
 
         console.log('✅ Paymob order created:', orderData.id);
 
-        // الخطوة 3: إنشاء Payment Key
-        const paymentKeyResponse = await fetch(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            auth_token: authData.token,
-            amount_cents: Math.round(body.amount * 100),
-            expiration: 3600, // ساعة واحدة
-            order_id: orderData.id,
-            billing_data: {
-              apartment: 'NA',
-              email: body.customerData?.email || 'customer@example.com',
-              floor: 'NA',
-              first_name: body.customerData?.name?.split(' ')[0] || 'Customer',
-              street: 'Digital Product',
-              building: 'NA',
-              phone_number: body.customerData?.phone || '+201000000000',
-              shipping_method: 'PKG',
-              postal_code: '12345',
-              city: 'Cairo',
-              country: 'EG',
-              last_name: body.customerData?.name?.split(' ').slice(1).join(' ') || 'Name',
-              state: 'Cairo'
-            },
-            currency: 'EGP',
-            integration_id: PAYMOB_CONFIG.INTEGRATION_ID
-          })
-        });
-
-        const paymentKeyData = await paymentKeyResponse.json();
+        console.log('🔑 Step 3: Creating Payment Key');
+         const paymentKeyPayload = {
+           auth_token: authData.token,
+           amount_cents: Math.round(body.amount * 100),
+           expiration: 3600, // ساعة واحدة
+           order_id: orderData.id,
+           billing_data: {
+             apartment: 'NA',
+             email: body.customerData?.email || 'customer@example.com',
+             floor: 'NA',
+             first_name: body.customerData?.name?.split(' ')[0] || 'Customer',
+             street: 'Digital Product',
+             building: 'NA',
+             phone_number: body.customerData?.phone || '+201000000000',
+             shipping_method: 'PKG',
+             postal_code: '12345',
+             city: 'Cairo',
+             country: 'EG',
+             last_name: body.customerData?.name?.split(' ').slice(1).join(' ') || 'Customer',
+             state: 'Cairo'
+           },
+           currency: 'EGP',
+           integration_id: PAYMOB_CONFIG.INTEGRATION_ID
+         };
+         console.log('🔑 Payment key payload:', JSON.stringify(paymentKeyPayload, null, 2));
+         
+         // الخطوة 3: إنشاء Payment Key
+         const paymentKeyResponse = await fetch(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify(paymentKeyPayload)
+         });
+         
+         console.log('📡 Payment key response status:', paymentKeyResponse.status);
+         const paymentKeyData = await paymentKeyResponse.json();
+         console.log('🔑 Payment key response data:', JSON.stringify(paymentKeyData, null, 2));
+         
         if (!paymentKeyData.token) {
+          console.error('❌ No payment token in response');
           throw new Error('فشل في إنشاء Payment Key');
         }
 
-        console.log('✅ Payment key created');
+        console.log('✅ Payment key created successfully');
 
         // إنشاء رابط الدفع
         const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_CONFIG.INTEGRATION_ID}?payment_token=${paymentKeyData.token}`;
