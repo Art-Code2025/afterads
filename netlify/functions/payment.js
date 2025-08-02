@@ -9,6 +9,28 @@ const PAYMOB_CONFIG = {
   HMAC_SECRET: process.env.PAYMOB_HMAC_SECRET || 'your_hmac_secret_here'
 };
 
+// التحقق من صحة إعدادات Paymob
+function validatePaymobConfig() {
+  const issues = [];
+  
+  if (!PAYMOB_CONFIG.API_KEY || PAYMOB_CONFIG.API_KEY === 'your_api_key_here') {
+    issues.push('PAYMOB_API_KEY is missing or invalid');
+  }
+  
+  if (!PAYMOB_CONFIG.INTEGRATION_ID || PAYMOB_CONFIG.INTEGRATION_ID === 'your_integration_id_here') {
+    issues.push('PAYMOB_INTEGRATION_ID is missing or invalid');
+  }
+  
+  if (!PAYMOB_CONFIG.HMAC_SECRET || PAYMOB_CONFIG.HMAC_SECRET === 'your_hmac_secret_here') {
+    issues.push('PAYMOB_HMAC_SECRET is missing or invalid');
+  }
+  
+  // ملاحظة: في بيئة الاختبار، API_KEY قد يكون مشفر بـ Base64 وهذا طبيعي
+  // لا نحتاج للتحقق من شكل المفتاح طالما أنه موجود
+  
+  return issues;
+}
+
 const PAYMOB_BASE_URL = 'https://accept.paymob.com/api';
 
 export const handler = async (event, context) => {
@@ -21,6 +43,27 @@ export const handler = async (event, context) => {
   });
   
   console.log('📦 Request Body:', event.body);
+  
+  // التحقق من صحة إعدادات Paymob
+  const configIssues = validatePaymobConfig();
+  if (configIssues.length > 0) {
+    console.error('❌ Paymob configuration issues:', configIssues);
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        error: 'Paymob configuration error',
+        message: 'يرجى التحقق من إعدادات Paymob في متغيرات البيئة',
+        issues: configIssues,
+        help: 'احصل على API Key الصحيح من لوحة تحكم Paymob: https://accept.paymob.com/portal2/en/PaymobDeveloperPortal'
+      })
+    };
+  }
 
   // Handle CORS
   if (event.httpMethod === 'OPTIONS') {
@@ -81,12 +124,21 @@ export const handler = async (event, context) => {
         console.log('✅ Auth token received successfully');
 
         console.log('📦 Step 2: Creating Order in Paymob');
+        
+        // التأكد من وجود المبلغ
+        const amount = body.total || body.amount || 0;
+        console.log('💰 Amount from request:', { total: body.total, amount: body.amount, finalAmount: amount });
+        
+        if (!amount || amount <= 0) {
+          throw new Error('المبلغ مطلوب ويجب أن يكون أكبر من صفر');
+        }
+        
         const orderPayload = {
           auth_token: authData.token,
           delivery_needed: false,
-          amount_cents: Math.round(body.amount * 100), // تحويل للقروش
+          amount_cents: Math.round(amount * 100), // تحويل للقروش
           currency: 'EGP',
-          merchant_order_id: body.orderId,
+          merchant_order_id: body.orderId || `order_${Date.now()}`,
           items: body.items || []
         };
         console.log('📋 Order payload:', JSON.stringify(orderPayload, null, 2));
@@ -101,9 +153,24 @@ export const handler = async (event, context) => {
         });
         
         console.log('📡 Order response status:', orderResponse.status);
+        console.log('📡 Order response headers:', Object.fromEntries(orderResponse.headers.entries()));
 
-        const orderData = await orderResponse.json();
-        console.log('📋 Paymob order response:', JSON.stringify(orderData, null, 2));
+        let orderData;
+        try {
+          const responseText = await orderResponse.text();
+          console.log('📋 Raw Paymob response:', responseText.substring(0, 500));
+          
+          if (responseText.startsWith('<')) {
+            console.error('❌ Paymob returned HTML instead of JSON - possible server error or wrong endpoint');
+            throw new Error('Paymob API returned HTML error page instead of JSON');
+          }
+          
+          orderData = JSON.parse(responseText);
+          console.log('📋 Paymob order response:', JSON.stringify(orderData, null, 2));
+        } catch (parseError) {
+          console.error('❌ Error parsing Paymob response:', parseError);
+          throw new Error('Invalid response from Paymob API');
+        }
         
         if (!orderData.id) {
           console.error('❌ Paymob order creation failed:', orderData);
