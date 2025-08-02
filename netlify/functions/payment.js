@@ -6,6 +6,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 const PAYMOB_CONFIG = {
   API_KEY: process.env.PAYMOB_API_KEY || 'your_api_key_here',
   INTEGRATION_ID: process.env.PAYMOB_INTEGRATION_ID || 'your_integration_id_here',
+  IFRAME_ID: process.env.PAYMOB_IFRAME_ID || 'your_iframe_id_here',
   HMAC_SECRET: process.env.PAYMOB_HMAC_SECRET || 'your_hmac_secret_here'
 };
 
@@ -19,6 +20,10 @@ function validatePaymobConfig() {
   
   if (!PAYMOB_CONFIG.INTEGRATION_ID || PAYMOB_CONFIG.INTEGRATION_ID === 'your_integration_id_here') {
     issues.push('PAYMOB_INTEGRATION_ID is missing or invalid');
+  }
+  
+  if (!PAYMOB_CONFIG.IFRAME_ID || PAYMOB_CONFIG.IFRAME_ID === 'your_iframe_id_here') {
+    issues.push('PAYMOB_IFRAME_ID is missing or invalid');
   }
   
   if (!PAYMOB_CONFIG.HMAC_SECRET || PAYMOB_CONFIG.HMAC_SECRET === 'your_hmac_secret_here') {
@@ -139,7 +144,12 @@ export const handler = async (event, context) => {
           amount_cents: Math.round(amount * 100), // تحويل للقروش
           currency: 'EGP',
           merchant_order_id: body.orderId || `order_${Date.now()}`,
-          items: body.items || []
+          items: (body.items || []).map(item => ({
+            name: item.productName || item.name || 'Product',
+            amount_cents: Math.round((item.price || 0) * 100),
+            description: item.productName || item.name || 'Product',
+            quantity: item.quantity || 1
+          }))
         };
         console.log('📋 Order payload:', JSON.stringify(orderPayload, null, 2));
         
@@ -226,7 +236,7 @@ export const handler = async (event, context) => {
         console.log('✅ Payment key created successfully');
 
         // إنشاء رابط الدفع
-        const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_CONFIG.INTEGRATION_ID}?payment_token=${paymentKeyData.token}`;
+        const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_CONFIG.IFRAME_ID}?payment_token=${paymentKeyData.token}`;
 
         return {
           statusCode: 200,
