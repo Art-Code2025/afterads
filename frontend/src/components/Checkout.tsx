@@ -556,8 +556,8 @@ const Checkout: React.FC = () => {
           };
 
           // إنشاء رابط الدفع الإلكتروني
-          if (api.payment && api.payment.createPaymentLink) {
-            const paymentResult = await api.payment.createPaymentLink(paymentData);
+          if ('payments' in api && typeof (api as any).payments?.createPaymentLink === 'function') {
+const paymentResult = await (api as any).payments.createPaymentLink(paymentData);
             
             if (paymentResult.success && paymentResult.paymentUrl) {
               // حفظ بيانات الطلب المؤقتة في localStorage
