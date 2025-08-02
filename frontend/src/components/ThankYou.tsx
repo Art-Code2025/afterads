@@ -179,37 +179,13 @@ const ThankYou: React.FC = () => {
                   <div className="space-y-3 text-sm text-gray-700">
                     {orderData?.userData && (
                       <>
-                        <div className="flex items-center gap-3">
-                          <User className="w-4 h-4 text-gray-500" />
-                          <span>{orderData.userData.name}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Phone className="w-4 h-4 text-gray-500" />
-                          <span>{orderData.userData.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Mail className="w-4 h-4 text-gray-500" />
-                          <span>{orderData.userData.email}</span>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                        <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                          <User className="w-4 h-4 text-gray-500 mt-0.5" />
                           <div className="flex-1">
-                            <div>{orderData.userData.address}</div>
-                            <div className="text-gray-500">
-                              {orderData.userData.city}, {orderData.userData.region}
-                              {orderData.userData.postalCode && ` - ${orderData.userData.postalCode}`}
-                            </div>
-                            {(orderData.userData.buildingNumber || orderData.userData.floor || orderData.userData.apartment) && (
-                              <div className="text-gray-500 text-xs mt-1">
-                                {orderData.userData.buildingNumber && `مبنى ${orderData.userData.buildingNumber}`}
-                                {orderData.userData.floor && ` - الطابق ${orderData.userData.floor}`}
-                                {orderData.userData.apartment && ` - شقة ${orderData.userData.apartment}`}
-                              </div>
-                            )}
-                            {orderData.userData.landmark && (
-                              <div className="text-gray-500 text-xs mt-1">
-                                علامة مميزة: {orderData.userData.landmark}
-                              </div>
+                            <div className="font-medium">{orderData.userData.name}</div>
+                            <div className="text-gray-500">{orderData.userData.phone}</div>
+                            {orderData.userData.email && (
+                              <div className="text-gray-500" dir="ltr">{orderData.userData.email}</div>
                             )}
                           </div>
                         </div>

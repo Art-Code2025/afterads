@@ -49,14 +49,6 @@ interface UserData {
   name: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  region: string;
-  postalCode: string;
-  buildingNumber?: string;
-  floor?: string;
-  apartment?: string;
-  landmark?: string;
 }
 
 interface ShippingZone {
@@ -96,18 +88,10 @@ const Checkout: React.FC = () => {
   const [userData, setUserData] = useState<UserData>({
     name: '',
     email: '',
-    phone: '',
-    address: '',
-    city: '',
-    region: '',
-    postalCode: '',
-    buildingNumber: '',
-    floor: '',
-    apartment: '',
-    landmark: ''
+    phone: ''
   });
   const [selectedShippingZone, setSelectedShippingZone] = useState<ShippingZone | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'bank' | 'card'>('cod');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card'>('card');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -218,15 +202,7 @@ const Checkout: React.FC = () => {
           setUserData({
             name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || '',
             email: user.email || '',
-            phone: user.phone || '',
-            address: user.address || '',
-            city: user.city || '',
-            region: user.region || '',
-            postalCode: user.postalCode || '',
-            buildingNumber: user.buildingNumber || '',
-            floor: user.floor || '',
-            apartment: user.apartment || '',
-            landmark: user.landmark || ''
+            phone: user.phone || ''
           });
           
           console.log('✅ [Checkout] User data auto-filled successfully');
@@ -404,21 +380,11 @@ const Checkout: React.FC = () => {
         newErrors.phone = 'رقم الهاتف يجب أن يبدأ بـ 05 ويتكون من 10 أرقام';
       }
       
-      // البريد الإلكتروني (اختياري لكن إذا تم إدخاله يجب أن يكون صحيح)
-      if (userData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email.trim())) {
+      // البريد الإلكتروني (مطلوب للمنتجات الرقمية)
+      if (!userData.email.trim()) {
+        newErrors.email = 'البريد الإلكتروني مطلوب';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email.trim())) {
         newErrors.email = 'البريد الإلكتروني غير صحيح';
-      }
-      
-      // المدينة
-      if (!userData.city.trim()) {
-        newErrors.city = 'المدينة مطلوبة';
-      }
-      
-      // العنوان
-      if (!userData.address.trim()) {
-        newErrors.address = 'العنوان مطلوب';
-      } else if (userData.address.trim().length < 10) {
-        newErrors.address = 'العنوان يجب أن يكون مفصل أكثر (على الأقل 10 أحرف)';
       }
     }
     
@@ -486,14 +452,6 @@ const Checkout: React.FC = () => {
         customerName: userData.name,
         customerEmail: userData.email,
         customerPhone: userData.phone,
-        address: userData.address,
-        city: userData.city,
-        region: userData.region,
-        postalCode: userData.postalCode,
-        buildingNumber: userData.buildingNumber,
-        floor: userData.floor,
-        apartment: userData.apartment,
-        landmark: userData.landmark,
         items: cartItems.map(item => ({
           productId: item.id,
           productName: item.name,
@@ -538,14 +496,7 @@ const Checkout: React.FC = () => {
             customerData: {
               name: userData.name,
               email: userData.email,
-              phone: userData.phone,
-              address: userData.address,
-              city: userData.city,
-              region: userData.region,
-              postalCode: userData.postalCode,
-              buildingNumber: userData.buildingNumber,
-              floor: userData.floor,
-              apartment: userData.apartment
+              phone: userData.phone
             },
             items: cartItems.map(item => ({
               name: item.name,
@@ -556,8 +507,8 @@ const Checkout: React.FC = () => {
           };
 
           // إنشاء رابط الدفع الإلكتروني
-          if ('payments' in api && typeof (api as any).payments?.createPaymentLink === 'function') {
-const paymentResult = await (api as any).payments.createPaymentLink(paymentData);
+          if ('payment' in api && typeof (api as any).payment?.createPaymentLink === 'function') {
+const paymentResult = await (api as any).payment.createPaymentLink(paymentData);
             
             if (paymentResult.success && paymentResult.paymentUrl) {
               // حفظ بيانات الطلب المؤقتة في localStorage
@@ -636,15 +587,7 @@ const paymentResult = await (api as any).payments.createPaymentLink(paymentData)
         userData: {
           name: userData.name,
           email: userData.email,
-          phone: userData.phone,
-          address: userData.address,
-          city: userData.city,
-          region: userData.region,
-          postalCode: userData.postalCode,
-          buildingNumber: userData.buildingNumber,
-          floor: userData.floor,
-          apartment: userData.apartment,
-          landmark: userData.landmark
+          phone: userData.phone
         },
         paymentMethod: selectedPaymentMethod,
         total: total,
@@ -1048,135 +991,87 @@ const paymentResult = await (api as any).payments.createPaymentLink(paymentData)
                         <User className="text-white" size={24} />
                     </div>
                     <div>
-                        <h2 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-2">بيانات التوصيل</h2>
-                        <p className="text-gray-600 text-base lg:text-lg xl:text-xl">أدخل بياناتك لإتمام التوصيل</p>
+                        <h2 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-2">بياناتك الشخصية</h2>
+                        <p className="text-gray-600 text-base lg:text-lg xl:text-xl">أدخل بياناتك لإتمام الشراء</p>
                     </div>
                   </div>
                   
                     <div className="bg-white rounded-2xl lg:rounded-3xl p-6 lg:p-8 border-2 border-gray-100 shadow-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-                        <div className="space-y-2">
-                          <label className="block text-sm lg:text-base font-bold text-gray-700">الاسم الكامل *</label>
-                      <input
-                        type="text"
-                        value={userData.name}
-                        onChange={(e) => setUserData({...userData, name: e.target.value})}
-                            className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border rounded-lg lg:rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
-                              errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                        placeholder="أدخل اسمك الكامل"
-                      />
-                          {errors.name && (
-                            <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1">
-                              <X size={14} />
-                              {errors.name}
-                            </p>
-                          )}
-                    </div>
-
-                        <div className="space-y-2">
-                          <label className="block text-sm lg:text-base font-bold text-gray-700">رقم الهاتف *</label>
-                      <input
-                        type="tel"
-                        value={userData.phone}
-                            onChange={(e) => {
-                              // تنسيق رقم الهاتف تلقائياً
-                              let phone = e.target.value.replace(/\D/g, '');
-                              if (phone.length > 0 && !phone.startsWith('05')) {
-                                if (phone.startsWith('5')) {
-                                  phone = '0' + phone;
-                                }
-                              }
-                              if (phone.length > 10) {
-                                phone = phone.slice(0, 10);
-                              }
-                              setUserData({...userData, phone});
-                            }}
-                            className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border rounded-lg lg:rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
-                              errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                        placeholder="05xxxxxxxx"
-                            maxLength={10}
-                          />
-                          {errors.phone && (
-                            <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1">
-                              <X size={14} />
-                              {errors.phone}
-                            </p>
-                          )}
-                    </div>
-
-                        <div className="space-y-2">
-                          <label className="block text-sm lg:text-base font-bold text-gray-700">البريد الإلكتروني (اختياري)</label>
-                      <input
-                        type="email"
-                        value={userData.email}
-                        onChange={(e) => setUserData({...userData, email: e.target.value})}
-                            className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border rounded-lg lg:rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
-                              errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                        placeholder="example@email.com"
-                      />
-                          {errors.email && (
-                            <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1">
-                              <X size={14} />
-                              {errors.email}
-                            </p>
-                          )}
-                    </div>
-
-                        <div className="space-y-2">
-                          <label className="block text-sm lg:text-base font-bold text-gray-700">المدينة *</label>
-                      <select
-                        value={userData.city}
-                        onChange={(e) => setUserData({...userData, city: e.target.value})}
-                            className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border rounded-lg lg:rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
-                              errors.city ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                      >
-                        <option value="">اختر المدينة</option>
-                        <option value="الرياض">الرياض</option>
-                        <option value="جدة">جدة</option>
-                        <option value="مكة">مكة المكرمة</option>
-                        <option value="الدمام">الدمام</option>
-                        <option value="الخبر">الخبر</option>
-                        <option value="المدينة">المدينة المنورة</option>
-                            <option value="الطائف">الطائف</option>
-                            <option value="أبها">أبها</option>
-                            <option value="تبوك">تبوك</option>
-                            <option value="القصيم">القصيم</option>
-                        <option value="أخرى">أخرى</option>
-                      </select>
-                          {errors.city && (
-                            <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1">
-                              <X size={14} />
-                              {errors.city}
-                            </p>
-                          )}
-                    </div>
-
-                        <div className="md:col-span-2 space-y-2">
-                          <label className="block text-sm lg:text-base font-bold text-gray-700">العنوان التفصيلي *</label>
-                      <textarea
-                        value={userData.address}
-                        onChange={(e) => setUserData({...userData, address: e.target.value})}
-                            rows={4}
-                            className={`w-full px-3 lg:px-4 py-2 lg:py-3 text-sm lg:text-base border rounded-lg lg:rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all resize-none ${
-                              errors.address ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                            }`}
-                        placeholder="أدخل العنوان التفصيلي (الحي، الشارع، رقم المبنى)"
-                      />
-                          {errors.address && (
-                            <p className="text-red-500 text-xs lg:text-sm flex items-center gap-1">
-                              <X size={14} />
-                              {errors.address}
-                                </p>
-                              )}
-                          <p className="text-xs text-gray-500">
-                            مثال: حي الملز، شارع الأمير محمد بن عبدالعزيز، مبنى رقم 123، الدور الثاني
-                          </p>
-                            </div>
+                      <div className="max-w-2xl mx-auto">
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <label className="block text-sm lg:text-base font-bold text-gray-700">الاسم الكامل *</label>
+                            <input
+                              type="text"
+                              value={userData.name}
+                              onChange={(e) => setUserData({...userData, name: e.target.value})}
+                              className={`w-full px-4 py-3 text-base border rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
+                                errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                              }`}
+                              placeholder="أدخل اسمك الكامل"
+                            />
+                            {errors.name && (
+                              <p className="text-red-500 text-sm flex items-center gap-1">
+                                <X size={14} />
+                                {errors.name}
+                              </p>
+                            )}
                           </div>
+
+                          <div className="space-y-2">
+                            <label className="block text-sm lg:text-base font-bold text-gray-700">رقم الهاتف *</label>
+                            <input
+                              type="tel"
+                              value={userData.phone}
+                              onChange={(e) => {
+                                let phone = e.target.value.replace(/\D/g, '');
+                                if (phone.length > 0 && !phone.startsWith('05')) {
+                                  if (phone.startsWith('5')) {
+                                    phone = '0' + phone;
+                                  }
+                                }
+                                if (phone.length > 10) {
+                                  phone = phone.slice(0, 10);
+                                }
+                                setUserData({...userData, phone});
+                              }}
+                              className={`w-full px-4 py-3 text-base border rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
+                                errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                              }`}
+                              placeholder="05xxxxxxxx"
+                              maxLength={10}
+                            />
+                            {errors.phone && (
+                              <p className="text-red-500 text-sm flex items-center gap-1">
+                                <X size={14} />
+                                {errors.phone}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="block text-sm lg:text-base font-bold text-gray-700">البريد الإلكتروني *</label>
+                            <input
+                              type="email"
+                              value={userData.email}
+                              onChange={(e) => setUserData({...userData, email: e.target.value})}
+                              className={`w-full px-4 py-3 text-base border rounded-xl focus:ring-2 focus:ring-black/20 focus:border-black transition-all ${
+                                errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                              }`}
+                              placeholder="example@email.com"
+                            />
+                            {errors.email && (
+                              <p className="text-red-500 text-sm flex items-center gap-1">
+                                <X size={14} />
+                                {errors.email}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              سيتم إرسال المنتج الرقمي على هذا البريد الإلكتروني
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                             </div>
                           )}
@@ -1194,86 +1089,27 @@ const paymentResult = await (api as any).payments.createPaymentLink(paymentData)
                     </div>
                   </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                    <div className="flex justify-center">
+                      {/* خيار الدفع الإلكتروني الوحيد */}
                       <div
-                        className={`p-6 lg:p-8 rounded-2xl lg:rounded-3xl border-3 cursor-pointer transition-all duration-300 hover:scale-105 transform ${
-                          selectedPaymentMethod === 'cod'
-                            ? 'border-black bg-gradient-to-br from-gray-50 to-white shadow-2xl'
-                            : 'border-gray-200 hover:border-gray-300 hover:shadow-lg bg-white'
-                        }`}
-                        onClick={() => setSelectedPaymentMethod('cod')}
-                      >
-                        <div className="flex items-center gap-4 lg:gap-6">
-                          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl lg:rounded-3xl flex items-center justify-center shadow-lg">
-                            <Truck className="text-white" size={24} />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-900 text-lg lg:text-xl xl:text-2xl mb-2">الدفع عند الاستلام</h4>
-                            <p className="text-sm lg:text-base text-gray-600">ادفع نقداً عند وصول الطلب</p>
-                          </div>
-                        </div>
-                        {selectedPaymentMethod === 'cod' && (
-                          <div className="mt-4 lg:mt-6 flex justify-center">
-                            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full p-2 shadow-lg">
-                              <CheckCircle size={20} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div
-                        className={`p-6 lg:p-8 rounded-2xl lg:rounded-3xl border-3 cursor-pointer transition-all duration-300 hover:scale-105 transform ${
-                          selectedPaymentMethod === 'bank'
-                            ? 'border-black bg-gradient-to-br from-gray-50 to-white shadow-2xl'
-                            : 'border-gray-200 hover:border-gray-300 hover:shadow-lg bg-white'
-                        }`}
-                        onClick={() => setSelectedPaymentMethod('bank')}
-                      >
-                        <div className="flex items-center gap-4 lg:gap-6">
-                          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl lg:rounded-3xl flex items-center justify-center shadow-lg">
-                            <CreditCard className="text-white" size={24} />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-900 text-lg lg:text-xl xl:text-2xl mb-2">تحويل بنكي</h4>
-                            <p className="text-sm lg:text-base text-gray-600">تحويل إلى الحساب البنكي</p>
-                          </div>
-                        </div>
-                        {selectedPaymentMethod === 'bank' && (
-                          <div className="mt-4 lg:mt-6 flex justify-center">
-                            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full p-2 shadow-lg">
-                              <CheckCircle size={20} />
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                      
-                      {/* خيار الدفع الإلكتروني */}
-                      <div
-                        className={`p-6 lg:p-8 rounded-2xl lg:rounded-3xl border-3 cursor-pointer transition-all duration-300 hover:scale-105 transform ${
-                          selectedPaymentMethod === 'card'
-                            ? 'border-black bg-gradient-to-br from-gray-50 to-white shadow-2xl'
-                            : 'border-gray-200 hover:border-gray-300 hover:shadow-lg bg-white'
-                        }`}
-                        onClick={() => setSelectedPaymentMethod('card')}
+                        className="p-8 lg:p-10 rounded-2xl lg:rounded-3xl border-3 border-black bg-gradient-to-br from-gray-50 to-white shadow-2xl max-w-md w-full"
                       >
                         <div className="flex items-center gap-4 lg:gap-6">
                           <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl lg:rounded-3xl flex items-center justify-center shadow-lg">
                             <CreditCard className="text-white" size={24} />
                           </div>
                           <div>
-                            <h4 className="font-bold text-gray-900 text-lg lg:text-xl xl:text-2xl mb-2">دفع إلكتروني</h4>
-                            <p className="text-sm lg:text-base text-gray-600">فيزا أو ماستركارد</p>
+                            <h4 className="font-bold text-gray-900 text-lg lg:text-xl xl:text-2xl mb-2">دفع إلكتروني آمن</h4>
+                            <p className="text-sm lg:text-base text-gray-600">فيزا أو ماستركارد عبر باي موب</p>
                           </div>
                         </div>
-                        {selectedPaymentMethod === 'card' && (
-                          <div className="mt-4 lg:mt-6 flex justify-center">
-                            <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full p-2 shadow-lg">
-                              <CheckCircle size={20} />
-                            </div>
+                        <div className="mt-4 lg:mt-6 flex justify-center">
+                          <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full p-2 shadow-lg">
+                            <CheckCircle size={20} />
                           </div>
-                        )}
+                        </div>
                       </div>
-                  </div>
+                    </div>
 
                     {/* معلومات إضافية عن طريقة الدفع */}
                     <div className="mt-8 lg:mt-10 p-6 lg:p-8 bg-white rounded-2xl lg:rounded-3xl border-2 border-gray-100 shadow-lg">
@@ -1288,15 +1124,15 @@ const paymentResult = await (api as any).payments.createPaymentLink(paymentData)
                             </li>
                             <li className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              يمكنك الدفع نقداً عند الاستلام
+                              الدفع الإلكتروني آمن ومشفر عبر باي موب
                             </li>
                             <li className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              الدفع الإلكتروني آمن ومشفر
+                              يدعم جميع البطاقات الائتمانية (فيزا، ماستركارد)
                             </li>
                             <li className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              التحويل البنكي متاح للطلبات الكبيرة
+                              معالجة فورية وآمنة للمدفوعات
                             </li>
                             <li className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1339,20 +1175,12 @@ const paymentResult = await (api as any).payments.createPaymentLink(paymentData)
                             <span className="font-bold text-gray-700">الهاتف:</span>
                             <span className="text-gray-900 font-medium" dir="ltr">{userData.phone}</span>
                         </div>
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                            <span className="font-bold text-gray-700">المدينة:</span>
-                            <span className="text-gray-900 font-medium">{userData.city}</span>
-                          </div>
                           {userData.email && (
                             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                              <span className="font-bold text-gray-700">البريد:</span>
+                              <span className="font-bold text-gray-700">البريد الإلكتروني:</span>
                               <span className="text-gray-900 font-medium" dir="ltr">{userData.email}</span>
-                      </div>
-                    )}
-                          <div className="lg:col-span-2 flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                            <span className="font-bold text-gray-700 flex-shrink-0">العنوان:</span>
-                            <span className="text-gray-900 font-medium">{userData.address}</span>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -1363,17 +1191,11 @@ const paymentResult = await (api as any).payments.createPaymentLink(paymentData)
                           <h3 className="font-bold text-gray-900 text-lg lg:text-xl xl:text-2xl">طريقة الدفع</h3>
                         </div>
                         <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                            selectedPaymentMethod === 'cod' ? 'bg-green-500' : 'bg-blue-500'
-                          }`}>
-                            {selectedPaymentMethod === 'cod' ? (
-                              <Truck className="text-white" size={20} />
-                            ) : (
-                              <CreditCard className="text-white" size={20} />
-                            )}
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-500">
+                            <CreditCard className="text-white" size={20} />
                           </div>
                           <span className="text-gray-900 font-bold text-base lg:text-lg">
-                            {selectedPaymentMethod === 'cod' ? 'الدفع عند الاستلام' : 'تحويل بنكي'}
+                            دفع إلكتروني آمن عبر باي موب
                         </span>
                         </div>
                       </div>
