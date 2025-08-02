@@ -20,11 +20,22 @@ const PaymentResult: React.FC = () => {
       try {
         console.log('🚀 [PaymentResult] Starting payment result processing...');
         
-        // الحصول على معاملات الـ URL
+        // قراءة معاملات الـ URL
+        console.log('🔍 [PaymentResult] Reading URL parameters...');
+        console.log('🔍 [PaymentResult] Full URL:', window.location.href);
+        console.log('🔍 [PaymentResult] Search string:', window.location.search);
+        console.log('🔍 [PaymentResult] SearchParams object:', searchParams);
+        console.log('🔍 [PaymentResult] All search params:', Object.fromEntries(searchParams.entries()));
+        
         const success = searchParams.get('success');
         const orderId = searchParams.get('order');
         const transactionId = searchParams.get('id');
         
+        console.log('🔍 [PaymentResult] URL Parameters:', { success, orderId, transactionId });
+        console.log('🔍 [PaymentResult] Success parameter type:', typeof success);
+        console.log('🔍 [PaymentResult] Success parameter value:', success);
+        console.log('🔍 [PaymentResult] Success === "true":', success === 'true');
+        console.log('🔍 [PaymentResult] Success === "false":', success === 'false');
         console.log('💳 [PaymentResult] Payment result params:', { success, orderId, transactionId });
         console.log('💳 [PaymentResult] Success value type:', typeof success);
         console.log('💳 [PaymentResult] Success === "true":', success === 'true');
@@ -86,8 +97,26 @@ const PaymentResult: React.FC = () => {
               };
               
               // حفظ الطلب في قاعدة البيانات
-              const result = await api.orders.create(finalOrderData);
-              console.log('✅ [PaymentResult] Order saved successfully:', result);
+              console.log('💾 [PaymentResult] Attempting to save order to database...');
+              console.log('💾 [PaymentResult] Order data to save:', finalOrderData);
+              console.log('💾 [PaymentResult] API object:', api);
+              console.log('💾 [PaymentResult] API orders method:', api.orders);
+              console.log('💾 [PaymentResult] API orders create method:', api.orders.create);
+              
+              try {
+                const result = await api.orders.create(finalOrderData);
+                console.log('✅ [PaymentResult] Order saved successfully:', result);
+                console.log('✅ [PaymentResult] Saved order ID:', result?.id || result?._id);
+              } catch (saveError) {
+                console.error('❌ [PaymentResult] Error saving order to database:', saveError);
+                console.error('❌ [PaymentResult] Save error details:', {
+                  message: saveError.message,
+                  status: saveError.status,
+                  response: saveError.response
+                });
+                // لا نوقف العملية حتى لو فشل الحفظ
+                toast.error('تم الدفع بنجاح ولكن حدث خطأ في حفظ الطلب');
+              }
               
               // حفظ بيانات الطلب النهائية في localStorage
               const finalOrderForDisplay = {
@@ -116,14 +145,36 @@ const PaymentResult: React.FC = () => {
           
           // التوجيه التلقائي لصفحة الشكر بعد 3 ثوانٍ
           console.log('⏰ [PaymentResult] Setting up redirect timer (3 seconds)...');
-          setTimeout(() => {
-            console.log('🔄 [PaymentResult] Timer expired, redirecting to thank you page...');
-            console.log('🔄 [PaymentResult] Current location:', window.location.href);
-            console.log('🔄 [PaymentResult] Navigating to: /thank-you');
-            navigate('/thank-you', { replace: true });
-            console.log('✅ [PaymentResult] Navigate function called');
+          console.log('🔍 [PaymentResult] Navigate function type:', typeof navigate);
+          console.log('🔍 [PaymentResult] Navigate function available:', !!navigate);
+          
+          const redirectTimer = setTimeout(() => {
+            console.log('🔄 [PaymentResult] Timer expired, starting redirect process...');
+            console.log('🔄 [PaymentResult] Current location before redirect:', window.location.href);
+            console.log('🔄 [PaymentResult] Navigate function still available:', !!navigate);
+            
+            try {
+              console.log('🔄 [PaymentResult] Attempting React Router navigation...');
+              navigate('/thank-you', { replace: true });
+              console.log('✅ [PaymentResult] React Router navigate called successfully');
+              
+              // Fallback: استخدام window.location كبديل
+              setTimeout(() => {
+                console.log('🔄 [PaymentResult] Fallback: Using window.location...');
+                if (window.location.pathname.includes('payment-result')) {
+                  window.location.href = '/thank-you';
+                  console.log('✅ [PaymentResult] Window.location redirect executed');
+                }
+              }, 1000);
+              
+            } catch (navError) {
+              console.error('❌ [PaymentResult] Navigation error:', navError);
+              console.log('🔄 [PaymentResult] Using window.location as fallback...');
+              window.location.href = '/thank-you';
+            }
           }, 3000);
-          console.log('⏰ [PaymentResult] Redirect timer set successfully');
+          
+          console.log('⏰ [PaymentResult] Redirect timer set successfully, timer ID:', redirectTimer);
           
         } else if (success === 'false') {
           console.log('❌ [PaymentResult] Payment failed, processing failure...');
