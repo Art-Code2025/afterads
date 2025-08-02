@@ -12,32 +12,54 @@ const PaymentResult: React.FC = () => {
   const [orderData, setOrderData] = useState<any>(null);
 
   useEffect(() => {
+    console.log('🔄 [PaymentResult] useEffect triggered, calling processPaymentResult...');
+    console.log('🔄 [PaymentResult] Current URL:', window.location.href);
+    console.log('🔄 [PaymentResult] Search params:', Object.fromEntries(searchParams.entries()));
+    
     const processPaymentResult = async () => {
       try {
+        console.log('🚀 [PaymentResult] Starting payment result processing...');
+        
         // الحصول على معاملات الـ URL
         const success = searchParams.get('success');
         const orderId = searchParams.get('order');
         const transactionId = searchParams.get('id');
         
-        console.log('💳 Payment result params:', { success, orderId, transactionId });
+        console.log('💳 [PaymentResult] Payment result params:', { success, orderId, transactionId });
+        console.log('💳 [PaymentResult] Success value type:', typeof success);
+        console.log('💳 [PaymentResult] Success === "true":', success === 'true');
 
         // التحقق من وجود بيانات الطلب المحفوظة
         const pendingOrderData = localStorage.getItem('pendingOrderData');
+        console.log('💾 [PaymentResult] Pending order data exists:', !!pendingOrderData);
+        
         let parsedData = null;
         if (pendingOrderData) {
-          parsedData = JSON.parse(pendingOrderData);
-          setOrderData(parsedData);
-          
-          // إزالة البيانات المؤقتة
-          localStorage.removeItem('pendingOrderData');
+          try {
+            parsedData = JSON.parse(pendingOrderData);
+            console.log('✅ [PaymentResult] Successfully parsed pending order data');
+            console.log('📋 [PaymentResult] Parsed data keys:', Object.keys(parsedData));
+            setOrderData(parsedData);
+            
+            // إزالة البيانات المؤقتة
+            localStorage.removeItem('pendingOrderData');
+            console.log('🗑️ [PaymentResult] Removed pending order data from localStorage');
+          } catch (parseError) {
+            console.error('❌ [PaymentResult] Error parsing pending order data:', parseError);
+          }
+        } else {
+          console.warn('⚠️ [PaymentResult] No pending order data found in localStorage');
         }
 
+        console.log('🔍 [PaymentResult] Checking success condition...');
         if (success === 'true') {
+          console.log('✅ [PaymentResult] Payment was successful, processing...');
           setPaymentStatus('success');
           toast.success('تم الدفع بنجاح! شكراً لك.');
           
           // حفظ الطلب في قاعدة البيانات عند نجاح الدفع
           if (parsedData) {
+            console.log('💾 [PaymentResult] Found parsed data, proceeding to save order...');
             try {
               console.log('💾 [PaymentResult] Saving order to database after successful payment...');
               console.log('📋 [PaymentResult] Parsed data structure:', Object.keys(parsedData));
@@ -86,34 +108,47 @@ const PaymentResult: React.FC = () => {
           }
           
           // مسح السلة
+          console.log('🧹 [PaymentResult] Clearing cart data...');
           localStorage.removeItem('cartItems');
           localStorage.removeItem('cart');
           window.dispatchEvent(new CustomEvent('cartUpdated'));
+          console.log('✅ [PaymentResult] Cart data cleared successfully');
           
           // التوجيه التلقائي لصفحة الشكر بعد 3 ثوانٍ
+          console.log('⏰ [PaymentResult] Setting up redirect timer (3 seconds)...');
           setTimeout(() => {
-            console.log('🔄 [PaymentResult] Auto-redirecting to thank you page...');
+            console.log('🔄 [PaymentResult] Timer expired, redirecting to thank you page...');
+            console.log('🔄 [PaymentResult] Current location:', window.location.href);
+            console.log('🔄 [PaymentResult] Navigating to: /thank-you');
             navigate('/thank-you', { replace: true });
+            console.log('✅ [PaymentResult] Navigate function called');
           }, 3000);
+          console.log('⏰ [PaymentResult] Redirect timer set successfully');
           
         } else if (success === 'false') {
+          console.log('❌ [PaymentResult] Payment failed, processing failure...');
           setPaymentStatus('failed');
           toast.error('فشل في عملية الدفع. يرجى المحاولة مرة أخرى.');
           
           // التوجيه التلقائي لصفحة الـ checkout بعد 5 ثوانٍ
+          console.log('⏰ [PaymentResult] Setting up redirect timer for failed payment (5 seconds)...');
           setTimeout(() => {
-            console.log('🔄 [PaymentResult] Auto-redirecting to checkout page...');
+            console.log('🔄 [PaymentResult] Redirecting to checkout page after payment failure...');
             navigate('/checkout', { replace: true });
           }, 5000);
           
         } else {
+          console.log('⚠️ [PaymentResult] Payment status unclear, setting to pending');
+          console.log('⚠️ [PaymentResult] Success parameter value:', success);
           setPaymentStatus('pending');
         }
         
+        console.log('✅ [PaymentResult] Payment result processing completed successfully');
       } catch (error) {
-        console.error('❌ Error processing payment result:', error);
+        console.error('❌ [PaymentResult] Error processing payment result:', error);
+        console.error('❌ [PaymentResult] Error stack:', error.stack);
         setPaymentStatus('failed');
-        toast.error('حدث خطأ في معالجة نتيجة الدفع.');
+        toast.error('حدث خطأ أثناء معالجة نتيجة الدفع.');
       } finally {
         setLoading(false);
       }

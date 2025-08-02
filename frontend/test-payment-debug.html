@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار عملية الدفع - تشخيص مفصل</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #ffd700;
+            border-bottom: 2px solid #ffd700;
+            padding-bottom: 10px;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .success {
+            background: linear-gradient(45deg, #00b894, #00a085);
+        }
+        .warning {
+            background: linear-gradient(45deg, #fdcb6e, #e17055);
+        }
+        .info {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+        }
+        .danger {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+        }
+        .log-area {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: rgba(0, 184, 148, 0.3); }
+        .status.error { background: rgba(231, 76, 60, 0.3); }
+        .status.warning { background: rgba(241, 196, 15, 0.3); }
+        .status.info { background: rgba(52, 152, 219, 0.3); }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .quick-link {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .quick-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 اختبار عملية الدفع - تشخيص مفصل</h1>
+        
+        <!-- معلومات النظام -->
+        <div class="section">
+            <h2>📊 معلومات النظام</h2>
+            <div id="systemInfo"></div>
+        </div>
+        
+        <!-- إعداد بيانات الاختبار -->
+        <div class="section">
+            <h2>⚙️ إعداد بيانات الاختبار</h2>
+            <button class="success" onclick="setupTestData()">إنشاء بيانات طلب تجريبية</button>
+            <button class="info" onclick="checkLocalStorage()">فحص localStorage</button>
+            <button class="warning" onclick="clearTestData()">مسح البيانات التجريبية</button>
+            <div id="setupStatus"></div>
+        </div>
+        
+        <!-- محاكاة عملية الدفع -->
+        <div class="section">
+            <h2>💳 محاكاة عملية الدفع</h2>
+            <button class="success" onclick="simulateSuccessfulPayment()">محاكاة دفع ناجح</button>
+            <button class="danger" onclick="simulateFailedPayment()">محاكاة دفع فاشل</button>
+            <button class="warning" onclick="simulateCancelledPayment()">محاكاة دفع ملغي</button>
+            <div id="paymentStatus"></div>
+        </div>
+        
+        <!-- مراقبة Console Logs -->
+        <div class="section">
+            <h2>📝 مراقبة Console Logs</h2>
+            <button class="info" onclick="startLogMonitoring()">بدء مراقبة الـ Console</button>
+            <button class="warning" onclick="clearLogs()">مسح السجلات</button>
+            <div class="log-area" id="consoleLog"></div>
+        </div>
+        
+        <!-- روابط سريعة -->
+        <div class="section">
+            <h2>🔗 روابط سريعة</h2>
+            <div class="grid">
+                <a href="http://localhost:5175/" class="quick-link" target="_blank">
+                    🏠 الصفحة الرئيسية
+                </a>
+                <a href="http://localhost:5175/checkout" class="quick-link" target="_blank">
+                    🛒 صفحة الدفع
+                </a>
+                <a href="http://localhost:5175/payment-result?success=true&order=TEST123&id=TXN456" class="quick-link" target="_blank">
+                    ✅ نتيجة دفع ناجحة
+                </a>
+                <a href="http://localhost:5175/thank-you" class="quick-link" target="_blank">
+                    🙏 صفحة الشكر
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let logMonitoring = false;
+        
+        // إعداد مراقبة console logs
+        function startLogMonitoring() {
+            if (logMonitoring) return;
+            
+            logMonitoring = true;
+            const logArea = document.getElementById('consoleLog');
+            
+            // حفظ console.log الأصلي
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            // إعادة تعريف console.log
+            console.log = function(...args) {
+                originalLog.apply(console, args);
+                logToArea('LOG', args.join(' '), 'info');
+            };
+            
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                logToArea('ERROR', args.join(' '), 'error');
+            };
+            
+            console.warn = function(...args) {
+                originalWarn.apply(console, args);
+                logToArea('WARN', args.join(' '), 'warning');
+            };
+            
+            logToArea('SYSTEM', 'بدأت مراقبة Console Logs...', 'success');
+        }
+        
+        function logToArea(type, message, level) {
+            const logArea = document.getElementById('consoleLog');
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const logEntry = document.createElement('div');
+            logEntry.className = `status ${level}`;
+            logEntry.innerHTML = `[${timestamp}] ${type}: ${message}`;
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('consoleLog').innerHTML = '';
+        }
+        
+        // إعداد بيانات الاختبار
+        function setupTestData() {
+            const testOrderData = {
+                orderData: {
+                    id: 'TEST_ORDER_' + Date.now(),
+                    orderNumber: 'MW' + Date.now().toString().slice(-6),
+                    total: 299.99,
+                    estimatedDelivery: 'خلال 2-3 أيام عمل'
+                },
+                items: [
+                    {
+                        id: 'test-product-1',
+                        name: 'عطر تجريبي فاخر',
+                        price: 199.99,
+                        quantity: 1,
+                        size: '100ml',
+                        image: 'https://via.placeholder.com/150x150/8B5A3C/FFFFFF?text=عطر'
+                    },
+                    {
+                        id: 'test-product-2',
+                        name: 'عطر تجريبي كلاسيكي',
+                        price: 100.00,
+                        quantity: 1,
+                        size: '50ml',
+                        image: 'https://via.placeholder.com/150x150/6B4226/FFFFFF?text=عطر'
+                    }
+                ],
+                userData: {
+                    name: 'أحمد محمد التجريبي',
+                    phone: '+966501234567',
+                    email: 'test@example.com',
+                    address: 'الرياض، المملكة العربية السعودية'
+                },
+                paymentMethod: 'bank_transfer',
+                subtotal: 299.99,
+                shipping: 0,
+                discount: 0,
+                total: 299.99
+            };
+            
+            localStorage.setItem('pendingOrderData', JSON.stringify(testOrderData));
+            
+            // إضافة بيانات إضافية للاختبار
+            localStorage.setItem('cartItems', JSON.stringify(testOrderData.items));
+            localStorage.setItem('tempOrderData', JSON.stringify(testOrderData));
+            
+            document.getElementById('setupStatus').innerHTML = `
+                <div class="status success">
+                    ✅ تم إنشاء بيانات الطلب التجريبية بنجاح!<br>
+                    رقم الطلب: ${testOrderData.orderData.orderNumber}<br>
+                    المبلغ الإجمالي: ${testOrderData.total} ر.س
+                </div>
+            `;
+            
+            console.log('🧪 [TEST] Test order data created:', testOrderData);
+        }
+        
+        function checkLocalStorage() {
+            const pendingData = localStorage.getItem('pendingOrderData');
+            const cartItems = localStorage.getItem('cartItems');
+            const tempData = localStorage.getItem('tempOrderData');
+            
+            let status = '<h3>📋 محتويات localStorage:</h3>';
+            
+            if (pendingData) {
+                try {
+                    const parsed = JSON.parse(pendingData);
+                    status += `<div class="status success">✅ pendingOrderData موجود (${Object.keys(parsed).length} مفاتيح)</div>`;
+                } catch (e) {
+                    status += `<div class="status error">❌ pendingOrderData تالف: ${e.message}</div>`;
+                }
+            } else {
+                status += `<div class="status warning">⚠️ pendingOrderData غير موجود</div>`;
+            }
+            
+            if (cartItems) {
+                try {
+                    const parsed = JSON.parse(cartItems);
+                    status += `<div class="status success">✅ cartItems موجود (${parsed.length} عنصر)</div>`;
+                } catch (e) {
+                    status += `<div class="status error">❌ cartItems تالف: ${e.message}</div>`;
+                }
+            } else {
+                status += `<div class="status info">ℹ️ cartItems غير موجود</div>`;
+            }
+            
+            if (tempData) {
+                status += `<div class="status success">✅ tempOrderData موجود</div>`;
+            } else {
+                status += `<div class="status info">ℹ️ tempOrderData غير موجود</div>`;
+            }
+            
+            document.getElementById('setupStatus').innerHTML = status;
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pendingOrderData');
+            localStorage.removeItem('cartItems');
+            localStorage.removeItem('tempOrderData');
+            localStorage.removeItem('cart');
+            
+            document.getElementById('setupStatus').innerHTML = `
+                <div class="status warning">
+                    🗑️ تم مسح جميع البيانات التجريبية
+                </div>
+            `;
+            
+            console.log('🧹 [TEST] All test data cleared');
+        }
+        
+        // محاكاة عمليات الدفع
+        function simulateSuccessfulPayment() {
+            console.log('🚀 [TEST] Starting successful payment simulation...');
+            
+            const url = 'http://localhost:5175/payment-result?success=true&order=TEST_' + Date.now() + '&id=TXN_' + Date.now();
+            
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="status success">
+                    ✅ محاكاة دفع ناجح...<br>
+                    <strong>الرابط:</strong> ${url}<br>
+                    <button onclick="window.open('${url}', '_blank')" class="success">فتح صفحة النتيجة</button>
+                </div>
+            `;
+            
+            console.log('💳 [TEST] Payment simulation URL:', url);
+            
+            // فتح الرابط تلقائياً بعد ثانيتين
+            setTimeout(() => {
+                window.open(url, '_blank');
+            }, 2000);
+        }
+        
+        function simulateFailedPayment() {
+            console.log('❌ [TEST] Starting failed payment simulation...');
+            
+            const url = 'http://localhost:5175/payment-result?success=false&order=TEST_' + Date.now() + '&error=payment_failed';
+            
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="status error">
+                    ❌ محاكاة دفع فاشل...<br>
+                    <strong>الرابط:</strong> ${url}<br>
+                    <button onclick="window.open('${url}', '_blank')" class="danger">فتح صفحة النتيجة</button>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                window.open(url, '_blank');
+            }, 2000);
+        }
+        
+        function simulateCancelledPayment() {
+            console.log('⚠️ [TEST] Starting cancelled payment simulation...');
+            
+            const url = 'http://localhost:5175/payment-result?success=cancelled&order=TEST_' + Date.now();
+            
+            document.getElementById('paymentStatus').innerHTML = `
+                <div class="status warning">
+                    ⚠️ محاكاة دفع ملغي...<br>
+                    <strong>الرابط:</strong> ${url}<br>
+                    <button onclick="window.open('${url}', '_blank')" class="warning">فتح صفحة النتيجة</button>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                window.open(url, '_blank');
+            }, 2000);
+        }
+        
+        // معلومات النظام
+        function updateSystemInfo() {
+            const info = {
+                'المتصفح': navigator.userAgent.split(' ').pop(),
+                'اللغة': navigator.language,
+                'الوقت الحالي': new Date().toLocaleString('ar-SA'),
+                'localStorage متاح': typeof(Storage) !== "undefined" ? '✅ نعم' : '❌ لا',
+                'Console متاح': typeof(console) !== "undefined" ? '✅ نعم' : '❌ لا'
+            };
+            
+            let html = '<div class="grid">';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<div class="status info"><strong>${key}:</strong> ${value}</div>`;
+            }
+            html += '</div>';
+            
+            document.getElementById('systemInfo').innerHTML = html;
+        }
+        
+        // تشغيل عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSystemInfo();
+            startLogMonitoring();
+            
+            console.log('🔧 [TEST] Payment debug tool loaded successfully');
+            console.log('🔧 [TEST] Ready to test payment process');
+        });
+    </script>
+</body>
+</html>
