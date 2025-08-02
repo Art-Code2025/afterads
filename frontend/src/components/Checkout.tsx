@@ -451,7 +451,7 @@ const Checkout: React.FC = () => {
       return;
     }
     
-    console.log('✅ [Checkout] Validation passed, proceeding with order submission');
+    console.log('✅ [Checkout] Validation passed, proceeding with payment');
     setLoading(true);
     
     try {
@@ -488,23 +488,18 @@ const Checkout: React.FC = () => {
       };
 
       console.log('📦 [Checkout] Order data prepared:', JSON.stringify(orderData, null, 2));
-      console.log('📦 [Checkout] Submitting order to API...');
 
-      // إرسال الطلب إلى API
-      console.log('📡 [Checkout] Calling ordersAPI.create...');
-      const result = await ordersAPI.create(orderData);
-      
-      console.log('✅ [Checkout] Order created successfully:', JSON.stringify(result, null, 2));
-      console.log('🆔 [Checkout] Order ID:', result.id);
-
-      // إذا كان الدفع إلكتروني، إنشاء رابط الدفع
+      // إذا كان الدفع إلكتروني، إنشاء رابط الدفع بدون حفظ الطلب أولاً
       console.log('💳 [Checkout] Checking payment method:', selectedPaymentMethod);
       if (selectedPaymentMethod === 'card') {
         try {
           console.log('💳 [Checkout] Payment method is card, creating payment link...');
           
+          // إنشاء معرف مؤقت للطلب
+          const tempOrderId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
           const paymentData = {
-            orderId: result.id,
+            orderId: tempOrderId,
             amount: total,
             customerData: {
               name: userData.name,
@@ -534,11 +529,12 @@ const Checkout: React.FC = () => {
             
             if (paymentResult.success && paymentResult.paymentUrl) {
               console.log('✅ [Checkout] Payment link created successfully:', paymentResult.paymentUrl);
-              // حفظ بيانات الطلب المؤقتة في localStorage
+              // حفظ بيانات الطلب المؤقتة في localStorage (لن يتم حفظها في قاعدة البيانات حتى نجاح الدفع)
               console.log('💾 [Checkout] Saving temporary order data to localStorage...');
               const tempOrderData = {
-                orderId: result.id,
-                orderNumber: result.orderNumber || result.id,
+                tempOrderId: tempOrderId,
+                orderNumber: tempOrderId,
+                orderData: orderData, // حفظ بيانات الطلب الكاملة
                 items: cartItems.map(item => ({
                   id: item.id,
                   name: item.name,

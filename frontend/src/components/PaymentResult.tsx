@@ -23,9 +23,10 @@ const PaymentResult: React.FC = () => {
 
         // التحقق من وجود بيانات الطلب المحفوظة
         const pendingOrderData = localStorage.getItem('pendingOrderData');
+        let parsedData = null;
         if (pendingOrderData) {
-          const parsedData = JSON.parse(pendingOrderData);
-          setOrderData(parsedData.orderData);
+          parsedData = JSON.parse(pendingOrderData);
+          setOrderData(parsedData);
           
           // إزالة البيانات المؤقتة
           localStorage.removeItem('pendingOrderData');
@@ -35,13 +36,39 @@ const PaymentResult: React.FC = () => {
           setPaymentStatus('success');
           toast.success('تم الدفع بنجاح! شكراً لك.');
           
-          // حفظ بيانات الطلب النهائية
-          if (orderData) {
-            localStorage.setItem('lastOrderData', JSON.stringify({
-              ...orderData,
-              paymentStatus: 'paid',
-              transactionId
-            }));
+          // حفظ الطلب في قاعدة البيانات عند نجاح الدفع
+          if (parsedData && parsedData.orderData) {
+            try {
+              console.log('💾 [PaymentResult] Saving order to database after successful payment...');
+              
+              // تحديث بيانات الطلب بحالة الدفع الناجح
+              const finalOrderData = {
+                ...parsedData.orderData,
+                paymentStatus: 'paid',
+                status: 'confirmed',
+                transactionId: transactionId
+              };
+              
+              // حفظ الطلب في قاعدة البيانات
+              const result = await api.orders.create(finalOrderData);
+              console.log('✅ [PaymentResult] Order saved successfully:', result);
+              
+              // حفظ بيانات الطلب النهائية في localStorage
+              const finalOrderForDisplay = {
+                ...parsedData,
+                orderId: result.id,
+                orderNumber: result.id,
+                paymentStatus: 'paid',
+                transactionId: transactionId
+              };
+              
+              localStorage.setItem('lastOrderData', JSON.stringify(finalOrderForDisplay));
+              setOrderData(finalOrderForDisplay);
+              
+            } catch (saveError) {
+              console.error('❌ [PaymentResult] Error saving order to database:', saveError);
+              toast.error('تم الدفع بنجاح ولكن حدث خطأ في حفظ الطلب. سيتم التواصل معك قريباً.');
+            }
           }
           
           // مسح السلة
@@ -49,9 +76,22 @@ const PaymentResult: React.FC = () => {
           localStorage.removeItem('cart');
           window.dispatchEvent(new CustomEvent('cartUpdated'));
           
+          // التوجيه التلقائي لصفحة الشكر بعد 3 ثوانٍ
+          setTimeout(() => {
+            console.log('🔄 [PaymentResult] Auto-redirecting to thank you page...');
+            navigate('/thank-you', { replace: true });
+          }, 3000);
+          
         } else if (success === 'false') {
           setPaymentStatus('failed');
           toast.error('فشل في عملية الدفع. يرجى المحاولة مرة أخرى.');
+          
+          // التوجيه التلقائي لصفحة الـ checkout بعد 5 ثوانٍ
+          setTimeout(() => {
+            console.log('🔄 [PaymentResult] Auto-redirecting to checkout page...');
+            navigate('/checkout', { replace: true });
+          }, 5000);
+          
         } else {
           setPaymentStatus('pending');
         }
@@ -66,7 +106,7 @@ const PaymentResult: React.FC = () => {
     };
 
     processPaymentResult();
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const handleContinue = () => {
     if (paymentStatus === 'success') {
