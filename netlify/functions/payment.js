@@ -216,32 +216,38 @@ export const handler = async (event, context) => {
         console.log('✅ Paymob order created:', orderData.id);
 
         console.log('🔑 Step 3: Creating Payment Key');
+        
+        // إنشاء مفتاح الدفع مع معلومات مفصلة
+        const baseUrl = process.env.URL || 'https://charming-maamoul-b8b5b8.netlify.app';
+        const orderNumber = body.orderNumber || `ORD-${Date.now()}`;
+        const countryDefaults = getCountryDefaults(PAYMENT_CURRENCY);
+        
          const paymentKeyPayload = {
            auth_token: authData.token,
-           amount_cents: Math.round(body.amount * 100),
+           amount_cents: Math.round(amount * 100),
            expiration: 3600, // ساعة واحدة
            order_id: orderData.id,
            billing_data: {
-             apartment: 'NA',
-             email: body.customerData?.email || 'customer@example.com',
-             floor: 'NA',
-             first_name: body.customerData?.name?.split(' ')[0] || 'Customer',
-             street: 'Digital Product',
-             building: 'NA',
-             phone_number: body.customerData?.phone || getCountryDefaults(PAYMENT_CURRENCY).phone,
+             apartment: body.customerInfo?.address?.apartment || 'NA',
+             email: body.customerInfo?.email || 'customer@example.com',
+             floor: body.customerInfo?.address?.floor || 'NA',
+             first_name: body.customerInfo?.name?.split(' ')[0] || 'Customer',
+             street: body.customerInfo?.address?.street || 'Digital Product',
+             building: body.customerInfo?.address?.building || 'NA',
+             phone_number: body.customerInfo?.phone || countryDefaults.phone,
              shipping_method: 'PKG',
-             postal_code: getCountryDefaults(PAYMENT_CURRENCY).postal_code,
-             city: getCountryDefaults(PAYMENT_CURRENCY).city,
-             country: getCountryDefaults(PAYMENT_CURRENCY).country,
-             last_name: body.customerData?.name?.split(' ').slice(1).join(' ') || 'Customer',
-             state: getCountryDefaults(PAYMENT_CURRENCY).state
+             postal_code: body.customerInfo?.address?.postalCode || countryDefaults.postal_code,
+             city: body.customerInfo?.address?.city || countryDefaults.city,
+             country: countryDefaults.country,
+             last_name: body.customerInfo?.name?.split(' ').slice(1).join(' ') || 'Customer',
+             state: body.customerInfo?.address?.state || countryDefaults.state
            },
            currency: PAYMENT_CURRENCY,
            integration_id: PAYMOB_CONFIG.INTEGRATION_ID,
-           // إضافة روابط إعادة التوجيه
-           success_url: process.env.SUCCESS_URL || 'https://afterads-sa.netlify.app/payment-result?success=true',
-           failure_url: process.env.ERROR_URL || 'https://afterads-sa.netlify.app/payment-result?success=false',
-           cancel_url: process.env.CANCEL_URL || 'https://afterads-sa.netlify.app/checkout'
+           // إضافة روابط إعادة التوجيه مع معلومات مفصلة
+           success_url: `${baseUrl}/payment-result?success=true&order=${encodeURIComponent(orderNumber)}&id=${orderData.id}&amount=${amount}`,
+           failure_url: `${baseUrl}/payment-result?success=false&order=${encodeURIComponent(orderNumber)}&id=${orderData.id}&reason=payment_failed`,
+           cancel_url: `${baseUrl}/checkout?cancelled=true&order=${encodeURIComponent(orderNumber)}`
          };
          console.log('🔑 Payment key payload:', JSON.stringify(paymentKeyPayload, null, 2));
          

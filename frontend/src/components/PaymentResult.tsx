@@ -103,8 +103,9 @@ const PaymentResult: React.FC = () => {
               console.log('💾 [PaymentResult] API orders method:', api.orders);
               console.log('💾 [PaymentResult] API orders create method:', api.orders.create);
               
+              let result = null;
               try {
-                const result = await api.orders.create(finalOrderData);
+                result = await api.orders.create(finalOrderData);
                 console.log('✅ [PaymentResult] Order saved successfully:', result);
                 console.log('✅ [PaymentResult] Saved order ID:', result?.id || result?._id);
               } catch (saveError) {
@@ -121,8 +122,8 @@ const PaymentResult: React.FC = () => {
               // حفظ بيانات الطلب النهائية في localStorage
               const finalOrderForDisplay = {
                 ...parsedData,
-                orderId: result.id,
-                orderNumber: result.orderNumber || result.id,
+                orderId: result?.id || `MW${Date.now().toString().slice(-6)}`,
+                orderNumber: result?.orderNumber || result?.id || `MW${Date.now().toString().slice(-6)}`,
                 paymentStatus: 'paid',
                 transactionId: transactionId
               };
@@ -143,38 +144,64 @@ const PaymentResult: React.FC = () => {
           window.dispatchEvent(new CustomEvent('cartUpdated'));
           console.log('✅ [PaymentResult] Cart data cleared successfully');
           
-          // التوجيه التلقائي لصفحة الشكر بعد 3 ثوانٍ
-          console.log('⏰ [PaymentResult] Setting up redirect timer (3 seconds)...');
+          // التوجيه التلقائي لصفحة الشكر بعد 5 ثوانٍ مع عداد تنازلي
+          console.log('⏰ [PaymentResult] Setting up redirect timer (5 seconds)...');
           console.log('🔍 [PaymentResult] Navigate function type:', typeof navigate);
           console.log('🔍 [PaymentResult] Navigate function available:', !!navigate);
           
-          const redirectTimer = setTimeout(() => {
-            console.log('🔄 [PaymentResult] Timer expired, starting redirect process...');
+          // عداد تنازلي للتوجيه
+          let countdown = 5;
+          const countdownInterval = setInterval(() => {
+            countdown--;
+            console.log(`⏰ [PaymentResult] Redirect countdown: ${countdown} seconds`);
+            
+            // تحديث النص في الصفحة إذا كان هناك عنصر للعداد
+            const countdownElement = document.getElementById('redirect-countdown');
+            if (countdownElement) {
+              countdownElement.textContent = countdown.toString();
+            }
+            
+            if (countdown <= 0) {
+              clearInterval(countdownInterval);
+              performRedirect();
+            }
+          }, 1000);
+          
+          // دالة التوجيه مع آليات متعددة
+          const performRedirect = () => {
+            console.log('🔄 [PaymentResult] Starting redirect process...');
             console.log('🔄 [PaymentResult] Current location before redirect:', window.location.href);
-            console.log('🔄 [PaymentResult] Navigate function still available:', !!navigate);
             
             try {
+              // المحاولة الأولى: React Router
               console.log('🔄 [PaymentResult] Attempting React Router navigation...');
               navigate('/thank-you', { replace: true });
               console.log('✅ [PaymentResult] React Router navigate called successfully');
               
-              // Fallback: استخدام window.location كبديل
+              // التحقق من نجاح التوجيه بعد ثانية واحدة
               setTimeout(() => {
-                console.log('🔄 [PaymentResult] Fallback: Using window.location...');
                 if (window.location.pathname.includes('payment-result')) {
-                  window.location.href = '/thank-you';
-                  console.log('✅ [PaymentResult] Window.location redirect executed');
+                  console.log('🔄 [PaymentResult] React Router failed, using window.location.replace...');
+                  window.location.replace('/thank-you');
                 }
               }, 1000);
               
+              // Fallback نهائي بعد 3 ثوانٍ
+              setTimeout(() => {
+                if (window.location.pathname.includes('payment-result')) {
+                  console.log('🔄 [PaymentResult] Final fallback: forcing redirect...');
+                  window.location.href = '/thank-you';
+                }
+              }, 3000);
+              
             } catch (navError) {
               console.error('❌ [PaymentResult] Navigation error:', navError);
-              console.log('🔄 [PaymentResult] Using window.location as fallback...');
-              window.location.href = '/thank-you';
+              console.log('🔄 [PaymentResult] Using window.location.replace as immediate fallback...');
+              window.location.replace('/thank-you');
             }
-          }, 3000);
+          };
           
-          console.log('⏰ [PaymentResult] Redirect timer set successfully, timer ID:', redirectTimer);
+          console.log('⏰ [PaymentResult] Redirect system initialized successfully');
           
         } else if (success === 'false') {
           console.log('❌ [PaymentResult] Payment failed, processing failure...');
@@ -209,15 +236,60 @@ const PaymentResult: React.FC = () => {
   }, [searchParams, navigate]);
 
   const handleContinue = () => {
+    console.log('🔄 [PaymentResult] Continue button clicked');
+    console.log('🔍 [PaymentResult] Current payment status:', paymentStatus);
+    
     if (paymentStatus === 'success') {
-      navigate('/thank-you');
+      console.log('🔄 [PaymentResult] Navigating to thank-you page...');
+      // استخدام آليات متعددة للتوجيه
+      try {
+        navigate('/thank-you', { replace: true });
+        // Fallback
+        setTimeout(() => {
+          if (window.location.pathname.includes('payment-result')) {
+            window.location.replace('/thank-you');
+          }
+        }, 500);
+      } catch (error) {
+        console.error('❌ [PaymentResult] Navigation error:', error);
+        window.location.replace('/thank-you');
+      }
     } else {
+      console.log('🔄 [PaymentResult] Navigating to checkout page...');
       navigate('/checkout');
     }
   };
 
   const handleGoHome = () => {
-    navigate('/');
+    console.log('🔄 [PaymentResult] Home button clicked');
+    try {
+      navigate('/', { replace: true });
+      setTimeout(() => {
+        if (!window.location.pathname === '/') {
+          window.location.replace('/');
+        }
+      }, 500);
+    } catch (error) {
+      console.error('❌ [PaymentResult] Home navigation error:', error);
+      window.location.replace('/');
+    }
+  };
+
+  const handleImmediateRedirect = () => {
+    console.log('🔄 [PaymentResult] Immediate redirect button clicked');
+    if (paymentStatus === 'success') {
+      try {
+        navigate('/thank-you', { replace: true });
+        setTimeout(() => {
+          if (window.location.pathname.includes('payment-result')) {
+            window.location.replace('/thank-you');
+          }
+        }, 200);
+      } catch (error) {
+        console.error('❌ [PaymentResult] Immediate redirect error:', error);
+        window.location.replace('/thank-you');
+      }
+    }
   };
 
   if (loading) {
@@ -268,6 +340,18 @@ const PaymentResult: React.FC = () => {
                 {paymentStatus === 'failed' && 'لم تتم عملية الدفع. يرجى المحاولة مرة أخرى.'}
                 {paymentStatus === 'pending' && 'جاري معالجة عملية الدفع...'}
               </p>
+              
+              {paymentStatus === 'success' && (
+                <div className="mt-4 bg-white/20 rounded-lg p-3">
+                  <p className="text-white/90 text-sm mb-2">
+                    سيتم توجيهك تلقائياً إلى صفحة تفاصيل الطلب خلال:
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-2xl font-bold text-white" id="redirect-countdown">5</span>
+                    <span className="text-white/90">ثانية</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
@@ -335,35 +419,47 @@ const PaymentResult: React.FC = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <button
-                  onClick={handleContinue}
-                  className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    paymentStatus === 'success'
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-black hover:bg-gray-800 text-white'
-                  }`}
-                >
-                  {paymentStatus === 'success' ? (
-                    <>
-                      <Package className="w-5 h-5" />
-                      عرض تفاصيل الطلب
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRight className="w-5 h-5" />
-                      إعادة المحاولة
-                    </>
-                  )}
-                </button>
+              <div className="space-y-4 mt-8">
+                {paymentStatus === 'success' && (
+                  <button
+                    onClick={handleImmediateRedirect}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-bold bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <Package className="w-5 h-5" />
+                    انتقل الآن إلى تفاصيل الطلب
+                  </button>
+                )}
                 
-                <button
-                  onClick={handleGoHome}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
-                >
-                  <Home className="w-5 h-5" />
-                  العودة للرئيسية
-                </button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={handleContinue}
+                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                      paymentStatus === 'success'
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-black hover:bg-gray-800 text-white'
+                    }`}
+                  >
+                    {paymentStatus === 'success' ? (
+                      <>
+                        <Package className="w-5 h-5" />
+                        عرض تفاصيل الطلب
+                      </>
+                    ) : (
+                      <>
+                        <ArrowRight className="w-5 h-5" />
+                        إعادة المحاولة
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={handleGoHome}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    <Home className="w-5 h-5" />
+                    العودة للرئيسية
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -38,26 +38,88 @@ const ThankYou: React.FC = () => {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
 
   useEffect(() => {
+    console.log('🔍 [ThankYou] Component mounted, searching for order data...');
+    
     // Show confetti animation
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
 
-    // Get order data from navigation state or localStorage
-    if (location.state?.order) {
-      setOrderData(location.state.order);
-    } else {
-      // Try to get from localStorage as fallback
-      const savedOrderData = localStorage.getItem('lastOrderData');
-      if (savedOrderData) {
-        try {
-          setOrderData(JSON.parse(savedOrderData));
-        } catch (error) {
-          console.error('Error parsing saved order data:', error);
-        }
-      } else {
-        // If no order data, redirect to home after 3 seconds
-        setTimeout(() => navigate('/'), 3000);
+    // محاولة الحصول على بيانات الطلب من مصادر متعددة
+    const orderFromState = location.state?.orderData || location.state?.order;
+    const orderFromStorage = localStorage.getItem('finalOrderData');
+    const pendingOrderData = localStorage.getItem('pendingOrderData');
+    const lastOrderData = localStorage.getItem('lastOrderData');
+    const cartData = localStorage.getItem('cartData');
+    
+    console.log('🔍 [ThankYou] Order from state:', orderFromState);
+    console.log('🔍 [ThankYou] Order from storage:', orderFromStorage);
+    console.log('🔍 [ThankYou] Pending order data:', pendingOrderData);
+    console.log('🔍 [ThankYou] Last order data:', lastOrderData);
+    console.log('🔍 [ThankYou] Cart data available:', !!cartData);
+    
+    let foundOrderData = null;
+    
+    // الأولوية الأولى: بيانات من state
+    if (orderFromState) {
+      console.log('✅ [ThankYou] Using order data from state');
+      foundOrderData = orderFromState;
+      setOrderData(orderFromState);
+    }
+    // الأولوية الثانية: بيانات الطلب النهائي من localStorage
+    else if (orderFromStorage) {
+      try {
+        const parsedOrder = JSON.parse(orderFromStorage);
+        console.log('✅ [ThankYou] Using order data from localStorage');
+        foundOrderData = parsedOrder;
+        setOrderData(parsedOrder);
+      } catch (error) {
+        console.error('❌ [ThankYou] Error parsing final order data:', error);
       }
+    }
+    // الأولوية الثالثة: بيانات الطلب المعلق
+    else if (pendingOrderData) {
+      try {
+        const parsedPendingOrder = JSON.parse(pendingOrderData);
+        console.log('✅ [ThankYou] Using pending order data');
+        foundOrderData = parsedPendingOrder;
+        setOrderData(parsedPendingOrder);
+      } catch (error) {
+        console.error('❌ [ThankYou] Error parsing pending order data:', error);
+      }
+    }
+    // الأولوية الرابعة: بيانات الطلب الأخير
+    else if (lastOrderData) {
+      try {
+        const parsedLastOrder = JSON.parse(lastOrderData);
+        console.log('✅ [ThankYou] Using last order data');
+        foundOrderData = parsedLastOrder;
+        setOrderData(parsedLastOrder);
+      } catch (error) {
+        console.error('❌ [ThankYou] Error parsing last order data:', error);
+      }
+    }
+    
+    // إذا لم توجد بيانات الطلب، عرض رسالة وتوجيه المستخدم
+    if (!foundOrderData) {
+      console.log('⚠️ [ThankYou] No order data found from any source');
+      console.log('🔄 [ThankYou] Will redirect to home in 5 seconds...');
+      
+      // عرض رسالة للمستخدم
+      setOrderData({
+        orderNumber: 'غير متوفر',
+        total: 0,
+        items: [],
+        userData: {},
+        paymentMethod: 'unknown'
+      });
+      
+      // توجيه بعد 5 ثوانٍ
+      setTimeout(() => {
+        console.log('🔄 [ThankYou] Redirecting to home...');
+        navigate('/');
+      }, 5000);
+    } else {
+      console.log('✅ [ThankYou] Order data loaded successfully:', foundOrderData);
     }
   }, [location.state, navigate]);
 
@@ -124,41 +186,106 @@ const ThankYou: React.FC = () => {
                 <div>
                   <h2 className="text-3xl font-bold mb-2">تفاصيل الطلب</h2>
                   <p className="text-gray-300 text-lg">رقم الطلب: #{orderNumber}</p>
+                  {orderData?.orderNumber === 'غير متوفر' && (
+                    <div className="mt-4 bg-yellow-500/20 border border-yellow-400/30 rounded-lg p-3">
+                      <p className="text-yellow-200 text-sm">
+                        لم نتمكن من العثور على تفاصيل الطلب. سيتم توجيهك للصفحة الرئيسية خلال 5 ثوانٍ.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="text-left">
                   <div className="bg-white/20 rounded-2xl px-6 py-4">
                     <p className="text-sm text-gray-300 mb-1">تاريخ الطلب</p>
                     <p className="text-lg font-bold">{new Date().toLocaleDateString('ar-SA')}</p>
-                            </div>
-                          </div>
-                            </div>
-                          </div>
+                  </div>
+                  {orderData?.paymentMethod && (
+                    <div className="bg-white/20 rounded-2xl px-6 py-4 mt-3">
+                      <p className="text-sm text-gray-300 mb-1">طريقة الدفع</p>
+                      <p className="text-lg font-bold">
+                        {orderData.paymentMethod === 'cod' ? 'الدفع عند الاستلام' : 
+                         orderData.paymentMethod === 'bank' ? 'تحويل بنكي' : 
+                         orderData.paymentMethod}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
                           
             {/* Order Items */}
-            {orderData?.items && orderData.items.length > 0 && (
+            {orderData?.items && orderData.items.length > 0 && orderData.orderNumber !== 'غير متوفر' && (
               <div className="p-8 border-b border-gray-100">
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">المنتجات المطلوبة</h3>
                 <div className="space-y-4">
                   {orderData.items.map((item: any, index: number) => (
-                    <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+                    <div key={index} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
                       {item.image && (
                         <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          <img src={item.image} alt={item.name || item.title} className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-900">{item.name}</h4>
+                        <h4 className="font-bold text-gray-900">{item.name || item.title}</h4>
                         {item.size && (
                           <p className="text-sm text-gray-600">الحجم: {item.size}</p>
                         )}
-                        <p className="text-sm text-gray-600">الكمية: {item.quantity}</p>
+                        {item.color && (
+                          <p className="text-sm text-gray-600">اللون: {item.color}</p>
+                        )}
+                        <p className="text-sm text-gray-600">الكمية: {item.quantity || 1}</p>
+                        {item.notes && (
+                          <p className="text-xs text-gray-500 mt-1">ملاحظات: {item.notes}</p>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-gray-900">{((item.price || 0) * (item.quantity || 1)).toFixed(2)} ر.س</p>
-                        </div>
+                        {item.originalPrice && item.originalPrice > item.price && (
+                          <p className="text-sm text-gray-500 line-through">{item.originalPrice.toFixed(2)} ر.س</p>
+                        )}
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
+                
+                {/* Order Total Summary */}
+                <div className="mt-6 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-gray-600">
+                      <span>المجموع الفرعي:</span>
+                      <span>{(orderData.items.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 1)), 0)).toFixed(2)} ر.س</span>
+                    </div>
+                    {orderData.shippingCost && (
+                      <div className="flex justify-between text-gray-600">
+                        <span>رسوم الشحن:</span>
+                        <span>{orderData.shippingCost.toFixed(2)} ر.س</span>
+                      </div>
+                    )}
+                    {orderData.discount && (
+                      <div className="flex justify-between text-green-600">
+                        <span>الخصم:</span>
+                        <span>-{orderData.discount.toFixed(2)} ر.س</span>
+                      </div>
+                    )}
+                    <div className="border-t border-gray-300 pt-3">
+                      <div className="flex justify-between text-lg font-bold text-gray-900">
+                        <span>المجموع الإجمالي:</span>
+                        <span>{orderData.total?.toFixed(2) || '0.00'} ر.س</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* No Items Fallback */}
+            {(!orderData?.items || orderData.items.length === 0) && orderData?.orderNumber !== 'غير متوفر' && (
+              <div className="p-8 border-b border-gray-100 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد تفاصيل للمنتجات</h3>
+                <p className="text-gray-600">سيتم إرسال تفاصيل المنتجات عبر رسالة التأكيد</p>
               </div>
             )}
 
@@ -177,19 +304,36 @@ const ThankYou: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-3 text-sm text-gray-700">
-                    {orderData?.userData && (
+                    {(orderData?.userData || orderData?.customerInfo) && orderData?.orderNumber !== 'غير متوفر' && (
                       <>
-                        <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-blue-100">
                           <User className="w-4 h-4 text-gray-500 mt-0.5" />
                           <div className="flex-1">
-                            <div className="font-medium">{orderData.userData.name}</div>
-                            <div className="text-gray-500">{orderData.userData.phone}</div>
-                            {orderData.userData.email && (
-                              <div className="text-gray-500" dir="ltr">{orderData.userData.email}</div>
+                            <div className="font-medium">{orderData.userData?.name || orderData.customerInfo?.name || 'غير محدد'}</div>
+                            <div className="text-gray-500">{orderData.userData?.phone || orderData.customerInfo?.phone || 'غير محدد'}</div>
+                            {(orderData.userData?.email || orderData.customerInfo?.email) && (
+                              <div className="text-gray-500" dir="ltr">{orderData.userData.email || orderData.customerInfo.email}</div>
                             )}
                           </div>
                         </div>
+                        {(orderData.userData?.address || orderData.customerInfo?.address || orderData.shippingAddress) && (
+                          <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-blue-100">
+                            <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-700">عنوان التوصيل:</div>
+                              <div className="text-gray-600">{orderData.userData?.address || orderData.customerInfo?.address || orderData.shippingAddress}</div>
+                              {orderData.deliveryNotes && (
+                                <div className="text-gray-500 text-xs mt-1">ملاحظات: {orderData.deliveryNotes}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </>
+                    )}
+                    {orderData?.orderNumber === 'غير متوفر' && (
+                      <div className="text-center py-4">
+                        <p className="text-gray-500">معلومات التوصيل غير متوفرة حالياً</p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -203,17 +347,40 @@ const ThankYou: React.FC = () => {
                     <div>
                       <h3 className="font-bold text-gray-900 text-lg">الدفع</h3>
                       <p className="text-green-600 font-medium">
-                        {orderData?.paymentMethod === 'cod' ? 'الدفع عند الاستلام' : 'تحويل بنكي'}
+                        {orderData?.paymentMethod === 'cod' ? 'الدفع عند الاستلام' : 
+                         orderData?.paymentMethod === 'bank' ? 'تحويل بنكي' :
+                         orderData?.paymentMethod === 'card' ? 'بطاقة ائتمانية' :
+                         orderData?.paymentMethod || 'غير محدد'}
                       </p>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-700">
+                  <div className="space-y-3 text-sm text-gray-700">
                     <div className="flex justify-between items-center">
                       <span>المبلغ الإجمالي:</span>
                       <span className="font-bold text-lg text-green-600">
-                        {orderData?.total?.toFixed(2) || '0.00'} ر.س
+                        {orderData?.total?.toFixed(2) || orderData?.totalAmount?.toFixed(2) || '0.00'} ر.س
                       </span>
                     </div>
+                    {orderData?.paymentStatus && (
+                      <div className="flex justify-between items-center">
+                        <span>حالة الدفع:</span>
+                        <span className={`font-medium ${
+                          orderData.paymentStatus === 'paid' ? 'text-green-600' :
+                          orderData.paymentStatus === 'pending' ? 'text-yellow-600' :
+                          'text-gray-600'
+                        }`}>
+                          {orderData.paymentStatus === 'paid' ? 'تم الدفع' :
+                           orderData.paymentStatus === 'pending' ? 'في الانتظار' :
+                           orderData.paymentStatus}
+                        </span>
+                      </div>
+                    )}
+                    {orderData?.paymentMethod === 'bank' && (
+                      <div className="bg-white rounded-lg p-3 border border-green-200">
+                        <p className="text-xs text-gray-600 mb-2">تفاصيل التحويل البنكي:</p>
+                        <p className="text-xs text-gray-700">سيتم إرسال تفاصيل الحساب البنكي عبر رسالة التأكيد</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -224,12 +391,41 @@ const ThankYou: React.FC = () => {
                       <Clock className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 text-lg">الحالة</h3>
-                      <p className="text-purple-600 font-medium">قيد المعالجة</p>
+                      <h3 className="font-bold text-gray-900 text-lg">حالة الطلب</h3>
+                      <p className="text-purple-600 font-medium">
+                        {orderData?.status === 'confirmed' ? 'مؤكد' :
+                         orderData?.status === 'processing' ? 'قيد المعالجة' :
+                         orderData?.status === 'shipped' ? 'تم الشحن' :
+                         orderData?.status === 'delivered' ? 'تم التوصيل' :
+                         orderData?.orderNumber === 'غير متوفر' ? 'في الانتظار' :
+                         'قيد المعالجة'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-700">
-                    <p>سنقوم بإرسال رسالة تأكيد قريباً مع تفاصيل الشحن والتتبع.</p>
+                  <div className="space-y-3 text-sm text-gray-700">
+                    <div className="bg-white rounded-lg p-3 border border-purple-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                        <span className="font-medium">التحديث التالي:</span>
+                      </div>
+                      <p className="text-xs">
+                        {orderData?.orderNumber === 'غير متوفر' 
+                          ? 'سيتم تحديث حالة الطلب عند توفر البيانات'
+                          : 'سنقوم بإرسال رسالة تأكيد قريباً مع تفاصيل الشحن والتتبع.'}
+                      </p>
+                    </div>
+                    {orderData?.estimatedProcessingTime && (
+                      <div className="flex justify-between items-center">
+                        <span>وقت المعالجة المتوقع:</span>
+                        <span className="font-medium">{orderData.estimatedProcessingTime}</span>
+                      </div>
+                    )}
+                    {orderData?.trackingNumber && (
+                      <div className="flex justify-between items-center">
+                        <span>رقم التتبع:</span>
+                        <span className="font-medium font-mono">{orderData.trackingNumber}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
