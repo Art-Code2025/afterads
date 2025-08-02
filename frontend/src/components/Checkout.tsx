@@ -539,79 +539,24 @@ const paymentResult = await (api as any).payment.createPaymentLink(paymentData);
               return;
             } else {
               console.error('❌ [Checkout] Failed to create payment link:', paymentResult);
-              toast.error('فشل في إنشاء رابط الدفع. سيتم تحويلك للدفع عند الاستلام.');
-              
-              // تحديث طريقة الدفع للدفع عند الاستلام
-              try {
-                await ordersAPI.update(result.id, { paymentMethod: 'cod' });
-              } catch (updateError) {
-                console.error('❌ [Checkout] Error updating payment method:', updateError);
-              }
+              toast.error('فشل في إنشاء رابط الدفع. يرجى المحاولة مرة أخرى.');
+              return;
             }
           } else {
               console.error('❌ [Checkout] Payment API not available');
-              toast.error('خدمة الدفع الإلكتروني غير متاحة حالياً. سيتم تحويلك للدفع عند الاستلام.');
-              
-              // تحديث طريقة الدفع للدفع عند الاستلام
-              try {
-                await ordersAPI.update(result.id, { paymentMethod: 'cod' });
-              } catch (updateError) {
-                console.error('❌ [Checkout] Error updating payment method:', updateError);
-              }
+              toast.error('خدمة الدفع الإلكتروني غير متاحة حالياً. يرجى المحاولة مرة أخرى.');
+              return;
             }
         } catch (paymentError) {
           console.error('❌ [Checkout] Payment creation error:', paymentError);
-          toast.error('فشل في إنشاء رابط الدفع. سيتم تحويلك للدفع عند الاستلام.');
-          
-          // تحديث طريقة الدفع للدفع عند الاستلام
-          try {
-            await ordersAPI.update(result.id, { paymentMethod: 'cod' });
-          } catch (updateError) {
-            console.error('❌ [Checkout] Error updating payment method:', updateError);
-          }
+          toast.error('فشل في إنشاء رابط الدفع. يرجى المحاولة مرة أخرى.');
+          return;
         }
       }
 
-      // Prepare order data for ThankYou page
-      const thankYouOrderData = {
-        id: result.id || result.orderNumber,
-        orderNumber: result.orderNumber || result.id,
-        items: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-          size: item.size
-        })),
-        userData: {
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone
-        },
-        paymentMethod: selectedPaymentMethod,
-        total: total,
-        estimatedDelivery: selectedShippingZone?.estimatedDays || 'خلال 2-3 أيام عمل'
-      };
-
-      // Save order data to localStorage for ThankYou page
-      localStorage.setItem('lastOrderData', JSON.stringify(thankYouOrderData));
-
-      // Clear cart
-      localStorage.removeItem('cartItems');
-      localStorage.removeItem('cart'); // إزالة المفتاح القديم أيضاً
-      setCartItems([]);
-      
-      // إرسال حدث تحديث السلة
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
-
-      // Navigate to thank you page
-      navigate('/thank-you', { 
-        state: { order: thankYouOrderData },
-        replace: true 
-      });
-
-      toast.success('تم إرسال طلبك بنجاح!');
+      // هذا الجزء لن يتم تنفيذه إلا في حالة عدم وجود دفع إلكتروني
+      // (وهو غير مطلوب حالياً لأننا نستخدم الدفع الإلكتروني فقط)
+      console.log('⚠️ [Checkout] No electronic payment - this should not happen');
     } catch (error) {
       console.error('💥 [Checkout] Order submission error:', error);
       toast.error('حدث خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.');

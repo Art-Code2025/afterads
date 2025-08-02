@@ -102,19 +102,19 @@ export const handler = async (event, context) => {
             expiration: 3600, // ساعة واحدة
             order_id: orderData.id,
             billing_data: {
-              apartment: body.customerData?.apartment || 'NA',
+              apartment: 'NA',
               email: body.customerData?.email || 'customer@example.com',
-              floor: body.customerData?.floor || 'NA',
+              floor: 'NA',
               first_name: body.customerData?.name?.split(' ')[0] || 'Customer',
-              street: body.customerData?.address || 'NA',
-              building: body.customerData?.buildingNumber || 'NA',
+              street: 'Digital Product',
+              building: 'NA',
               phone_number: body.customerData?.phone || '+201000000000',
               shipping_method: 'PKG',
-              postal_code: body.customerData?.postalCode || '12345',
-              city: body.customerData?.city || 'Cairo',
+              postal_code: '12345',
+              city: 'Cairo',
               country: 'EG',
               last_name: body.customerData?.name?.split(' ').slice(1).join(' ') || 'Name',
-              state: body.customerData?.region || 'Cairo'
+              state: 'Cairo'
             },
             currency: 'EGP',
             integration_id: PAYMOB_CONFIG.INTEGRATION_ID
