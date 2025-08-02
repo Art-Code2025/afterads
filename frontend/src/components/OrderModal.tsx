@@ -491,10 +491,10 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
               </div>
               
               <div class="footer">
-                <h3>🙏 شكراً لك على ثقتك في متجر غيم</h3>
+                <h3>🙏 شكراً لك على ثقتك في after ads</h3>
                 <p>📞 للاستفسارات: 966501234567+</p>
-                <p>📧 البريد الإلكتروني: support@ghem.store</p>
-                <p>🌐 الموقع الإلكتروني: www.ghem.store</p>
+                <p>📧 البريد الإلكتروني: support@afterads.sa</p>
+                <p>🌐 الموقع الإلكتروني: www.afterads.sa</p>
                 <p style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">
                   تم إنشاء هذه الفاتورة إلكترونياً في ${new Date().toLocaleDateString('ar-SA')} الساعة ${new Date().toLocaleTimeString('ar-SA')}
                 </p>
@@ -958,4 +958,4 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
   );
 };
 
-export default OrderModal; 
+export default OrderModal;

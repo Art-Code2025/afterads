@@ -122,14 +122,7 @@ const FleurNavbar: React.FC = () => {
                     <p className="text-xs text-dark-300">{user.email}</p>
                   </div>
                   <div className="p-2">
-                    <Link 
-                      to="/dashboard" 
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-dark-200 hover:bg-dark-700/50 rounded-md transition-colors"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <User className="w-4 h-4" />
-                      الملف الشخصي
-                    </Link>
+                  
                     <button 
                       onClick={handleLogout}
                       className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-400 hover:bg-dark-700/50 rounded-md transition-colors"
@@ -167,7 +160,7 @@ const FleurNavbar: React.FC = () => {
           <div className="flex items-center">
             <Link to="/" className="group">
               <h1 className="font-english text-3xl font-bold bg-gradient-to-r from-dark-400 via-dark-300 to-dark-400 bg-clip-text text-transparent group-hover:from-dark-500 group-hover:via-dark-400 group-hover:to-dark-500 transition-all duration-500">
-                FLEUR
+                after ads
               </h1>
             </Link>
           </div>
@@ -190,7 +183,7 @@ const FleurNavbar: React.FC = () => {
           <div className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm">
             <div className="absolute left-0 top-0 h-full w-3/4 max-w-xs bg-dark-800 shadow-xl p-5 overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
-                <span className="text-xl font-bold text-dark-100">FLEUR</span>
+                <span className="text-xl font-bold text-dark-100">after ads</span>
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-2 rounded-full hover:bg-dark-700/50 text-dark-300"

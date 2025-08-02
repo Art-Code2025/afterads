@@ -1,7 +1,7 @@
 {
-  "name": "FLEUR - متجر العطور",
-  "short_name": "FLEUR",
-  "description": "متجر إلكتروني متخصص في العطور الفاخرة والراقية",
+  "name": "after ads - موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية",
+  "short_name": "after ads",
+  "description": "موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FAF8F5",
@@ -24,12 +24,12 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["shopping", "lifestyle", "beauty"],
+  "categories": ["e-commerce", "development", "web"],
   "shortcuts": [
     {
-      "name": "المنتجات",
-      "short_name": "المنتجات",
-      "description": "تصفح جميع العطور",
+      "name": "خدماتنا",
+      "short_name": "خدماتنا",
+      "description": "تصفح جميع خدماتنا",
       "url": "/products",
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
@@ -41,11 +41,11 @@
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
-      "name": "المفضلة",
-      "short_name": "المفضلة",
-      "description": "عرض العطور المفضلة",
+      "name": "المشاريع",
+      "short_name": "المشاريع",
+      "description": "عرض مشاريعنا السابقة",
       "url": "/wishlist",
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     }
   ]
-} 
+}

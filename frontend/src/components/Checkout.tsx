@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ordersAPI } from '../utils/api';
+import api from '../utils/api';
 import { 
   ShoppingCart, 
   User, 
@@ -106,7 +107,7 @@ const Checkout: React.FC = () => {
     landmark: ''
   });
   const [selectedShippingZone, setSelectedShippingZone] = useState<ShippingZone | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'bank'>('cod');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'bank' | 'card'>('cod');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -525,6 +526,100 @@ const Checkout: React.FC = () => {
       const result = await ordersAPI.create(orderData);
       
       console.log('✅ [Checkout] Order created successfully:', result);
+
+      // إذا كان الدفع إلكتروني، إنشاء رابط الدفع
+      if (selectedPaymentMethod === 'card') {
+        try {
+          console.log('💳 [Checkout] Creating payment link...');
+          
+          const paymentData = {
+            orderId: result.id,
+            amount: total,
+            customerData: {
+              name: userData.name,
+              email: userData.email,
+              phone: userData.phone,
+              address: userData.address,
+              city: userData.city,
+              region: userData.region,
+              postalCode: userData.postalCode,
+              buildingNumber: userData.buildingNumber,
+              floor: userData.floor,
+              apartment: userData.apartment
+            },
+            items: cartItems.map(item => ({
+              name: item.name,
+              amount_cents: Math.round(item.price * item.quantity * 100),
+              description: `${item.name} - الكمية: ${item.quantity}`,
+              quantity: item.quantity
+            }))
+          };
+
+          // إنشاء رابط الدفع الإلكتروني
+          if (api.payment && api.payment.createPaymentLink) {
+            const paymentResult = await api.payment.createPaymentLink(paymentData);
+            
+            if (paymentResult.success && paymentResult.paymentUrl) {
+              // حفظ بيانات الطلب المؤقتة في localStorage
+              const tempOrderData = {
+                orderId: result.id,
+                orderNumber: result.orderNumber || result.id,
+                items: cartItems.map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  quantity: item.quantity,
+                  image: item.image,
+                  size: item.size
+                })),
+                userData: userData,
+                paymentMethod: selectedPaymentMethod,
+                subtotal: subtotal,
+                shipping: finalShippingCost,
+                discount: couponDiscount,
+                total: total,
+                estimatedDelivery: selectedShippingZone?.estimatedDays || 'خلال 2-3 أيام عمل'
+              };
+              
+              localStorage.setItem('pendingOrderData', JSON.stringify(tempOrderData));
+              
+              // توجيه المستخدم لصفحة الدفع
+              window.location.href = paymentResult.paymentUrl;
+              return;
+            } else {
+              console.error('❌ [Checkout] Failed to create payment link:', paymentResult);
+              toast.error('فشل في إنشاء رابط الدفع. سيتم تحويلك للدفع عند الاستلام.');
+              
+              // تحديث طريقة الدفع للدفع عند الاستلام
+              try {
+                await ordersAPI.update(result.id, { paymentMethod: 'cod' });
+              } catch (updateError) {
+                console.error('❌ [Checkout] Error updating payment method:', updateError);
+              }
+            }
+          } else {
+              console.error('❌ [Checkout] Payment API not available');
+              toast.error('خدمة الدفع الإلكتروني غير متاحة حالياً. سيتم تحويلك للدفع عند الاستلام.');
+              
+              // تحديث طريقة الدفع للدفع عند الاستلام
+              try {
+                await ordersAPI.update(result.id, { paymentMethod: 'cod' });
+              } catch (updateError) {
+                console.error('❌ [Checkout] Error updating payment method:', updateError);
+              }
+            }
+        } catch (paymentError) {
+          console.error('❌ [Checkout] Payment creation error:', paymentError);
+          toast.error('فشل في إنشاء رابط الدفع. سيتم تحويلك للدفع عند الاستلام.');
+          
+          // تحديث طريقة الدفع للدفع عند الاستلام
+          try {
+            await ordersAPI.update(result.id, { paymentMethod: 'cod' });
+          } catch (updateError) {
+            console.error('❌ [Checkout] Error updating payment method:', updateError);
+          }
+        }
+      }
 
       // Prepare order data for ThankYou page
       const thankYouOrderData = {
@@ -1099,7 +1194,7 @@ const Checkout: React.FC = () => {
                     </div>
                   </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                       <div
                         className={`p-6 lg:p-8 rounded-2xl lg:rounded-3xl border-3 cursor-pointer transition-all duration-300 hover:scale-105 transform ${
                           selectedPaymentMethod === 'cod'
@@ -1151,6 +1246,33 @@ const Checkout: React.FC = () => {
                           </div>
                         )}
                     </div>
+                      
+                      {/* خيار الدفع الإلكتروني */}
+                      <div
+                        className={`p-6 lg:p-8 rounded-2xl lg:rounded-3xl border-3 cursor-pointer transition-all duration-300 hover:scale-105 transform ${
+                          selectedPaymentMethod === 'card'
+                            ? 'border-black bg-gradient-to-br from-gray-50 to-white shadow-2xl'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-lg bg-white'
+                        }`}
+                        onClick={() => setSelectedPaymentMethod('card')}
+                      >
+                        <div className="flex items-center gap-4 lg:gap-6">
+                          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl lg:rounded-3xl flex items-center justify-center shadow-lg">
+                            <CreditCard className="text-white" size={24} />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-900 text-lg lg:text-xl xl:text-2xl mb-2">دفع إلكتروني</h4>
+                            <p className="text-sm lg:text-base text-gray-600">فيزا أو ماستركارد</p>
+                          </div>
+                        </div>
+                        {selectedPaymentMethod === 'card' && (
+                          <div className="mt-4 lg:mt-6 flex justify-center">
+                            <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-full p-2 shadow-lg">
+                              <CheckCircle size={20} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                   </div>
 
                     {/* معلومات إضافية عن طريقة الدفع */}
@@ -1167,6 +1289,10 @@ const Checkout: React.FC = () => {
                             <li className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                               يمكنك الدفع نقداً عند الاستلام
+                            </li>
+                            <li className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              الدفع الإلكتروني آمن ومشفر
                             </li>
                             <li className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>

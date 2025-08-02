@@ -16,7 +16,7 @@ const ReturnPolicy: React.FC = () => {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                 سياسة الاسترجاع والاستبدال
               </h1>
-              <p className="text-gray-600 mt-2">متجر غيم - Ghem.store</p>
+              <p className="text-gray-600 mt-2">after ads - موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية</p>
             </div>
           </div>
           
@@ -36,7 +36,7 @@ const ReturnPolicy: React.FC = () => {
               <div className="mb-12">
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-2xl p-6 mb-8">
                   <p className="text-lg leading-relaxed text-gray-800">
-                    في متجر غيم – Ghem.store، نحرص على رضا عملائنا ونلتزم بتقديم تجربة تسوق عادلة وسلسة، بما يتوافق مع نظام التجارة الإلكترونية المعمول به في المملكة العربية السعودية. توضح هذه السياسة الشروط التي تنظّم عمليات الاسترجاع والاستبدال للمنتجات المشتراة من المتجر.
+                    في after ads – موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية، نحرص على رضا عملائنا ونلتزم بتقديم تجربة تسوق عادلة وسلسة، بما يتوافق مع نظام التجارة الإلكترونية المعمول به في المملكة العربية السعودية. توضح هذه السياسة الشروط التي تنظّم عمليات الاسترجاع والاستبدال للمنتجات المشتراة من المتجر.
                   </p>
                 </div>
               </div>
@@ -149,7 +149,7 @@ const ReturnPolicy: React.FC = () => {
                       <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0">1</div>
                       <div>
                         <h4 className="font-bold text-purple-800 mb-2">التواصل معنا</h4>
-                        <p className="text-gray-800">عبر البريد الإلكتروني: <span className="font-bold text-purple-600">support@ghem.store</span></p>
+                        <p className="text-gray-800">عبر البريد الإلكتروني: <span className="font-bold text-purple-600">support@afterads.sa</span></p>
                       </div>
                     </div>
                   </div>
@@ -255,7 +255,7 @@ const ReturnPolicy: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-blue-600" />
                       <span className="text-gray-800">البريد الإلكتروني: </span>
-                      <span className="font-bold text-blue-600">support@ghem.store</span>
+                      <span className="font-bold text-blue-600">support@afterads.sa</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Phone className="w-5 h-5 text-blue-600" />
@@ -289,4 +289,4 @@ const ReturnPolicy: React.FC = () => {
   );
 };
 
-export default ReturnPolicy; 
+export default ReturnPolicy;

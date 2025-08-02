@@ -16,19 +16,19 @@ interface SEOHeadProps {
 }
 
 const SEOHead: React.FC<SEOHeadProps> = ({
-  title = 'GHEM Store - متجر غيم',
-  description = 'متجر إلكتروني متخصص في الملابس والإكسسوارات عالية الجودة',
-  keywords = 'متجر إلكتروني, ملابس, إكسسوارات, تسوق أونلاين, غيم',
+  title = 'after ads - موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية',
+  description = 'موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية',
+  keywords = 'تطوير متاجر إلكترونية, تصميم مواقع, برمجة, تسويق إلكتروني, after ads',
   image = '/logo.png',
   url = window.location.href,
   type = 'website',
   price,
   currency = 'SAR',
   availability = 'InStock',
-  brand = 'GHEM Store',
+  brand = 'after ads',
   category
 }) => {
-  const fullTitle = title.includes('GHEM Store') ? title : `${title} | GHEM Store`;
+  const fullTitle = title.includes('after ads') ? title : `${title} | after ads`;
   
   const structuredData = {
     "@context": "https://schema.org",
@@ -74,7 +74,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
-      <meta name="author" content="GHEM Store" />
+      <meta name="author" content="after ads" />
       <meta name="robots" content="index, follow" />
       <link rel="canonical" href={url} />
 
@@ -84,7 +84,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
-      <meta property="og:site_name" content="GHEM Store" />
+      <meta property="og:site_name" content="after ads" />
       <meta property="og:locale" content="ar_SA" />
 
       {/* Twitter */}
@@ -111,7 +111,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       {/* Apple */}
       <meta name="apple-mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-      <meta name="apple-mobile-web-app-title" content="GHEM Store" />
+      <meta name="apple-mobile-web-app-title" content="after ads" />
 
       {/* Structured Data */}
       <script type="application/ld+json">
@@ -126,4 +126,4 @@ const SEOHead: React.FC<SEOHeadProps> = ({
   );
 };
 
-export default SEOHead; 
+export default SEOHead;

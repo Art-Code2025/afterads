@@ -46,7 +46,7 @@ const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-gray-800 text-sm sm:text-base">البريد الإلكتروني</h3>
-                    <p className="text-gray-600 text-sm sm:text-base break-all">support@ghem.store</p>
+                    <p className="text-gray-600 text-sm sm:text-base break-all">support@afterads.sa</p>
                   </div>
                 </div>
                 
@@ -79,10 +79,10 @@ const Contact: React.FC = () => {
                 <h3 className="text-lg sm:text-xl font-bold text-pink-800">ملاحظة هامة</h3>
               </div>
               <p className="text-pink-700 font-medium text-center text-sm sm:text-base">
-                مدة التنفيذ للطلبات: 45-50 يوماً
+                مدة تنفيذ مشاريع المتاجر الإلكترونية: 2-4 أسابيع
               </p>
               <p className="text-gray-600 text-xs sm:text-sm mt-2 text-center">
-                يرجى التخطيط مسبقاً لضمان وصول طلبكم في الوقت المناسب
+                يرجى التواصل معنا مبكراً لضمان جدولة مشروعكم في الوقت المناسب
               </p>
             </div>
           </div>
@@ -179,9 +179,9 @@ const Contact: React.FC = () => {
           </div>
           
           <p className="text-gray-600 text-base sm:text-lg">
-            <span className="font-bold text-pink-800">ZAHRI.STORE</span> - براند سعودي لعبايات التخرج
+            <span className="font-bold text-pink-800">after ads</span> - شركة سعودية متخصصة في تطوير المتاجر الإلكترونية
           </p>
-          <p className="text-gray-500 mt-2 text-sm sm:text-base">نشارككم الفرحة</p>
+          <p className="text-gray-500 mt-2 text-sm sm:text-base">نساعدكم في النجاح رقمياً</p>
         </div>
       </div>
     </div>

@@ -589,7 +589,7 @@ const ProductDetail: React.FC = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-                  {product.brand || 'FLEUR'}
+                  {product.brand || 'after ads'}
                 </span>
               </div>
               

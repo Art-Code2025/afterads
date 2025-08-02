@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, Sparkles, Star } from 'lucide-react';
 
-const HeroFleur: React.FC = () => {
+const Hero: React.FC = () => {
   return (
     <section className="relative min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-700 overflow-hidden">
       {/* Animated Background Elements */}
@@ -121,4 +121,4 @@ const HeroFleur: React.FC = () => {
   );
 };
 
-export default HeroFleur;
+export default Hero;

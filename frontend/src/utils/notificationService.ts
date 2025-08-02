@@ -202,7 +202,7 @@ class NotificationService {
         body,
         icon: icon || '/icon-192x192.png',
         badge: '/icon-192x192.png',
-        tag: 'ghem-store',
+        tag: 'afterads',
         requireInteraction: true
       });
 
@@ -272,4 +272,4 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
-export default NotificationService; 
+export default NotificationService;

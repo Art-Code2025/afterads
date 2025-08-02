@@ -17,8 +17,8 @@ import cover3 from './assets/cover3.jpg';
 import { productsAPI, categoriesAPI } from './utils/api';
 import { buildImageUrl } from './config/api';
 import { addToCartUnified } from './utils/cartUtils';
-import FleurNavbar from './components/FleurNavbar';
-import HeroFleur from './components/HeroFleur';
+import Navbar from './components/Navbar';
+import Hero from './components/Hero';
 import CustomerFavoritesSection from './components/CustomerFavoritesSection';
 import DiscoverNewSection from './components/DiscoverNewSection';
 // استيراد سكريپت بيانات العطور للداشبورد
@@ -255,7 +255,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
       <div className="text-center">
         <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-        <h2 className="text-2xl font-bold text-gradient mb-2">غِيم</h2>
+        <h2 className="text-2xl font-bold text-gradient mb-2">after ads</h2>
         <p className="text-gray-600">جاري التحميل...</p>
       </div>
     </div>
@@ -431,8 +431,8 @@ const App: React.FC = () => {
       
       <ToastContainer position="bottom-right" autoClose={2500} hideProgressBar newestOnTop closeOnClick pauseOnHover draggable />
       
-      {/* HERO FLEUR SECTION */}
-      <HeroFleur />
+      {/* HERO SECTION */}
+      <Hero />
 
       {/* CUSTOMER FAVORITES */}
       <CustomerFavoritesSection products={allProducts} />
@@ -464,11 +464,11 @@ const App: React.FC = () => {
               <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-4">
                   <h3 className="text-4xl font-extrabold bg-gradient-to-r from-dark-400 via-dark-500 to-dark-400 bg-clip-text text-transparent select-none">
-                    FLEUR
+                    after ads
               </h3>
                   <p className="text-dark-300 leading-relaxed max-w-md">
-                    متجر عطور فاخر يقدم أحدث التشكيلات النسائية والرجالية من أرقى البراندات العالمية. 
-                    نحن نؤمن بأن العطر ليس مجرد رائحة، بل هو تعبير عن الشخصية والأناقة.
+                    موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية وتقديم حلول متكاملة للتجارة الإلكترونية. 
+                    نحن نؤمن بأن التجارة الإلكترونية هي مستقبل الأعمال، ونسعى لتقديم أفضل الحلول لعملائنا.
                   </p>
                 </div>
 
@@ -544,7 +544,7 @@ const App: React.FC = () => {
                 </div>
                     <div>
                       <div className="text-sm text-dark-400">البريد الإلكتروني</div>
-                      <div className="text-white font-medium">info@fleur.store</div>
+                      <div className="text-white font-medium">info@afterads.sa</div>
               </div>
                   </li>
                   <li className="flex items-center gap-3 text-dark-300">
@@ -565,7 +565,7 @@ const App: React.FC = () => {
               <div className="text-center space-y-6">
                 <div className="space-y-2">
                   <h4 className="text-2xl font-bold text-white">اشترك في النشرة الإخبارية</h4>
-                  <p className="text-dark-300">كن أول من يعلم بأحدث العطور والعروض الحصرية</p>
+                  <p className="text-dark-300">كن أول من يعلم بأحدث الخدمات والعروض الحصرية</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
@@ -585,7 +585,7 @@ const App: React.FC = () => {
             <div className="border-t border-dark-500/50 pt-8">
               <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="text-dark-400 text-sm text-center md:text-right">
-                  © 2025 FLEUR Perfume Store. جميع الحقوق محفوظة.
+                  © 2025 after ads. جميع الحقوق محفوظة.
                 </div>
                 
                 <div className="flex flex-wrap justify-center gap-6 text-sm">

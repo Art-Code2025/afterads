@@ -77,7 +77,6 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
 
   useEffect(() => {
     fetchCartCount();
-    fetchWishlistCount();
     fetchCategories();
     
     // إضافة مستمعين أكثر للأحداث لضمان دقة العداد
@@ -86,10 +85,6 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
       fetchCartCount();
     };
     
-    const handleWishlistUpdate = () => {
-      console.log('🔄 [Navbar] Wishlist update event received');
-      fetchWishlistCount();
-    };
     
     const handleCategoriesUpdate = () => fetchCategories();
     
@@ -112,9 +107,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
       window.addEventListener(event, handleCartUpdate);
     });
     
-    wishlistEvents.forEach(event => {
-      window.addEventListener(event, handleWishlistUpdate);
-    });
+  
     
     window.addEventListener('categoriesUpdated', handleCategoriesUpdate);
     
@@ -123,10 +116,6 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
       if (e.key === 'cartUpdated' || e.key === 'lastCartUpdate' || e.key === 'forceCartRefresh') {
         console.log('🔄 [Navbar] Storage cart update detected');
         handleCartUpdate();
-      }
-      if (e.key === 'wishlistUpdated' || e.key === 'lastWishlistUpdate') {
-        console.log('🔄 [Navbar] Storage wishlist update detected');
-        handleWishlistUpdate();
       }
     };
     
@@ -166,9 +155,6 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
         window.removeEventListener(event, handleCartUpdate);
       });
       
-      wishlistEvents.forEach(event => {
-        window.removeEventListener(event, handleWishlistUpdate);
-      });
       
       window.removeEventListener('categoriesUpdated', handleCategoriesUpdate);
       window.removeEventListener('storage', handleStorageChange);
@@ -243,64 +229,6 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
     }
   };
 
-  const fetchWishlistCount = async () => {
-    try {
-      const userData = localStorage.getItem('user');
-      
-      if (!userData) {
-        // المستخدم غير مسجل - لا يوجد مفضلة
-        setWishlistItemsCount(0);
-        localStorage.setItem('lastWishlistCount', '0');
-        // Force clear any cached wishlist data for guest
-        localStorage.removeItem('wishlist');
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      if (!user?.id) {
-        setWishlistItemsCount(0);
-        localStorage.setItem('lastWishlistCount', '0');
-        return;
-      }
-      
-      console.log('🔄 [Navbar] Fetching wishlist count for user:', user.id);
-      const { wishlistService } = await import('../services/wishlistService');
-      const count = await wishlistService.getWishlistCount(user.id);
-      
-      console.log('📊 [Navbar] Wishlist count fetched:', count);
-      setWishlistItemsCount(count);
-      
-      // حفظ العداد في localStorage بنفس طريقة cartUtils
-      localStorage.setItem('lastWishlistCount', count.toString());
-      localStorage.setItem(`wishlistCount_${user.id}`, count.toString());
-      
-      console.log('💾 [Navbar] Wishlist count saved to localStorage:', count);
-    } catch (error) {
-      console.error('❌ [Navbar] Error fetching wishlist count:', error);
-      
-      // في حالة الخطأ، حاول تحميل من localStorage كنسخة احتياطية
-      const userData = localStorage.getItem('user');
-      if (!userData) {
-        setWishlistItemsCount(0);
-        localStorage.setItem('lastWishlistCount', '0');
-        // Force clear any cached wishlist data for guest
-        localStorage.removeItem('wishlist');
-        return;
-      }
-      
-      const user = JSON.parse(userData);
-      if (user?.id) {
-        const savedCount = localStorage.getItem(`wishlistCount_${user.id}`);
-        if (savedCount) {
-          setWishlistItemsCount(parseInt(savedCount));
-          return;
-        }
-      }
-      
-      setWishlistItemsCount(0);
-      localStorage.setItem('lastWishlistCount', '0');
-    }
-  };
 
   const fetchCategories = async () => {
     try {
@@ -527,7 +455,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
 
           {/* Brand */}
           <Link to="/" onClick={()=>{setIsMenuOpen(false);window.scrollTo(0,0);}} className="text-2xl font-extrabold text-dark-400 select-none lg:absolute lg:right-8">
-            Desi
+            after ads
           </Link>
 
           {/* Centered Links */}
@@ -814,7 +742,7 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
                   مرحباً بك في متجر
                 </div>
                 <div className="text-lg font-bold bg-gradient-to-r from-dark-400 to-dark-300 bg-clip-text text-transparent">
-                  GHEM.STORE
+                  after ads
                 </div>
               </div>
             </div>

@@ -270,9 +270,9 @@ const App: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div className="text-center md:text-right">
-              <h3 className="text-xl font-bold mb-4">GHEM.STORE</h3>
+              <h3 className="text-xl font-bold mb-4">after ads</h3>
               <p className="text-gray-300">
-                متجرك المفضل لأفضل المنتجات بجودة عالية وتصميم فاخر
+                موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية
               </p>
             </div>
             
@@ -290,7 +290,7 @@ const App: React.FC = () => {
               <h4 className="font-bold mb-4">تواصل معنا</h4>
               <div className="space-y-2">
                 <p className="text-gray-300">📞 +966547493606</p>
-                <p className="text-gray-300">✉️ info@ghem.store</p>
+                <p className="text-gray-300">✉️ info@afterads.sa</p>
                 <p className="text-gray-300">📍 المملكة العربية السعودية</p>
               </div>
             </div>
@@ -298,7 +298,7 @@ const App: React.FC = () => {
           
           <div className="border-t border-gray-700 pt-6 text-center">
             <p className="text-gray-300">
-              © 2025 GHEM.STORE. جميع الحقوق محفوظة.
+              © 2025 after ads. جميع الحقوق محفوظة.
             </p>
           </div>
         </div>
@@ -307,4 +307,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App; 
+export default App;

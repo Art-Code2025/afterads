@@ -81,10 +81,10 @@ const ContactSection = () => {
               <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-center text-dark-200 mb-4 sm:mb-6">البريد الإلكتروني</h3>
               
               <div className="w-full">
-                <a href="mailto:info@ghem.store" 
+                <a href="mailto:info@afterads.sa" 
                    className="flex items-center justify-center space-x-1 space-x-reverse py-3 sm:py-4 px-3 sm:px-4 rounded-xl sm:rounded-2xl bg-dark-900/60 backdrop-blur-xl border border-dark-700/40 hover:bg-dark-800/80 transition-all duration-300 group/email">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-dark-300 ml-2 group-hover/email:scale-110 transition-transform duration-300" />
-                  <span className="text-dark-200 hover:text-dark-300 transition-colors text-sm sm:text-base font-medium break-all">info@ghem.store</span>
+                  <span className="text-dark-200 hover:text-dark-300 transition-colors text-sm sm:text-base font-medium break-all">info@afterads.sa</span>
                 </a>
               </div>
             </div>
@@ -181,7 +181,7 @@ const ContactSection = () => {
           {/* Copyright Section */}
           <div className="text-center">
             <div className="inline-flex items-center text-dark-300 text-xs sm:text-sm font-medium bg-dark-900/60 backdrop-blur-xl border border-dark-700/40 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl">
-              <span className="text-dark-200 font-bold">© 2025 غِيم - GHEM Store</span>
+              <span className="text-dark-200 font-bold">© 2025 after ads</span>
               <span className="mx-2">|</span>
               <span className="bg-gradient-to-r from-dark-400 to-dark-500 bg-clip-text text-transparent font-bold">تم التطوير بواسطة ArtCode</span>
             </div>

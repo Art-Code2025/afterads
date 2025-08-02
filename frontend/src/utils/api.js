@@ -258,6 +258,21 @@ export const isAuthenticated = () => {
   }
 };
 
+// Payment API
+export const paymentAPI = {
+  createPaymentLink: (paymentData) => apiRequest('/payment/create', {
+    method: 'POST',
+    body: JSON.stringify(paymentData),
+  }),
+  
+  checkPaymentStatus: (orderId) => apiRequest(`/payment/status/${orderId}`),
+  
+  processCallback: (callbackData) => apiRequest('/payment/callback', {
+    method: 'POST',
+    body: JSON.stringify(callbackData),
+  }),
+};
+
 export default {
   products: productsAPI,
   categories: categoriesAPI,
@@ -266,7 +281,8 @@ export default {
   dashboard: dashboardAPI,
   upload: uploadAPI,
   auth: authAPI,
+  payment: paymentAPI,
   setAuthToken,
   getAuthToken,
   isAuthenticated,
-}; 
+};

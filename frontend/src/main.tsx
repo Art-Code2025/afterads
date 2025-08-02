@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import FleurNavbar from './components/FleurNavbar';
+import Navbar from './components/Navbar';
 import App from './App.tsx';
 // Direct import for debugging
 import './index.css';
@@ -29,6 +29,7 @@ const CouponForm = React.lazy(() => import('./components/CouponForm'));
 const AllProducts = React.lazy(() => import('./components/AllProducts'));
 const AllCategories = React.lazy(() => import('./components/AllCategories'));
 const ThankYou = React.lazy(() => import('./components/ThankYou'));
+const PaymentResult = React.lazy(() => import('./components/PaymentResult'));
 const About = React.lazy(() => import('./pages/About'));
 const Contact = React.lazy(() => import('./pages/Contact'));
 const Media = React.lazy(() => import('./pages/Media'));
@@ -130,7 +131,7 @@ const LayoutWrapper: React.FC = () => {
 
   return (
     <>
-      {!shouldHideNavbar && <FleurNavbar />}
+      {!shouldHideNavbar && <Navbar />}
       <div className={contentClass}>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
@@ -146,6 +147,7 @@ const LayoutWrapper: React.FC = () => {
             <Route path="/cart" element={<ShoppingCart />} />
             <Route path="/cart/diagnostics" element={<CartDiagnostics />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/payment-result" element={<PaymentResult />} />
             <Route path="/thank-you" element={<ThankYou />} />
             
             {/* Auth Routes */}

@@ -16,7 +16,7 @@ const PrivacyPolicy: React.FC = () => {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
                 سياسة الاستخدام والخصوصية
               </h1>
-              <p className="text-gray-600 mt-2">متجر غيم - Ghem.store</p>
+              <p className="text-gray-600 mt-2">after ads - موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية</p>
             </div>
           </div>
           
@@ -36,7 +36,7 @@ const PrivacyPolicy: React.FC = () => {
               <div className="mb-12">
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 mb-8">
                   <p className="text-lg leading-relaxed text-gray-800">
-                    مرحبًا بكم في متجر غيم – Ghem.store المتخصص في بيع ملابس التخرج. نحن ملتزمون بحماية خصوصيتكم وتوفير تجربة تسوق آمنة ومتوافقة مع الأنظمة المعمول بها في المملكة العربية السعودية، بما يشمل نظام التجارة الإلكترونية ونظام حماية البيانات الشخصية (PDPL).
+                    مرحبًا بكم في after ads – موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية. نحن ملتزمون بحماية خصوصيتكم وتوفير تجربة استخدام آمنة ومتوافقة مع الأنظمة المعمول بها في المملكة العربية السعودية، بما يشمل نظام التجارة الإلكترونية ونظام حماية البيانات الشخصية (PDPL).
                   </p>
                 </div>
               </div>
@@ -49,7 +49,7 @@ const PrivacyPolicy: React.FC = () => {
                 </h2>
                 <div className="space-y-4">
                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <span className="font-bold text-gray-800">المتجر:</span> Ghem.store، ويشمل الموقع الإلكتروني وجميع خدماته.
+                    <span className="font-bold text-gray-800">الموقع:</span> after ads، ويشمل الموقع الإلكتروني وجميع خدماته.
                   </div>
                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                     <span className="font-bold text-gray-800">المستخدم/العميل:</span> أي شخص طبيعي أو اعتباري يستخدم المتجر للتصفح أو الشراء.
@@ -203,7 +203,7 @@ const PrivacyPolicy: React.FC = () => {
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
                   <p className="text-gray-800">
                     لطلب أي مما سبق، يرجى التواصل معنا عبر: 
-                    <span className="font-bold text-blue-600 mr-2">support@ghem.store</span>
+                    <span className="font-bold text-blue-600 mr-2">support@afterads.sa</span>
                   </p>
                 </div>
               </div>
@@ -238,7 +238,7 @@ const PrivacyPolicy: React.FC = () => {
                 </h2>
                 <div className="space-y-3">
                   <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                    <span className="text-gray-800">جميع المحتويات المعروضة في الموقع (صور، نصوص، تصاميم، شعارات) مملوكة لمتجر غيم</span>
+                    <span className="text-gray-800">جميع المحتويات المعروضة في الموقع (صور، نصوص، تصاميم، شعارات) مملوكة لـ after ads</span>
                   </div>
                   <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
                     <span className="text-gray-800">يُمنع استخدام أي من هذه المحتويات بدون إذن كتابي مسبق</span>
@@ -287,7 +287,7 @@ const PrivacyPolicy: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-blue-600" />
                       <span className="text-gray-800">البريد الإلكتروني: </span>
-                      <span className="font-bold text-blue-600">support@ghem.store</span>
+                      <span className="font-bold text-blue-600">support@afterads.sa</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Phone className="w-5 h-5 text-blue-600" />
@@ -316,4 +316,4 @@ const PrivacyPolicy: React.FC = () => {
   );
 };
 
-export default PrivacyPolicy; 
+export default PrivacyPolicy;

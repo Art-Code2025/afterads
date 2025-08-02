@@ -19,29 +19,29 @@ const About: React.FC = () => {
           </div>
           <div className="h-1 w-24 sm:w-32 bg-gradient-to-r from-dark-500 to-dark-400 mx-auto rounded-full mb-4 sm:mb-6"></div>
           <p className="text-base sm:text-lg text-dark-300 max-w-2xl mx-auto px-4">
-            تعرف على قصة GHEM-STORE وكيف نساعدك في إطلالة التخرج المثالية
+            تعرف على قصة after ads وكيف نساعدك في تطوير متجرك الإلكتروني
           </p>
         </div>
 
         {/* Brand Story */}
         <div className="bg-dark-800 rounded-xl sm:rounded-2xl shadow-lg p-6 sm:p-8 mb-8 sm:mb-12 border border-dark-700">
           <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-dark-100 mb-3 sm:mb-4">GHEM.STORE</h2>
-            <p className="text-lg sm:text-xl text-dark-300 font-medium">براند سعودي لعبايات التخرج</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-dark-100 mb-3 sm:mb-4">after ads</h2>
+            <p className="text-lg sm:text-xl text-dark-300 font-medium">شركة سعودية متخصصة في تطوير المتاجر الإلكترونية</p>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-center">
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-dark-200 mb-3 sm:mb-4">قصتنا</h3>
               <p className="text-sm sm:text-base text-dark-300 mb-3 sm:mb-4 leading-relaxed">
-                نحن متخصصون في تصميم وتفصيل عبايات وجاكيتات التخرج المميزة. نؤمن بأن لحظة التخرج هي من أهم اللحظات في حياة كل طالب وطالبة، ولذلك نحرص على تقديم أفضل التصاميم والخامات.
+                نحن متخصصون في تطوير وتصميم المتاجر الإلكترونية وتقديم حلول متكاملة للتجارة الإلكترونية. نؤمن بأن التجارة الإلكترونية هي مستقبل الأعمال، ولذلك نحرص على تقديم أفضل الحلول التقنية والتصميمية.
               </p>
               <p className="text-sm sm:text-base text-dark-300 mb-4 sm:mb-6 leading-relaxed">
-                منذ بداية رحلتنا، كان هدفنا واضحاً: جعل كل خريج وخريجة يشعران بالثقة والأناقة في يوم تخرجهما. نشارككم الفرحة ونحتفل معكم بهذا الإنجاز المهم.
+                منذ بداية رحلتنا، كان هدفنا واضحاً: مساعدة الشركات والأفراد على النجاح في عالم التجارة الإلكترونية من خلال تقديم منصات احترافية سهلة الاستخدام وفعالة.
               </p>
               <div className="bg-dark-700 p-3 sm:p-4 rounded-lg border border-dark-600">
                 <p className="text-dark-200 font-medium text-center text-sm sm:text-base">
-                  &lt;مدة التنفيذ 5-10 يوماً&gt;
+                  &lt;مدة التنفيذ 2-4 أسابيع&gt;
                 </p>
               </div>
             </div>
@@ -62,9 +62,9 @@ const About: React.FC = () => {
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-dark-500 to-dark-400 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <span className="text-dark-50 text-xl sm:text-2xl">🎓</span>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-dark-200 mb-2 sm:mb-3">تصاميم مميزة</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-dark-200 mb-2 sm:mb-3">تصاميم احترافية</h3>
             <p className="text-sm sm:text-base text-dark-300">
-              نقدم تصاميم حصرية وأنيقة تناسب جميع الأذواق والمناسبات
+              نقدم تصاميم عصرية واحترافية تناسب جميع أنواع المتاجر الإلكترونية
             </p>
           </div>
           
@@ -74,7 +74,7 @@ const About: React.FC = () => {
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-dark-200 mb-2 sm:mb-3">جودة عالية</h3>
             <p className="text-sm sm:text-base text-dark-300">
-              نستخدم أفضل الخامات والأقمشة الفاخرة مع خياطة متقنة ومتينة
+              نستخدم أحدث التقنيات وأفضل الممارسات في تطوير المتاجر الإلكترونية
             </p>
           </div>
           
@@ -82,9 +82,9 @@ const About: React.FC = () => {
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-dark-500 to-dark-400 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <span className="text-dark-50 text-xl sm:text-2xl">🚚</span>
             </div>
-            <h3 className="text-lg sm:text-xl font-bold text-dark-200 mb-2 sm:mb-3">توصيل سريع</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-dark-200 mb-2 sm:mb-3">دعم فني</h3>
             <p className="text-sm sm:text-base text-dark-300">
-              نوصل لجميع مناطق المملكة العربية السعودية بسرعة وأمان
+              نقدم دعماً فنياً متكاملاً لجميع عملائنا في المملكة العربية السعودية
             </p>
           </div>
         </div>

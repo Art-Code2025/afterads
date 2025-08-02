@@ -2,12 +2,12 @@ User-agent: *
 Allow: /
 
 # Site Information
-# Site: غِيم - GHEM Store
-# Description: متجر عبايات وجاكيتات التخرج السعودي
-# URL: https://ghem.store
+# Site: after ads
+# Description: موقع إلكتروني متخصص في تطوير المتاجر الإلكترونية
+# URL: https://afterads.com
 
 # Sitemap
-Sitemap: https://ghem.store/sitemap.xml
+Sitemap: https://afterads.com/sitemap.xml
 
 # Google specific
 User-agent: Googlebot
@@ -35,4 +35,4 @@ Allow: /return-policy/
 # Important files
 Allow: /logo1.png
 Allow: /manifest.json
-Allow: /google-site-info.txt 
+Allow: /google-site-info.txt
