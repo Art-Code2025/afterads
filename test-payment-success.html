@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار نجاح الدفع</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار عملية الدفع</h1>
+        
+        <div class="info">
+            <h3>خطوات الاختبار:</h3>
+            <ol>
+                <li>انقر على "إنشاء بيانات طلب تجريبي" لحفظ بيانات في localStorage</li>
+                <li>انقر على "محاكاة نجاح الدفع" للانتقال لصفحة النتيجة</li>
+                <li>تحقق من أن الطلب يُحفظ في قاعدة البيانات والتوجيه يعمل</li>
+            </ol>
+        </div>
+        
+        <button class="btn" onclick="createTestOrder()">إنشاء بيانات طلب تجريبي</button>
+        <button class="btn" onclick="simulateSuccessfulPayment()">محاكاة نجاح الدفع</button>
+        <button class="btn" onclick="checkLocalStorage()">فحص localStorage</button>
+        <button class="btn" onclick="clearTestData()">مسح البيانات التجريبية</button>
+        
+        <div id="result" class="info" style="display: none;"></div>
+    </div>
+
+    <script>
+        function createTestOrder() {
+            const testOrderData = {
+                tempOrderId: 'test_' + Date.now(),
+                orderNumber: 'ORDER_TEST_' + Date.now(),
+                orderData: {
+                    customerName: 'أحمد محمد',
+                    customerEmail: 'ahmed@test.com',
+                    customerPhone: '+966501234567',
+                    items: [
+                        {
+                            productId: 'test_product_1',
+                            productName: 'منتج تجريبي 1',
+                            price: 100,
+                            quantity: 2,
+                            totalPrice: 200
+                        },
+                        {
+                            productId: 'test_product_2',
+                            productName: 'منتج تجريبي 2',
+                            price: 50,
+                            quantity: 1,
+                            totalPrice: 50
+                        }
+                    ],
+                    subtotal: 250,
+                    shippingCost: 20,
+                    total: 270,
+                    paymentMethod: 'card',
+                    paymentStatus: 'pending',
+                    status: 'pending'
+                },
+                userData: {
+                    name: 'أحمد محمد',
+                    email: 'ahmed@test.com',
+                    phone: '+966501234567'
+                },
+                items: [
+                    {
+                        id: 'test_product_1',
+                        name: 'منتج تجريبي 1',
+                        price: 100,
+                        quantity: 2
+                    },
+                    {
+                        id: 'test_product_2',
+                        name: 'منتج تجريبي 2',
+                        price: 50,
+                        quantity: 1
+                    }
+                ],
+                paymentMethod: 'card',
+                subtotal: 250,
+                shipping: 20,
+                discount: 0,
+                total: 270,
+                estimatedDelivery: 'خلال 2-3 أيام عمل'
+            };
+            
+            localStorage.setItem('pendingOrderData', JSON.stringify(testOrderData));
+            
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result').innerHTML = '<div class="success">✅ تم إنشاء بيانات الطلب التجريبي وحفظها في localStorage</div>';
+        }
+        
+        function simulateSuccessfulPayment() {
+            // التحقق من وجود بيانات الطلب
+            const pendingOrder = localStorage.getItem('pendingOrderData');
+            if (!pendingOrder) {
+                alert('يرجى إنشاء بيانات طلب تجريبي أولاً');
+                return;
+            }
+            
+            // الانتقال لصفحة نتيجة الدفع مع معاملات النجاح
+            const successUrl = 'http://localhost:5175/payment-result?success=true&order=test_order_123&id=test_transaction_456';
+            window.open(successUrl, '_blank');
+        }
+        
+        function checkLocalStorage() {
+            const pendingOrder = localStorage.getItem('pendingOrderData');
+            const lastOrder = localStorage.getItem('lastOrderData');
+            
+            let result = '<h4>محتويات localStorage:</h4>';
+            
+            if (pendingOrder) {
+                result += '<p><strong>pendingOrderData:</strong> موجود</p>';
+                result += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 12px; overflow-x: auto;">' + 
+                         JSON.stringify(JSON.parse(pendingOrder), null, 2) + '</pre>';
+            } else {
+                result += '<p><strong>pendingOrderData:</strong> غير موجود</p>';
+            }
+            
+            if (lastOrder) {
+                result += '<p><strong>lastOrderData:</strong> موجود</p>';
+                result += '<pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 12px; overflow-x: auto;">' + 
+                         JSON.stringify(JSON.parse(lastOrder), null, 2) + '</pre>';
+            } else {
+                result += '<p><strong>lastOrderData:</strong> غير موجود</p>';
+            }
+            
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result').innerHTML = result;
+        }
+        
+        function clearTestData() {
+            localStorage.removeItem('pendingOrderData');
+            localStorage.removeItem('lastOrderData');
+            localStorage.removeItem('cartItems');
+            localStorage.removeItem('cart');
+            
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result').innerHTML = '<div class="success">✅ تم مسح جميع البيانات التجريبية</div>';
+        }
+    </script>
+</body>
+</html>

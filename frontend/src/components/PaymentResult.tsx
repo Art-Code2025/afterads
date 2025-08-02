@@ -37,13 +37,27 @@ const PaymentResult: React.FC = () => {
           toast.success('تم الدفع بنجاح! شكراً لك.');
           
           // حفظ الطلب في قاعدة البيانات عند نجاح الدفع
-          if (parsedData && parsedData.orderData) {
+          if (parsedData) {
             try {
               console.log('💾 [PaymentResult] Saving order to database after successful payment...');
+              console.log('📋 [PaymentResult] Parsed data structure:', Object.keys(parsedData));
+              console.log('📋 [PaymentResult] Order data exists:', !!parsedData.orderData);
+              
+              // استخدام البيانات الصحيحة بناءً على البنية المحفوظة
+              const orderDataToSave = parsedData.orderData || {
+                customerName: parsedData.userData?.name,
+                customerEmail: parsedData.userData?.email,
+                customerPhone: parsedData.userData?.phone,
+                items: parsedData.items || [],
+                subtotal: parsedData.subtotal || 0,
+                shippingCost: parsedData.shipping || 0,
+                total: parsedData.total || 0,
+                paymentMethod: parsedData.paymentMethod || 'card'
+              };
               
               // تحديث بيانات الطلب بحالة الدفع الناجح
               const finalOrderData = {
-                ...parsedData.orderData,
+                ...orderDataToSave,
                 paymentStatus: 'paid',
                 status: 'confirmed',
                 transactionId: transactionId
@@ -57,7 +71,7 @@ const PaymentResult: React.FC = () => {
               const finalOrderForDisplay = {
                 ...parsedData,
                 orderId: result.id,
-                orderNumber: result.id,
+                orderNumber: result.orderNumber || result.id,
                 paymentStatus: 'paid',
                 transactionId: transactionId
               };
