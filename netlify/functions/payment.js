@@ -10,6 +10,32 @@ const PAYMOB_CONFIG = {
   HMAC_SECRET: process.env.PAYMOB_HMAC_SECRET || 'your_hmac_secret_here'
 };
 
+// إعدادات العملة
+const PAYMENT_CURRENCY = process.env.PAYMENT_CURRENCY || 'EGP';
+
+// إعدادات البلد الافتراضية بناءً على العملة
+const getCountryDefaults = (currency) => {
+  switch (currency) {
+    case 'SAR':
+      return {
+        phone: '+966500000000',
+        postal_code: '11564',
+        city: 'Riyadh',
+        country: 'SA',
+        state: 'Riyadh'
+      };
+    case 'EGP':
+    default:
+      return {
+        phone: '+201000000000',
+        postal_code: '12345',
+        city: 'Cairo',
+        country: 'EG',
+        state: 'Cairo'
+      };
+  }
+};
+
 // التحقق من صحة إعدادات Paymob
 function validatePaymobConfig() {
   const issues = [];
@@ -141,8 +167,8 @@ export const handler = async (event, context) => {
         const orderPayload = {
           auth_token: authData.token,
           delivery_needed: false,
-          amount_cents: Math.round(amount * 100), // تحويل للقروش
-          currency: 'EGP',
+          amount_cents: Math.round(amount * 100), // تحويل للوحدة الفرعية للعملة
+          currency: PAYMENT_CURRENCY,
           merchant_order_id: body.orderId || `order_${Date.now()}`,
           items: (body.items || []).map(item => ({
             name: item.productName || item.name || 'Product',
@@ -202,16 +228,20 @@ export const handler = async (event, context) => {
              first_name: body.customerData?.name?.split(' ')[0] || 'Customer',
              street: 'Digital Product',
              building: 'NA',
-             phone_number: body.customerData?.phone || '+201000000000',
+             phone_number: body.customerData?.phone || getCountryDefaults(PAYMENT_CURRENCY).phone,
              shipping_method: 'PKG',
-             postal_code: '12345',
-             city: 'Cairo',
-             country: 'EG',
+             postal_code: getCountryDefaults(PAYMENT_CURRENCY).postal_code,
+             city: getCountryDefaults(PAYMENT_CURRENCY).city,
+             country: getCountryDefaults(PAYMENT_CURRENCY).country,
              last_name: body.customerData?.name?.split(' ').slice(1).join(' ') || 'Customer',
-             state: 'Cairo'
+             state: getCountryDefaults(PAYMENT_CURRENCY).state
            },
-           currency: 'EGP',
-           integration_id: PAYMOB_CONFIG.INTEGRATION_ID
+           currency: PAYMENT_CURRENCY,
+           integration_id: PAYMOB_CONFIG.INTEGRATION_ID,
+           // إضافة روابط إعادة التوجيه
+           success_url: process.env.SUCCESS_URL || 'https://afterads-sa.netlify.app/payment-result?success=true',
+           failure_url: process.env.ERROR_URL || 'https://afterads-sa.netlify.app/payment-result?success=false',
+           cancel_url: process.env.CANCEL_URL || 'https://afterads-sa.netlify.app/checkout'
          };
          console.log('🔑 Payment key payload:', JSON.stringify(paymentKeyPayload, null, 2));
          
