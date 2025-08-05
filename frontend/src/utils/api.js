@@ -1,5 +1,10 @@
 // API Base URL - will be automatically detected in production
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const isDevelopment = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+
+const API_BASE_URL = isDevelopment 
+  ? 'http://localhost:8888/.netlify/functions'
+  : '/.netlify/functions';
 
 // Generic API request function
 const apiRequest = async (endpoint, options = {}) => {

@@ -48,17 +48,17 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-dark-800/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-dark-600">
             <Star className="w-4 h-4 text-[#D4AF37] fill-[#D4AF37]" />
-            <span className="text-sm font-medium text-dark-100">الأكثر مبيعاً</span>
+            <span className="text-sm font-medium text-dark-100">ثيمات الأكثر مبيعاً</span>
             <TrendingUp className="w-4 h-4 text-dark-300" />
           </div>
 
           {/* Main Title */}
           <div className="space-y-4">
             <h2 className="font-english text-5xl md:text-6xl font-bold bg-gradient-to-r from-dark-100 via-dark-200 to-dark-100 bg-clip-text text-transparent">
-              CUSTOMER
+              SALLA
             </h2>
             <h3 className="font-english text-4xl md:text-5xl font-light bg-gradient-to-r from-dark-300 via-dark-200 to-dark-300 bg-clip-text text-transparent">
-              FAVORITES
+              THEMES
             </h3>
             
             {/* Decorative Line */}
@@ -69,7 +69,7 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
 
           {/* Description */}
           <p className="text-dark-300 text-lg max-w-2xl mx-auto leading-relaxed">
-            اكتشف العطور الأكثر حباً من قبل عملائنا المميزين. تشكيلة منتقاة بعناية من أفضل الروائح العالمية
+            اكتشف أفضل ثيمات سلة المصممة بعناية فائقة. تصاميم احترافية وعصرية لمتجرك الإلكتروني
           </p>
 
           {/* CTA Link */}
@@ -78,7 +78,7 @@ const CustomerFavoritesSection: React.FC<Props> = ({ products }) => {
               href="#"
               className="group inline-flex items-center gap-3 text-dark-300 hover:text-dark-100 transition-all duration-300"
             >
-              <span className="text-sm font-medium tracking-wider uppercase">جميع المنتجات الأكثر مبيعاً</span>
+              <span className="text-sm font-medium tracking-wider uppercase">جميع ثيمات سلة</span>
               <div className="flex items-center gap-1">
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 <div className="w-12 h-px bg-gradient-to-r from-dark-500 to-dark-400 group-hover:w-16 transition-all duration-300"></div>

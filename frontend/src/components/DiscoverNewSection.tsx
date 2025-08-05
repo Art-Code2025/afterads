@@ -67,7 +67,7 @@ const DiscoverNewSection: React.FC = () => {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-dark-900/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-dark-400/50">
               <Sparkles className="w-4 h-4 text-dark-300" />
-              <span className="text-sm font-medium text-dark-200">مجموعة حصرية</span>
+              <span className="text-sm font-medium text-dark-200">ثيمات حصرية</span>
               <Calendar className="w-4 h-4 text-dark-400" />
             </div>
 
@@ -75,10 +75,10 @@ const DiscoverNewSection: React.FC = () => {
             <div className="space-y-6">
               <h2 className="font-english text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
                 <span className="block bg-gradient-to-r from-dark-300 via-dark-400 to-dark-500 bg-clip-text text-transparent">
-                  DISCOVER
+                  NEW
                 </span>
                 <span className="block mt-2 bg-gradient-to-r from-dark-200 via-dark-300 to-dark-200 bg-clip-text text-transparent">
-                  NEW
+                  THEMES
                 </span>
               </h2>
               
@@ -109,14 +109,14 @@ const DiscoverNewSection: React.FC = () => {
             {/* Description */}
             <div className="space-y-4">
               <p className="text-dark-300 text-lg leading-relaxed max-w-lg mx-auto lg:mx-0">
-                عطرنا الجديد يأسر جوهر الربيع المتفتح بنفحات هوائية ناعمة وذكريات تدوم إلى الأبد. 
-                تجربة عطرية استثنائية تنقلك إلى عالم من الأحلام والجمال.
+                ثيماتنا الجديدة تجمع بين التصميم العصري والوظائف المتقدمة لمنصة سلة. 
+                تجربة تسوق استثنائية تنقل متجرك إلى مستوى جديد من الاحترافية والجمال.
               </p>
               
               <div className="flex flex-wrap justify-center lg:justify-start gap-3">
-                <span className="bg-dark-800 text-dark-300 px-3 py-1 rounded-full text-sm font-medium">نفحات زهرية</span>
-                <span className="bg-dark-700 text-dark-200 px-3 py-1 rounded-full text-sm font-medium">رائحة منعشة</span>
-                <span className="bg-dark-400/20 text-dark-300 px-3 py-1 rounded-full text-sm font-medium">ثبات طويل</span>
+                <span className="bg-dark-800 text-dark-300 px-3 py-1 rounded-full text-sm font-medium">تصميم عصري</span>
+                <span className="bg-dark-700 text-dark-200 px-3 py-1 rounded-full text-sm font-medium">سريع التحميل</span>
+                <span className="bg-dark-400/20 text-dark-300 px-3 py-1 rounded-full text-sm font-medium">متجاوب</span>
               </div>
             </div>
 
@@ -124,7 +124,7 @@ const DiscoverNewSection: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <button className="group relative px-8 py-4 bg-gradient-to-r from-dark-300 to-dark-400 text-white rounded-full font-semibold shadow-2xl hover:shadow-dark-300/25 transition-all duration-300 overflow-hidden">
                 <span className="relative z-10 flex items-center gap-2">
-                  تفاصيل أكثر
+                  استكشف الثيمات
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-dark-400 to-dark-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

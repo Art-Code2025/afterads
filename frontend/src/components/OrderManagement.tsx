@@ -93,6 +93,35 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  // الاستماع لإشعارات الطلبات الجديدة
+  useEffect(() => {
+    const handleNewOrder = () => {
+      console.log('📢 [OrderManagement] Received new order notification, refreshing orders...');
+      fetchOrders();
+      // إزالة الإشعار بعد المعالجة
+      localStorage.removeItem('newOrderAdded');
+      toast.success('تم استلام طلب جديد!');
+    };
+    
+    // فحص وجود إشعار عند تحميل الصفحة
+    if (localStorage.getItem('newOrderAdded') === 'true') {
+      handleNewOrder();
+    }
+    
+    // الاستماع للإشعارات الجديدة
+    window.addEventListener('newOrderAdded', handleNewOrder);
+    return () => window.removeEventListener('newOrderAdded', handleNewOrder);
+  }, []);
+
+  // تحديث تلقائي للطلبات كل 30 ثانية
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const filterAndSortOrders = () => {
     let filtered = [...orders];
 
@@ -729,4 +758,4 @@ const OrderManagement: React.FC = () => {
   );
 };
 
-export default OrderManagement; 
+export default OrderManagement;

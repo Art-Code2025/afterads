@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار إعادة التوجيه من Paymob</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .success {
+            background-color: #28a745;
+        }
+        .success:hover {
+            background-color: #1e7e34;
+        }
+        .info {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .url-display {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار إعادة التوجيه من Paymob</h1>
+        
+        <div class="info">
+            <h3>الرابط الفعلي من Paymob:</h3>
+            <div class="url-display" id="originalUrl">
+                https://accept.paymobsolutions.com/api/acceptance/post_pay?id=325585441&pending=false&amount_cents=1200&success=true&is_auth=false&is_capture=false&is_standalone_payment=true&is_voided=false&is_refunded=false&is_3d_secure=true&integration_id=5222059&profile_id=1064902&has_parent_transaction=false&order=364751328&created_at=2025-08-03T00%3A35%3A43.512166&currency=EGP&merchant_commission=0&discount_details=%5B%5D&is_void=false&is_refund=false&error_occured=false&refunded_amount_cents=0&captured_amount=0&updated_at=2025-08-03T00%3A36%3A08.218080&is_settled=false&bill_balanced=false&is_bill=false&owner=2014116&merchant_order_id=temp_1754170511978_qedtn2kse&data.message=Approved&source_data.type=card&source_data.pan=4242&source_data.sub_type=Visa&acq_response_code=00&txn_response_code=APPROVED&hmac=1a0bb34f709a9ab0c6d3e52afe9581fce1aced50e5a6c2d81b649db350c9e078accbb312bc81c41e7ffcdf94ece7e792057b73b209ed70cee9fd8f047b430f44
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>البيانات المستخرجة:</h3>
+            <div id="extractedData"></div>
+        </div>
+
+        <button class="btn success" onclick="redirectToOurSite()">إعادة التوجيه إلى موقعنا</button>
+        <button class="btn" onclick="extractData()">استخراج البيانات</button>
+        <button class="btn" onclick="testLocalRedirect()">اختبار محلي</button>
+    </div>
+
+    <script>
+        const paymobUrl = "https://accept.paymobsolutions.com/api/acceptance/post_pay?id=325585441&pending=false&amount_cents=1200&success=true&is_auth=false&is_capture=false&is_standalone_payment=true&is_voided=false&is_refunded=false&is_3d_secure=true&integration_id=5222059&profile_id=1064902&has_parent_transaction=false&order=364751328&created_at=2025-08-03T00%3A35%3A43.512166&currency=EGP&merchant_commission=0&discount_details=%5B%5D&is_void=false&is_refund=false&error_occured=false&refunded_amount_cents=0&captured_amount=0&updated_at=2025-08-03T00%3A36%3A08.218080&is_settled=false&bill_balanced=false&is_bill=false&owner=2014116&merchant_order_id=temp_1754170511978_qedtn2kse&data.message=Approved&source_data.type=card&source_data.pan=4242&source_data.sub_type=Visa&acq_response_code=00&txn_response_code=APPROVED&hmac=1a0bb34f709a9ab0c6d3e52afe9581fce1aced50e5a6c2d81b649db350c9e078accbb312bc81c41e7ffcdf94ece7e792057b73b209ed70cee9fd8f047b430f44";
+
+        function extractData() {
+            const url = new URL(paymobUrl);
+            const params = new URLSearchParams(url.search);
+            
+            const data = {
+                id: params.get('id'),
+                success: params.get('success'),
+                amount_cents: params.get('amount_cents'),
+                order: params.get('order'),
+                merchant_order_id: params.get('merchant_order_id'),
+                currency: params.get('currency'),
+                'data.message': params.get('data.message'),
+                'source_data.type': params.get('source_data.type'),
+                'source_data.sub_type': params.get('source_data.sub_type'),
+                txn_response_code: params.get('txn_response_code')
+            };
+
+            let html = '<ul>';
+            for (const [key, value] of Object.entries(data)) {
+                if (value) {
+                    html += `<li><strong>${key}:</strong> ${value}</li>`;
+                }
+            }
+            html += '</ul>';
+            
+            document.getElementById('extractedData').innerHTML = html;
+        }
+
+        function redirectToOurSite() {
+            const url = new URL(paymobUrl);
+            const params = new URLSearchParams(url.search);
+            
+            // بناء رابط إعادة التوجيه إلى موقعنا
+            const redirectParams = new URLSearchParams({
+                success: params.get('success'),
+                order: params.get('order'),
+                id: params.get('id'),
+                amount_cents: params.get('amount_cents'),
+                merchant_order_id: params.get('merchant_order_id'),
+                currency: params.get('currency'),
+                'data.message': params.get('data.message'),
+                'source_data.type': params.get('source_data.type'),
+                'source_data.sub_type': params.get('source_data.sub_type'),
+                txn_response_code: params.get('txn_response_code')
+            });
+            
+            const ourSiteUrl = `http://localhost:5175/payment-redirect?${redirectParams.toString()}`;
+            console.log('Redirecting to:', ourSiteUrl);
+            window.open(ourSiteUrl, '_blank');
+        }
+
+        function testLocalRedirect() {
+            // محاكاة إعادة التوجيه المحلي
+            const testUrl = `http://localhost:5175/payment-redirect?success=true&order=364751328&id=325585441&amount_cents=1200&merchant_order_id=temp_1754170511978_qedtn2kse&currency=EGP&data.message=Approved&source_data.type=card&source_data.sub_type=Visa&txn_response_code=APPROVED`;
+            window.open(testUrl, '_blank');
+        }
+
+        // استخراج البيانات تلقائياً عند تحميل الصفحة
+        window.onload = function() {
+            extractData();
+        };
+    </script>
+</body>
+</html>

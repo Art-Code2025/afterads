@@ -15,6 +15,7 @@ interface Service {
   detailedImages: string[];
   imageDetails: string[];
   features: string[];
+  deliveryTime: string; // مدة التنفيذ
 }
 
 function ServiceDetail() {
@@ -166,6 +167,19 @@ function ServiceDetail() {
                 {service.description}
               </p>
             </div>
+
+            {/* مدة التنفيذ */}
+            {service.deliveryTime && (
+              <div className="mb-12 bg-blue-50 p-6 rounded-2xl border-r-4 border-blue-500 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <h2 className="text-2xl font-bold text-blue-700 mb-4 text-right flex items-center">
+                  <Calendar className="w-6 h-6 ml-2" />
+                  مدة التنفيذ
+                </h2>
+                <p className="text-lg text-gray-700 leading-relaxed text-right">
+                  {service.deliveryTime}
+                </p>
+              </div>
+            )}
 
             {/* قسم "خدماتنا تشمل" */}
             {service.detailedImages && service.detailedImages.length > 0 && (

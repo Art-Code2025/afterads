@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar';
-import App from './App.tsx';
 // Direct import for debugging
 import './index.css';
 import { initCartStorageFix } from './utils/cartStorageFix.ts';
@@ -12,6 +11,7 @@ import { initCartStorageFix } from './utils/cartStorageFix.ts';
 import './utils/initData';
 
 // Lazy load components for better performance
+const App = React.lazy(() => import('./App'));
 const ProductDetail = React.lazy(() => import('./pages/ProductDetail'));
 const ProductsByCategory = React.lazy(() => import('./components/ProductsByCategory'));
 const ShoppingCart = React.lazy(() => import('./components/ShoppingCart'));
@@ -28,8 +28,10 @@ const CategoryEdit = React.lazy(() => import('./CategoryEdit'));
 const CouponForm = React.lazy(() => import('./components/CouponForm'));
 const AllProducts = React.lazy(() => import('./components/AllProducts'));
 const AllCategories = React.lazy(() => import('./components/AllCategories'));
-const ThankYou = React.lazy(() => import('./components/ThankYou'));
 const PaymentResult = React.lazy(() => import('./components/PaymentResult'));
+const ThankYou = React.lazy(() => import('./components/ThankYou'));
+const PaymentRedirectHandler = React.lazy(() => import('./components/PaymentRedirectHandler'));
+const PaymobTestRedirect = React.lazy(() => import('./components/PaymobTestRedirect'));
 const About = React.lazy(() => import('./pages/About'));
 const Contact = React.lazy(() => import('./pages/Contact'));
 const Media = React.lazy(() => import('./pages/Media'));
@@ -148,6 +150,8 @@ const LayoutWrapper: React.FC = () => {
             <Route path="/cart/diagnostics" element={<CartDiagnostics />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/payment-result" element={<PaymentResult />} />
+            <Route path="/payment-redirect" element={<PaymentRedirectHandler />} />
+            <Route path="/paymob-test" element={<PaymobTestRedirect />} />
             <Route path="/thank-you" element={<ThankYou />} />
             
             {/* Auth Routes */}

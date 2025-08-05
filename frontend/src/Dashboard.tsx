@@ -17,6 +17,7 @@ import { PieChart as RechartsPieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar
 import { apiCall, API_ENDPOINTS, buildImageUrl } from './config/api';
 import OrderModal from './components/OrderModal';
 import DeleteModal from './components/DeleteModal';
+import InvoiceManagement from './components/InvoiceManagement';
 import logo from './assets/logo.png';
 
 // تعريف الأنواع
@@ -233,119 +234,164 @@ const Dashboard: React.FC = () => {
   // جلب إحصائيات العملاء
   const [customerStats, setCustomerStats] = useState<any>(null);
 
-  // CRITICAL: Force loading to false immediately and then try to load data
-  useEffect(() => {
-    console.log('🚀 Dashboard initializing...');
+  // حالات مودالات العملاء الجديدة
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState<boolean>(false);
+  const [isCustomerEditModalOpen, setIsCustomerEditModalOpen] = useState<boolean>(false);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [loadingCustomerOrders, setLoadingCustomerOrders] = useState<boolean>(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+  // حالات الإحصائيات والتحليلات
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState<any[]>([]);
+
+  // حالة تحميل الطلبات
+  const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
+
+  // وظائف الطلبات - محسنة للسرعة القصوى
+  const fetchOrders = useCallback(async (forceRefresh = false) => {
+    // تحقق من وجود بيانات محفوظة مؤقتاً
+    const cachedOrders = sessionStorage.getItem('ordersData');
+    const cacheTime = sessionStorage.getItem('ordersDataTime');
+    const now = Date.now();
     
-    // STEP 1: Immediately show the dashboard (no more white screen!)
-    const immediateLoad = () => {
-      setLoading(false);
-      console.log('✅ Dashboard UI loaded immediately');
-    };
-    
-    // Show dashboard immediately
-    immediateLoad();
-    
-    // STEP 2: Load data in background without blocking UI
-    const loadDataInBackground = async () => {
-      console.log('🔄 Loading data in background...');
-      
+    // استخدام البيانات المحفوظة إذا كانت حديثة (أقل من 2 دقيقة) ولم يتم طلب التحديث القسري
+    if (!forceRefresh && cachedOrders && cacheTime && (now - parseInt(cacheTime)) < 120000) {
       try {
-        // Try to load products with better error handling
-        try {
-          console.log('🔄 Attempting to load products...');
-          const productsResponse = await apiCall(API_ENDPOINTS.PRODUCTS);
-          console.log('📦 Products API response:', productsResponse);
-          
-          // Handle different response formats
-          const productsData = productsResponse?.data || productsResponse || [];
-          setProducts(Array.isArray(productsData) ? productsData : []);
-          setFilteredProducts(Array.isArray(productsData) ? productsData : []);
-          console.log('✅ Products loaded:', productsData?.length || 0);
-        } catch (err) {
-          console.warn('⚠️ Products failed, using empty array:', err);
-          setProducts([]);
-          setFilteredProducts([]);
-        }
-        
-        // Try to load categories with better error handling
-        try {
-          console.log('🔄 Attempting to load categories...');
-          const categoriesResponse = await apiCall(API_ENDPOINTS.CATEGORIES);
-          console.log('📁 Categories API response:', categoriesResponse);
-          
-          // Handle different response formats
-          const categoriesData = categoriesResponse?.data || categoriesResponse || [];
-          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-          setFilteredCategories(Array.isArray(categoriesData) ? categoriesData : []);
-          console.log('✅ Categories loaded:', categoriesData?.length || 0);
-        } catch (err) {
-          console.warn('⚠️ Categories failed, using empty array:', err);
-          setCategories([]);
-          setFilteredCategories([]);
-        }
-        
-          // Load coupons
-          try {
-            console.log('🔄 Attempting to load coupons...');
-            const couponsResponse = await apiCall(API_ENDPOINTS.COUPONS);
-            console.log('🎫 Coupons API response:', couponsResponse);
-            
-            const couponsData = couponsResponse?.data || couponsResponse || [];
-            setCoupons(Array.isArray(couponsData) ? couponsData : []);
-            setFilteredCoupons(Array.isArray(couponsData) ? couponsData : []);
-            console.log('✅ Coupons loaded:', couponsData?.length || 0);
-          } catch (err) {
-            console.warn('⚠️ Coupons failed, using empty array:', err);
-            setCoupons([]);
-            setFilteredCoupons([]);
-          }
-          
-          // Load orders
-          try {
-            console.log('🔄 Attempting to load orders...');
-            const ordersResponse = await apiCall(API_ENDPOINTS.ORDERS);
-            console.log('📋 Orders API response:', ordersResponse);
-            
-            const ordersData = ordersResponse?.data || ordersResponse || [];
-            setOrders(Array.isArray(ordersData) ? ordersData : []);
-            setFilteredOrders(Array.isArray(ordersData) ? ordersData : []);
-            console.log('✅ Orders loaded:', ordersData?.length || 0);
-          } catch (err) {
-            console.warn('⚠️ Orders failed, using empty array:', err);
-            setOrders([]);
-            setFilteredOrders([]);
-          }
-          
-          // Load customers immediately
-          try {
-            console.log('🔄 Attempting to load customers...');
-            const customersResponse = await apiCall(API_ENDPOINTS.CUSTOMERS);
-            console.log('👥 Customers API response:', customersResponse);
-            
-            const customersData = customersResponse?.data || customersResponse || [];
-            setCustomers(Array.isArray(customersData) ? customersData : []);
-            setFilteredCustomers(Array.isArray(customersData) ? customersData : []);
-            console.log('✅ Customers loaded:', customersData?.length || 0);
-          } catch (err) {
-            console.warn('⚠️ Customers failed, using empty array:', err);
-            setCustomers([]);
-            setFilteredCustomers([]);
-          }
-        
+        const parsedOrders = JSON.parse(cachedOrders);
+        setOrders(parsedOrders);
+        setFilteredOrders(parsedOrders);
+        console.log('✅ Orders loaded from cache:', parsedOrders.length);
+        return;
       } catch (error) {
-        console.error('❌ Background loading error:', error);
-        // Don't show error to user, just log it
-        // Don't set error state that could cause redirects
-      } finally {
-        setLoading(false);
+        console.warn('⚠️ Cache parsing failed, fetching fresh data');
+      }
+    }
+
+    try {
+      setOrdersLoading(true);
+      console.log('🔄 Fetching orders from API...');
+      
+      const response = await apiCall(API_ENDPOINTS.ORDERS);
+      const ordersData = response?.data || response || [];
+      
+      if (Array.isArray(ordersData)) {
+        setOrders(ordersData);
+        setFilteredOrders(ordersData);
+        
+        // حفظ البيانات في التخزين المؤقت
+        sessionStorage.setItem('ordersData', JSON.stringify(ordersData));
+        sessionStorage.setItem('ordersDataTime', now.toString());
+        
+        console.log('✅ Orders fetched from API:', ordersData.length);
+      } else {
+        console.warn('⚠️ Invalid orders data format:', ordersData);
+        setOrders([]);
+        setFilteredOrders([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching orders:', error);
+      setOrders([]);
+      setFilteredOrders([]);
+      toast.error('خطأ في جلب الطلبات');
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  // تحميل محسن للداشبورد - تحميل البيانات الأساسية فقط أولاً
+  useEffect(() => {
+    console.log('🚀 Dashboard initializing with optimized loading...');
+    
+    // إظهار الواجهة فوراً
+    setLoading(false);
+    console.log('✅ Dashboard UI loaded immediately');
+    
+    // تحميل البيانات الأساسية فقط (الطلبات للداشبورد الرئيسي)
+    const loadEssentialData = async () => {
+      try {
+        // تحميل الطلبات فقط للداشبورد الرئيسي
+        if (currentTab === 'dashboard') {
+          await fetchOrders();
+        }
+      } catch (error) {
+        console.error('❌ Essential data loading error:', error);
       }
     };
     
-    // Start background loading immediately
-    loadDataInBackground();
+    // تحميل البيانات الأساسية فوراً
+    loadEssentialData();
     
-  }, []);
+    // تأجيل تحميل باقي البيانات لتحسين الأداء
+    const loadSecondaryData = () => {
+      // تحميل المنتجات بعد ثانية واحدة
+      setTimeout(async () => {
+        try {
+          const productsResponse = await apiCall(API_ENDPOINTS.PRODUCTS);
+          const productsData = productsResponse?.data || productsResponse || [];
+          setProducts(Array.isArray(productsData) ? productsData : []);
+          setFilteredProducts(Array.isArray(productsData) ? productsData : []);
+          console.log('✅ Products loaded in background:', productsData?.length || 0);
+        } catch (err) {
+          console.warn('⚠️ Products failed:', err);
+          setProducts([]);
+          setFilteredProducts([]);
+        }
+      }, 1000);
+      
+      // تحميل التصنيفات بعد ثانيتين
+      setTimeout(async () => {
+        try {
+          const categoriesResponse = await apiCall(API_ENDPOINTS.CATEGORIES);
+          const categoriesData = categoriesResponse?.data || categoriesResponse || [];
+          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+          setFilteredCategories(Array.isArray(categoriesData) ? categoriesData : []);
+          console.log('✅ Categories loaded in background:', categoriesData?.length || 0);
+        } catch (err) {
+          console.warn('⚠️ Categories failed:', err);
+          setCategories([]);
+          setFilteredCategories([]);
+        }
+      }, 2000);
+      
+      // تحميل الكوبونات بعد 3 ثوانٍ
+      setTimeout(async () => {
+        try {
+          const couponsResponse = await apiCall(API_ENDPOINTS.COUPONS);
+          const couponsData = couponsResponse?.data || couponsResponse || [];
+          setCoupons(Array.isArray(couponsData) ? couponsData : []);
+          setFilteredCoupons(Array.isArray(couponsData) ? couponsData : []);
+          console.log('✅ Coupons loaded in background:', couponsData?.length || 0);
+        } catch (err) {
+          console.warn('⚠️ Coupons failed:', err);
+          setCoupons([]);
+          setFilteredCoupons([]);
+        }
+      }, 3000);
+      
+      // تحميل العملاء بعد 4 ثوانٍ
+      setTimeout(async () => {
+        try {
+          const customersResponse = await apiCall(API_ENDPOINTS.CUSTOMERS);
+          const customersData = customersResponse?.data || customersResponse || [];
+          setCustomers(Array.isArray(customersData) ? customersData : []);
+          setFilteredCustomers(Array.isArray(customersData) ? customersData : []);
+          console.log('✅ Customers loaded in background:', customersData?.length || 0);
+        } catch (err) {
+          console.warn('⚠️ Customers failed:', err);
+          setCustomers([]);
+          setFilteredCustomers([]);
+        }
+      }, 4000);
+    };
+    
+    // بدء تحميل البيانات الثانوية في الخلفية
+    loadSecondaryData();
+    
+  }, [currentTab, fetchOrders]);
   
   const fetchCustomerStats = async () => {
     try {
@@ -429,6 +475,112 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // دالة تحميل بيانات الإحصائيات الحقيقية - محسنة للسرعة القصوى
+  const loadAnalyticsData = useCallback(async () => {
+    // تحقق من وجود بيانات محفوظة مؤقتاً
+    const cachedData = sessionStorage.getItem('analyticsData');
+    const cacheTime = sessionStorage.getItem('analyticsDataTime');
+    const now = Date.now();
+    
+    // استخدام البيانات المحفوظة إذا كانت حديثة (أقل من 5 دقائق)
+    if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+      const data = JSON.parse(cachedData);
+      setAnalyticsData(data.analytics || {});
+      setDailyStats(data.daily || []);
+      setMonthlyStats(data.monthly || []);
+      setAnalyticsLoading(false);
+      console.log('✅ Analytics data loaded from cache');
+      return;
+    }
+
+    setAnalyticsLoading(true);
+    console.log('🔄 Loading analytics data...');
+    
+    try {
+      // تحميل البيانات الأساسية أولاً (الإحصائيات العامة)
+      const analyticsResponse = fetch('/.netlify/functions/analytics');
+      
+      // تحميل البيانات التفصيلية في الخلفية
+      const loadDetailedData = async () => {
+        try {
+          const [dailyResponse, monthlyResponse] = await Promise.all([
+            fetch('/.netlify/functions/analytics-stats?type=daily'),
+            fetch('/.netlify/functions/analytics-stats?type=monthly')
+          ]);
+
+          if (dailyResponse.ok) {
+            const dailyData = await dailyResponse.json();
+            setDailyStats(dailyData.stats || []);
+            console.log('✅ Daily stats loaded');
+          }
+
+          if (monthlyResponse.ok) {
+            const monthlyData = await monthlyResponse.json();
+            setMonthlyStats(monthlyData.stats || []);
+            console.log('✅ Monthly stats loaded');
+          }
+        } catch (error) {
+          console.warn('⚠️ Detailed analytics data failed:', error);
+        }
+      };
+
+      // تحميل البيانات الأساسية
+      const analyticsResult = await analyticsResponse;
+      if (analyticsResult.ok) {
+        const analyticsData = await analyticsResult.json();
+        setAnalyticsData(analyticsData);
+        console.log('✅ Basic analytics loaded');
+        
+        // حفظ البيانات الأساسية في التخزين المؤقت
+        const basicResults = {
+          analytics: analyticsData,
+          daily: [],
+          monthly: []
+        };
+        sessionStorage.setItem('analyticsData', JSON.stringify(basicResults));
+        sessionStorage.setItem('analyticsDataTime', now.toString());
+      }
+      
+      // إنهاء حالة التحميل للبيانات الأساسية
+      setAnalyticsLoading(false);
+      
+      // تحميل البيانات التفصيلية في الخلفية
+      loadDetailedData().then(() => {
+        // تحديث التخزين المؤقت مع البيانات الكاملة
+        const completeResults = {
+          analytics: analyticsData || {},
+          daily: dailyStats,
+          monthly: monthlyStats
+        };
+        sessionStorage.setItem('analyticsData', JSON.stringify(completeResults));
+      });
+      
+    } catch (error) {
+      console.error('خطأ في تحميل بيانات الإحصائيات:', error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  // تحديث الإحصائيات (background job)
+  const updateAnalyticsStats = async () => {
+    try {
+      const response = await fetch('/.netlify/functions/analytics-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        console.log('تم تحديث الإحصائيات بنجاح');
+        // إعادة تحميل البيانات بعد التحديث
+        await loadAnalyticsData();
+      }
+    } catch (error) {
+      console.error('خطأ في تحديث الإحصائيات:', error);
+    }
+  };
+
   // Update filtered orders when orders change or when switching to orders tab
   useEffect(() => {
     if (currentTab === 'orders') {
@@ -436,12 +588,65 @@ const Dashboard: React.FC = () => {
     }
   }, [orders, currentTab, orderSearchTerm, orderStatusFilter]);
 
-  // تحميل الطلبات عند فتح التبويب فقط
+  // تحميل بيانات الإحصائيات عند تبديل التبويب
+  useEffect(() => {
+    if (currentTab === 'analytics') {
+      loadAnalyticsData();
+    }
+  }, [currentTab]);
+
+  // تحميل الطلبات عند فتح التبويب فقط - محسن
   useEffect(() => {
     if (currentTab === 'orders') {
       fetchOrders();
     }
-  }, [currentTab]);
+  }, [currentTab, fetchOrders]);
+
+  // تحديث تلقائي للطلبات في الداشبورد الرئيسي - محسن
+  useEffect(() => {
+    if (currentTab === 'dashboard') {
+      fetchOrders(); // جلب الطلبات عند فتح الداشبورد
+      
+      // تحديث تلقائي كل 5 دقائق بدلاً من 30 ثانية لتوفير الموارد
+      const interval = setInterval(() => {
+        fetchOrders(true); // تحديث قسري
+      }, 300000); // 5 دقائق
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentTab, fetchOrders]);
+
+  // تحديث الطلبات عند العودة للصفحة (focus) - محسن
+  useEffect(() => {
+    const handleFocus = () => {
+      if (currentTab === 'dashboard' || currentTab === 'orders') {
+        fetchOrders(true); // تحديث قسري عند العودة للصفحة
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [currentTab, fetchOrders]);
+
+  // الاستماع لإشعارات الطلبات الجديدة - محسن
+  useEffect(() => {
+    const handleNewOrder = () => {
+      console.log('📢 [Dashboard] Received new order notification, refreshing orders...');
+      fetchOrders(true); // تحديث قسري للطلبات
+      // إزالة الإشعار بعد المعالجة
+      localStorage.removeItem('newOrderAdded');
+      toast.success('تم استلام طلب جديد!');
+    };
+    
+    // فحص وجود إشعار عند تحميل الصفحة
+    if (localStorage.getItem('newOrderAdded') === 'true') {
+      handleNewOrder();
+    }
+    
+    // الاستماع للإشعارات الجديدة
+    window.addEventListener('newOrderAdded', handleNewOrder);
+    return () => window.removeEventListener('newOrderAdded', handleNewOrder);
+  }, [fetchOrders]);
 
   // وظائف المنتجات
   const fetchProducts = async () => {
@@ -488,18 +693,7 @@ const Dashboard: React.FC = () => {
     setWishlistItems([]);
   };
 
-  // وظائف الطلبات
-  const fetchOrders = async () => {
-    try {
-      const data = await apiCall(API_ENDPOINTS.ORDERS);
-      setOrders(data || []);
-      setFilteredOrders(data || []);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      setOrders([]);
-      setFilteredOrders([]);
-    }
-  };
+  // تم نقل fetchOrders إلى أعلى الملف لتجنب مشكلة "used before declaration"
 
   // وظائف العملاء - محسنة للسرعة
   const fetchCustomers = async () => {
@@ -1009,6 +1203,94 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // وظائف إدارة العملاء الجديدة
+  const openCustomerDetailsModal = async (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsCustomerDetailsModalOpen(true);
+    setLoadingCustomerOrders(true);
+    
+    try {
+      // جلب طلبات العميل
+      const customerOrdersData = orders.filter(order => 
+        order.customerEmail === customer.email || 
+        order.customerName === (customer.fullName || customer.name)
+      );
+      setCustomerOrders(customerOrdersData);
+    } catch (error) {
+      console.error('Error fetching customer orders:', error);
+      toast.error('فشل في جلب طلبات العميل');
+    } finally {
+      setLoadingCustomerOrders(false);
+    }
+  };
+
+  const closeCustomerDetailsModal = () => {
+    setIsCustomerDetailsModalOpen(false);
+    setSelectedCustomer(null);
+    setCustomerOrders([]);
+  };
+
+  const openCustomerEditModal = (customer: Customer) => {
+    setEditingCustomer({ ...customer });
+    setIsCustomerEditModalOpen(true);
+  };
+
+  const closeCustomerEditModal = () => {
+    setIsCustomerEditModalOpen(false);
+    setEditingCustomer(null);
+  };
+
+  const updateCustomer = async () => {
+    if (!editingCustomer) return;
+    
+    try {
+      const endpoint = `customers/${editingCustomer.id}`;
+      const updatedCustomer = await apiCall(endpoint, {
+        method: 'PUT',
+        body: JSON.stringify(editingCustomer)
+      });
+      
+      // تحديث الحالة المحلية
+      setCustomers(prev => prev.map(customer => 
+        customer.id === editingCustomer.id ? updatedCustomer : customer
+      ));
+      setFilteredCustomers(prev => prev.map(customer => 
+        customer.id === editingCustomer.id ? updatedCustomer : customer
+      ));
+      
+      toast.success('تم تحديث بيانات العميل بنجاح!');
+      closeCustomerEditModal();
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      toast.error('فشل في تحديث بيانات العميل');
+    }
+  };
+
+  const toggleCustomerStatus = async (customerId: number, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const endpoint = `customers/${customerId}`;
+      
+      await apiCall(endpoint, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      // تحديث الحالة المحلية
+      setCustomers(prev => prev.map(customer => 
+        customer.id === customerId ? { ...customer, status: newStatus as 'active' | 'inactive' } : customer
+      ));
+      setFilteredCustomers(prev => prev.map(customer => 
+        customer.id === customerId ? { ...customer, status: newStatus as 'active' | 'inactive' } : customer
+      ));
+      
+      toast.success(`تم ${newStatus === 'active' ? 'تفعيل' : 'إلغاء تفعيل'} العميل بنجاح!`);
+    } catch (error) {
+      console.error('Error toggling customer status:', error);
+      toast.error('فشل في تغيير حالة العميل');
+    }
+  };
+
   // وظائف نظام الشحن
   const fetchShippingZones = async () => {
     try {
@@ -1290,9 +1572,7 @@ const Dashboard: React.FC = () => {
             {/* Logo and Title */}
             <div className="flex items-center">
               <img src={logo} alt="Mawasiem Logo" className="h-10 w-10 ml-3" />
-              <h1 className="text-xl font-bold text-gray-900 hidden sm:block">
-                لوحة تحكم مواسم
-              </h1>
+            
             </div>
 
             {/* Mobile Menu Button */}
@@ -1330,7 +1610,7 @@ const Dashboard: React.FC = () => {
                 }`}
               >
                 <Package className="w-4 h-4 inline-block ml-2" />
-                المنتجات
+                الخدمات
               </button>
               <button
                 onClick={() => switchTab('categories')}
@@ -1386,6 +1666,28 @@ const Dashboard: React.FC = () => {
               >
                 <Truck className="w-4 h-4 inline-block ml-2" />
                 الشحن
+              </button>
+              <button
+                onClick={() => switchTab('analytics')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentTab === 'analytics'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 inline-block ml-2" />
+                التحليلات
+              </button>
+              <button
+                onClick={() => switchTab('invoices')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentTab === 'invoices'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <FileText className="w-4 h-4 inline-block ml-2" />
+                الفواتير
               </button>
             </nav>
 
@@ -1426,7 +1728,7 @@ const Dashboard: React.FC = () => {
                 }`}
               >
                 <Package className="w-4 h-4 inline-block ml-2" />
-                المنتجات
+                الخدمات
               </button>
               <button
                 onClick={() => switchTab('categories')}
@@ -1483,6 +1785,28 @@ const Dashboard: React.FC = () => {
                 <Truck className="w-4 h-4 inline-block ml-2" />
                 الشحن
               </button>
+              <button
+                onClick={() => switchTab('analytics')}
+                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  currentTab === 'analytics'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4 inline-block ml-2" />
+                التحليلات
+              </button>
+              <button
+                onClick={() => switchTab('invoices')}
+                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  currentTab === 'invoices'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <FileText className="w-4 h-4 inline-block ml-2" />
+                الفواتير
+              </button>
               <div className="border-t border-gray-200 pt-4">
                 <button
                   onClick={handleLogout}
@@ -1521,6 +1845,7 @@ const Dashboard: React.FC = () => {
                     {currentTab === 'customers' && 'إدارة العملاء'}
                     {currentTab === 'coupons' && 'إدارة الكوبونات'}
                     {currentTab === 'shipping' && 'إدارة الشحن والتوصيل'}
+                    {currentTab === 'analytics' && 'التحليلات والإحصائيات'}
                   </h1>
                   <p className="text-gray-600 text-sm">
                     آخر تحديث: {new Date().toLocaleDateString('ar-SA')} - {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
@@ -1573,16 +1898,16 @@ const Dashboard: React.FC = () => {
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">المنتجات</h2>
-                  <p className="text-gray-600">إدارة وتنظيم منتجات المتجر</p>
+                  <h2 className="text-2xl font-bold text-gray-900">الخدمات</h2>
+                  <p className="text-gray-600">إدارة وتنظيم خدمات المتجر</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                   <Link
-                    to="/admin/product/add"
+                    to="/admin/service/add"
                     className="inline-flex items-center justify-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
                   >
                     <Plus className="w-4 h-4 ml-2" />
-                    إضافة منتج جديد
+                    إضافة خدمة جديدة
                   </Link>
                   <button 
                     onClick={fetchProducts}
@@ -1603,7 +1928,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-gray-900">{stats.totalProducts}</div>
-                      <div className="text-sm text-gray-500">إجمالي المنتجات</div>
+                      <div className="text-sm text-gray-500">إجمالي الخدمات</div>
                     </div>
                   </div>
                 </div>
@@ -1615,7 +1940,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-red-600">{stats.outOfStockProducts}</div>
-                      <div className="text-sm text-gray-500">نفد المخزون</div>
+                      <div className="text-sm text-gray-500">خدمات غير متاحة</div>
                     </div>
                   </div>
                 </div>
@@ -1627,7 +1952,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-yellow-600">{stats.lowStockProducts}</div>
-                      <div className="text-sm text-gray-500">مخزون منخفض</div>
+                      <div className="text-sm text-gray-500">خدمات محدودة</div>
                     </div>
                   </div>
                 </div>
@@ -1639,7 +1964,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-600">{(stats.totalValue || 0).toFixed(0)}</div>
-                      <div className="text-sm text-gray-500">قيمة المخزون (ر.س)</div>
+                      <div className="text-sm text-gray-500">قيمة الخدمات (ر.س)</div>
                     </div>
                   </div>
                 </div>
@@ -1650,7 +1975,7 @@ const Dashboard: React.FC = () => {
                 <div className="relative max-w-md">
                   <input
                     type="text"
-                    placeholder="البحث عن منتج..."
+                    placeholder="البحث عن خدمة..."
                     value={productSearchTerm}
                     onChange={handleProductSearch}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
@@ -1663,14 +1988,14 @@ const Dashboard: React.FC = () => {
               {filteredProducts.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                   <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد منتجات</h3>
-                  <p className="text-gray-600 mb-6">ابدأ بإضافة منتجات جديدة لمتجرك</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد خدمات</h3>
+                  <p className="text-gray-600 mb-6">ابدأ بإضافة خدمات جديدة لمتجرك</p>
                   <Link
-                    to="/admin/product/add"
+                    to="/admin/service/add"
                     className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                   >
                     <Plus className="w-4 h-4 ml-2" />
-                    إضافة أول منتج
+                    إضافة أول خدمة
                   </Link>
                 </div>
               ) : (
@@ -1719,8 +2044,8 @@ const Dashboard: React.FC = () => {
                               <div className="font-bold text-lg text-black">{(product.price || 0).toFixed(2)} ر.س</div>
                             </div>
                             <div>
-                              <span className="text-gray-500 text-sm">المخزون</span>
-                              <div className="font-bold text-lg">{product.stock}</div>
+                              <span className="text-gray-500 text-sm">الحالة</span>
+                              <div className="font-bold text-lg">{product.stock > 0 ? 'متاح' : 'غير متاح'}</div>
                             </div>
                             <div>
                               <span className="text-gray-500 text-sm">النوع</span>
@@ -1730,7 +2055,7 @@ const Dashboard: React.FC = () => {
 
                           <div className="flex gap-2">
                             <Link
-                              to={`/admin/product/edit/${product.id}`}
+                              to={`/admin/service/edit/${product.id}`}
                               className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
                             >
                               تعديل
@@ -1753,10 +2078,9 @@ const Dashboard: React.FC = () => {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">المنتج</th>
+                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الخدمة</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">التصنيف</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">السعر</th>
-                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">المخزون</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الحالة</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الإجراءات</th>
                           </tr>
@@ -1764,8 +2088,8 @@ const Dashboard: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                           {filteredProducts.map((product) => {
                             const categoryName = categories.find(cat => cat.id === product.categoryId)?.name || 'غير محدد';
-                            const stockStatus = product.stock <= 0 ? 'نفد المخزون' : product.stock <= 5 ? 'مخزون منخفض' : 'متوفر';
-                            const stockColor = product.stock <= 0 ? 'text-red-600 bg-red-50' : product.stock <= 5 ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50';
+                            const stockStatus = product.stock <= 0 ? 'غير متاح' : 'متاح';
+                            const stockColor = product.stock <= 0 ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50';
                             
                             return (
                               <tr key={product.id} className="hover:bg-gray-50 transition-colors">
@@ -1801,14 +2125,7 @@ const Dashboard: React.FC = () => {
                                     <div className="text-sm text-gray-500 line-through">{(product.originalPrice || 0).toFixed(2)} ر.س</div>
                                   )}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full ${
-                                      product.stock <= 0 ? 'bg-red-500' : product.stock <= 5 ? 'bg-yellow-500' : 'bg-green-500'
-                                    }`}></div>
-                                    <span className="font-medium">{product.stock}</span>
-                                  </div>
-                                </td>
+
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${stockColor}`}>
                                     {stockStatus}
@@ -1817,7 +2134,7 @@ const Dashboard: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <Link
-                                      to={`/admin/product/edit/${product.id}`}
+                                      to={`/admin/service/edit/${product.id}`}
                                       className="p-2 text-gray-600 hover:text-black hover:bg-gray-100 rounded-lg transition-colors"
                                     >
                                       <Edit className="w-4 h-4" />
@@ -1888,7 +2205,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-gray-800">{customerStats.thisMonth}</div>
-                        <div className="text-sm text-gray-500">منتج</div>
+                        <div className="text-sm text-gray-500">خدمة</div>
                       </div>
                     </div>
                     <div className="text-sm font-medium text-gray-600">في الشهر</div>
@@ -1901,7 +2218,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-gray-800">{customerStats.totalWishlistItems}</div>
-                        <div className="text-sm text-gray-500">منتج</div>
+                        <div className="text-sm text-gray-500">خدمة</div>
                       </div>
                     </div>
                     <div className="text-sm font-medium text-gray-600">في المفضلة</div>
@@ -1917,7 +2234,7 @@ const Dashboard: React.FC = () => {
                         <div className="text-sm text-gray-500">متوسط</div>
                       </div>
                     </div>
-                    <div className="text-sm font-medium text-gray-600">منتجات/عربة</div>
+                    <div className="text-sm font-medium text-gray-600">خدمات/عربة</div>
                   </div>
                 </div>
               )}
@@ -2071,13 +2388,32 @@ const Dashboard: React.FC = () => {
                           </div>
                           
                           {/* Action Buttons */}
-                          <div className="flex gap-2 mt-4">
-                            <button className="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors">
+                          <div className="grid grid-cols-2 gap-2 mt-4">
+                            <button 
+                              onClick={() => openCustomerDetailsModal(customer)}
+                              className="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
+                            >
                               عرض التفاصيل
+                            </button>
+                            <button 
+                              onClick={() => openCustomerEditModal(customer)}
+                              className="bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                            >
+                              تعديل
+                            </button>
+                            <button 
+                              onClick={() => toggleCustomerStatus(customer.id, customer.status || 'active')}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                customer.status === 'active' 
+                                  ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' 
+                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              }`}
+                            >
+                              {customer.status === 'active' ? 'إلغاء التفعيل' : 'تفعيل'}
                             </button>
                             <button
                               onClick={() => openDeleteModal('customer', customer.id, customer.fullName || customer.name || customer.email)}
-                              className="flex-1 bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                              className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
                             >
                               حذف
                             </button>
@@ -2130,7 +2466,7 @@ const Dashboard: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                   <Grid className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد تصنيفات</h3>
-                  <p className="text-gray-600 mb-6">ابدأ بإضافة تصنيفات لتنظيم منتجاتك</p>
+                  <p className="text-gray-600 mb-6">ابدأ بإضافة تصنيفات لتنظيم خدماتك</p>
                   <Link
                     to="/admin/category/add"
                     className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
@@ -2163,7 +2499,7 @@ const Dashboard: React.FC = () => {
                           <div className="flex items-center justify-between mb-3">
                             <h3 className="font-bold text-lg text-gray-900">{category.name}</h3>
                             <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold">
-                              {categoryProductsCount} منتج
+                              {categoryProductsCount} خدمة
                             </span>
                           </div>
                           <p className="text-gray-600 text-sm mb-6 line-clamp-2">{category.description}</p>
@@ -2200,7 +2536,7 @@ const Dashboard: React.FC = () => {
                   <p className="text-gray-600">متابعة ومعالجة جميع طلبات العملاء</p>
                 </div>
                 <button
-                  onClick={fetchOrders}
+                  onClick={() => fetchOrders(true)}
                   className="inline-flex items-center px-6 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <RefreshCw className="w-4 h-4 ml-2" />
@@ -2286,7 +2622,7 @@ const Dashboard: React.FC = () => {
                             <div className="font-bold text-lg text-black">{(order.total || 0).toFixed(2)} ر.س</div>
                           </div>
                           <div>
-                            <span className="text-gray-600 text-sm">عدد المنتجات</span>
+                            <span className="text-gray-600 text-sm">عدد الخدمات</span>
                             <div className="font-bold text-lg text-black">{order.items.length}</div>
                           </div>
                         </div>
@@ -2535,12 +2871,12 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-gray-900">{stats.totalProducts}</div>
-                      <div className="text-sm text-gray-500">إجمالي المنتجات</div>
+                      <div className="text-sm text-gray-500">إجمالي الخدمات</div>
                     </div>
                   </div>
                   <div className={`text-sm font-medium ${stats.outOfStockProducts > 0 ? 'text-red-500' : 'text-green-500'}`}>
                     <span className="mr-1">{stats.outOfStockProducts > 0 ? '⚠️' : '✅'}</span>
-                    {stats.outOfStockProducts} نفد المخزون
+                    {stats.outOfStockProducts} خدمات غير متاحة
                   </div>
                 </div>
 
@@ -2647,7 +2983,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-xl font-bold text-gray-900 flex items-center">
                         <Package className="w-5 h-5 ml-2" />
-                        المنتجات الأكثر مبيعاً
+                        الخدمات الأكثر مبيعاً
                       </h3>
                       <button 
                         onClick={() => switchTab('products')}
@@ -2662,7 +2998,7 @@ const Dashboard: React.FC = () => {
                           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <Package className="w-8 h-8 text-gray-400" />
                           </div>
-                          <p className="text-gray-500">لا توجد منتجات بعد</p>
+                          <p className="text-gray-500">لا توجد خدمات بعد</p>
                         </div>
                       ) : (
                         products.slice(0, 5).map((product, index) => (
@@ -2695,11 +3031,11 @@ const Dashboard: React.FC = () => {
                     <h3 className="text-lg font-bold text-gray-900 mb-4">إجراءات سريعة</h3>
                     <div className="grid grid-cols-1 gap-3">
                       <Link
-                        to="/admin/product/add"
+                        to="/admin/service/add"
                         className="flex items-center justify-center bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium"
                       >
                         <Plus className="w-5 h-5 ml-2" />
-                        إضافة منتج
+                        إضافة خدمة
                       </Link>
                       <Link
                         to="/admin/category/add"
@@ -2734,8 +3070,8 @@ const Dashboard: React.FC = () => {
                           <div className="flex items-center">
                             <AlertTriangle className="w-5 h-5 text-red-500 ml-2" />
                             <div>
-                              <p className="text-sm font-medium text-red-800">نفد المخزون</p>
-                              <p className="text-xs text-red-600">{stats.outOfStockProducts} منتج نفد من المخزون</p>
+                              <p className="text-sm font-medium text-red-800">خدمات غير متاحة</p>
+                              <p className="text-xs text-red-600">{stats.outOfStockProducts} خدمة غير متاحة</p>
                             </div>
                           </div>
                         </div>
@@ -2745,8 +3081,8 @@ const Dashboard: React.FC = () => {
                           <div className="flex items-center">
                             <Circle className="w-5 h-5 text-yellow-500 ml-2" />
                             <div>
-                              <p className="text-sm font-medium text-yellow-800">مخزون منخفض</p>
-                              <p className="text-xs text-yellow-600">{stats.lowStockProducts} منتج مخزونه منخفض</p>
+                              <p className="text-sm font-medium text-yellow-800">خدمات محدودة</p>
+                              <p className="text-xs text-yellow-600">{stats.lowStockProducts} خدمة محدودة</p>
                             </div>
                           </div>
                         </div>
@@ -2756,8 +3092,8 @@ const Dashboard: React.FC = () => {
                           <div className="flex items-center">
                             <CheckCircle className="w-5 h-5 text-green-500 ml-2" />
                             <div>
-                              <p className="text-sm font-medium text-green-800">المخزون جيد</p>
-                              <p className="text-xs text-green-600">جميع المنتجات متوفرة</p>
+                              <p className="text-sm font-medium text-green-800">الخدمات متاحة</p>
+                              <p className="text-xs text-green-600">جميع الخدمات متوفرة</p>
                             </div>
                           </div>
                         </div>
@@ -2783,7 +3119,7 @@ const Dashboard: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">قيمة المخزون الإجمالية</span>
+                        <span className="text-sm text-gray-600">قيمة الخدمات الإجمالية</span>
                         <span className="font-bold text-blue-600">{stats.totalValue.toLocaleString('ar-SA')} ر.س</span>
                       </div>
                       
@@ -2957,6 +3293,501 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Analytics Tab */}
+          {currentTab === 'analytics' && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-gray-600">تحليل شامل لأداء المتجر والمبيعات</p>
+                </div>
+              </div>
+
+              {/* Analytics Cards */}
+              {analyticsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 animate-pulse">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                        <div className="text-right">
+                          <div className="h-8 bg-gray-200 rounded w-20 mb-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        </div>
+                      </div>
+                      <div className="h-4 bg-gray-200 rounded w-16"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Daily Sales */}
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {analyticsData?.dailySales?.[analyticsData.dailySales.length - 1]?.sales?.toLocaleString('ar-SA') || '0'}
+                        </div>
+                        <div className="text-sm text-gray-500">المبيعات اليومية (ر.س)</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-green-600 font-medium">
+                      {analyticsData?.dailySalesGrowth ? `+${analyticsData.dailySalesGrowth}%` : '+0%'} من الأمس
+                    </div>
+                  </div>
+
+                  {/* Monthly Sales */}
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {analyticsData?.monthlySales?.[analyticsData.monthlySales.length - 1]?.sales?.toLocaleString('ar-SA') || '0'}
+                        </div>
+                        <div className="text-sm text-gray-500">المبيعات الشهرية (ر.س)</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-blue-600 font-medium">
+                      {analyticsData?.monthlySalesGrowth ? `+${analyticsData.monthlySalesGrowth}%` : '+0%'} من الشهر الماضي
+                    </div>
+                  </div>
+
+                  {/* Daily Visitors */}
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <Users className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {analyticsData?.dailyVisitors?.[analyticsData.dailyVisitors.length - 1]?.visitors?.toLocaleString('ar-SA') || '0'}
+                        </div>
+                        <div className="text-sm text-gray-500">الزوار اليوم</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-purple-600 font-medium">
+                      {analyticsData?.visitorsGrowth ? `+${analyticsData.visitorsGrowth}%` : '+0%'} من الأمس
+                    </div>
+                  </div>
+
+                  {/* Services Sold */}
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Package className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {analyticsData?.servicesSold?.total || '0'}
+                        </div>
+                        <div className="text-sm text-gray-500">الخدمات المباعة</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-orange-600 font-medium">
+                      {analyticsData?.servicesSoldGrowth ? `+${analyticsData.servicesSoldGrowth}%` : '+0%'} من الأمس
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Refresh Button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={updateAnalyticsStats}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  تحديث الإحصائيات
+                </button>
+              </div>
+
+              {/* Charts Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Selling Services */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900 mb-6">أعلى الخدمات مبيعاً</h3>
+                  <div className="space-y-4">
+                    {analyticsData?.topSellingServices?.length > 0 ? (
+                      analyticsData.topSellingServices.map((service: any, index: number) => (
+                        <div key={service.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{service.name}</div>
+                              <div className="text-sm text-gray-500">{service.price} ر.س</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-gray-900">{service.sales} مبيعة</div>
+                            <div className="text-sm text-gray-500">{service.revenue?.toLocaleString('ar-SA')} ر.س</div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      products.slice(0, 5).map((product, index) => (
+                        <div key={product.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{product.name}</div>
+                              <div className="text-sm text-gray-500">{product.price} ر.س</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-gray-900">0 مبيعة</div>
+                            <div className="text-sm text-gray-500">0 ر.س</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Coupon Usage Report */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900 mb-6">تقارير الكوبونات المستخدمة</h3>
+                  <div className="space-y-4">
+                    {analyticsData?.couponUsageReports?.length > 0 ? (
+                      analyticsData.couponUsageReports.map((coupon: any, index: number) => (
+                        <div key={coupon.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <Tag className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{coupon.code}</div>
+                              <div className="text-sm text-gray-500">
+                                {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `${coupon.discountValue} ر.س`} خصم
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-gray-900">{coupon.usageCount || 0} استخدام</div>
+                            <div className={`text-sm font-medium ${
+                              coupon.isActive ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {coupon.isActive ? 'نشط' : 'منتهي'}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      coupons.slice(0, 5).map((coupon, index) => (
+                        <div key={coupon.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <Tag className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{coupon.code}</div>
+                              <div className="text-sm text-gray-500">
+                                {coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `${coupon.discountValue} ر.س`} خصم
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-gray-900">0 استخدام</div>
+                            <div className={`text-sm font-medium ${
+                              coupon.isActive ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {coupon.isActive ? 'نشط' : 'منتهي'}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced Sales Chart */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-8 shadow-lg border border-blue-200 relative overflow-hidden">
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-200/30 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-white" />
+                        </div>
+                        رحلة نجاحك عبر السنة
+                      </h3>
+                      <p className="text-gray-600 text-sm">مخطط المبيعات والطلبات الشهرية - كل شهر قصة نجاح جديدة</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        {monthlyStats?.reduce((total: number, stat: any) => total + (stat.totalSales || 0), 0)?.toLocaleString() || '0'}
+                      </div>
+                      <div className="text-sm text-gray-500">إجمالي المبيعات السنوية (ر.س)</div>
+                    </div>
+                  </div>
+                  
+                  <div className="h-96 bg-white/70 backdrop-blur-sm rounded-xl p-4 shadow-inner">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart 
+                        data={monthlyStats?.length > 0 ? monthlyStats.map((stat: any) => ({
+                          month: stat.month,
+                          sales: stat.totalSales || 0,
+                          orders: stat.totalOrders || 0
+                        })) : [
+                          { month: 'يناير', sales: 0, orders: 0 },
+                          { month: 'فبراير', sales: 0, orders: 0 },
+                          { month: 'مارس', sales: 0, orders: 0 },
+                          { month: 'أبريل', sales: 0, orders: 0 },
+                          { month: 'مايو', sales: 0, orders: 0 },
+                          { month: 'يونيو', sales: 0, orders: 0 },
+                          { month: 'يوليو', sales: 0, orders: 0 },
+                          { month: 'أغسطس', sales: 0, orders: 0 },
+                          { month: 'سبتمبر', sales: 0, orders: 0 },
+                          { month: 'أكتوبر', sales: 0, orders: 0 },
+                          { month: 'نوفمبر', sales: 0, orders: 0 },
+                          { month: 'ديسمبر', sales: 0, orders: 0 }
+                        ]}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <defs>
+                          <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                          </linearGradient>
+                          <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.9}/>
+                            <stop offset="95%" stopColor="#10B981" stopOpacity={0.3}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.5} />
+                        <XAxis 
+                          dataKey="month" 
+                          stroke="#6B7280"
+                          fontSize={12}
+                          fontWeight={500}
+                          tick={{ fill: '#6B7280' }}
+                        />
+                        <YAxis 
+                          stroke="#6B7280"
+                          fontSize={12}
+                          fontWeight={500}
+                          tick={{ fill: '#6B7280' }}
+                          tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: 'none',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                            backdropFilter: 'blur(10px)'
+                          }}
+                          formatter={(value: any, name: string) => [
+                            name === 'sales' ? `${value.toLocaleString()} ر.س` : `${value} طلب`,
+                            name === 'sales' ? '💰 المبيعات' : '📦 الطلبات'
+                          ]}
+                          labelStyle={{ color: '#374151', fontWeight: 'bold' }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ paddingTop: '20px' }}
+                          iconType="rect"
+                        />
+                        <Bar 
+                          dataKey="sales" 
+                          fill="url(#salesGradient)" 
+                          name="💰 المبيعات (ر.س)"
+                          radius={[4, 4, 0, 0]}
+                          stroke="#3B82F6"
+                          strokeWidth={1}
+                        />
+                        <Bar 
+                          dataKey="orders" 
+                          fill="url(#ordersGradient)" 
+                          name="📦 عدد الطلبات"
+                          radius={[4, 4, 0, 0]}
+                          stroke="#10B981"
+                          strokeWidth={1}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  
+                  {/* Success metrics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                    <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {monthlyStats?.reduce((total: number, stat: any) => total + (stat.totalOrders || 0), 0) || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">إجمالي الطلبات</div>
+                    </div>
+                    <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {monthlyStats?.reduce((total: number, stat: any) => total + (stat.newCustomers || 0), 0) || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">عملاء جدد</div>
+                    </div>
+                    <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {monthlyStats?.reduce((total: number, stat: any) => total + (stat.productsSold || 0), 0) || 0}
+                      </div>
+                      <div className="text-xs text-gray-600">منتجات مباعة</div>
+                    </div>
+                    <div className="bg-white/60 backdrop-blur-sm rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {monthlyStats?.length > 0 ? 
+                          Math.round(monthlyStats.reduce((total: number, stat: any) => total + (stat.averageOrderValue || 0), 0) / monthlyStats.length) 
+                          : 0
+                        }
+                      </div>
+                      <div className="text-xs text-gray-600">متوسط قيمة الطلب</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Analytics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Conversion Rate */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Activity className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {analyticsData?.conversionRate ? `${analyticsData.conversionRate.toFixed(1)}%` : '3.2%'}
+                      </div>
+                      <div className="text-sm text-gray-500">معدل التحويل</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-indigo-600 font-medium">
+                    +0.5% من الشهر الماضي
+                  </div>
+                </div>
+
+                {/* Average Order Value */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <ShoppingCart className="w-6 h-6 text-yellow-600" />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {analyticsData?.averageOrderValue ? analyticsData.averageOrderValue.toFixed(0) : getStoreStats().averageOrderValue.toFixed(0)}
+                      </div>
+                      <div className="text-sm text-gray-500">متوسط قيمة الطلب (ر.س)</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-yellow-600 font-medium">
+                    +7% من الشهر الماضي
+                  </div>
+                </div>
+
+                {/* Customer Retention */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
+                      <Heart className="w-6 h-6 text-pink-600" />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {analyticsData?.customerRetention ? `${analyticsData.customerRetention.toFixed(0)}%` : '68%'}
+                      </div>
+                      <div className="text-sm text-gray-500">معدل الاحتفاظ بالعملاء</div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-pink-600 font-medium">
+                    +3% من الشهر الماضي
+                  </div>
+                </div>
+              </div>
+
+              {/* Daily Statistics Table */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">الإحصائيات اليومية</h3>
+                  <button
+                    onClick={() => updateAnalyticsStats()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    تحديث
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900">التاريخ</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900">إجمالي الطلبات</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900">إجمالي المبيعات</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900">عملاء جدد</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900">متوسط قيمة الطلب</th>
+                        <th className="text-right py-3 px-4 font-semibold text-gray-900">المنتجات المباعة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analyticsLoading ? (
+                        Array.from({ length: 7 }).map((_, index) => (
+                          <tr key={index} className="border-b border-gray-100">
+                            <td className="py-3 px-4"><div className="h-4 bg-gray-200 rounded animate-pulse"></div></td>
+                            <td className="py-3 px-4"><div className="h-4 bg-gray-200 rounded animate-pulse"></div></td>
+                            <td className="py-3 px-4"><div className="h-4 bg-gray-200 rounded animate-pulse"></div></td>
+                            <td className="py-3 px-4"><div className="h-4 bg-gray-200 rounded animate-pulse"></div></td>
+                            <td className="py-3 px-4"><div className="h-4 bg-gray-200 rounded animate-pulse"></div></td>
+                            <td className="py-3 px-4"><div className="h-4 bg-gray-200 rounded animate-pulse"></div></td>
+                          </tr>
+                        ))
+                      ) : dailyStats?.length > 0 ? (
+                        dailyStats.slice(0, 30).map((stat: any, index: number) => (
+                          <tr key={stat.date || index} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-4 text-gray-900">
+                              {new Date(stat.date).toLocaleDateString('ar-SA')}
+                            </td>
+                            <td className="py-3 px-4 text-gray-900 font-medium">
+                              {stat.totalOrders || 0}
+                            </td>
+                            <td className="py-3 px-4 text-gray-900 font-medium">
+                              {(stat.totalSales || 0).toLocaleString()} ر.س
+                            </td>
+                            <td className="py-3 px-4 text-gray-900">
+                              {stat.newCustomers || 0}
+                            </td>
+                            <td className="py-3 px-4 text-gray-900">
+                              {(stat.averageOrderValue || 0).toLocaleString()} ر.س
+                            </td>
+                            <td className="py-3 px-4 text-gray-900">
+                              {stat.productsSold || 0}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="py-8 px-4 text-center text-gray-500">
+                            لا توجد بيانات إحصائية متاحة
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Invoices Tab */}
+          {currentTab === 'invoices' && (
+            <InvoiceManagement orders={orders} />
+          )}
         </main>
       </div>
 
@@ -2977,7 +3808,7 @@ const Dashboard: React.FC = () => {
         onConfirm={confirmDelete}
         type={deleteModal.type}
         title={`حذف ${
-          deleteModal.type === 'product' ? 'المنتج' :
+          deleteModal.type === 'product' ? 'الخدمة' :
           deleteModal.type === 'category' ? 'التصنيف' :
           deleteModal.type === 'order' ? 'الطلب' :
           deleteModal.type === 'customer' ? 'العميل' :
@@ -3271,6 +4102,267 @@ const Dashboard: React.FC = () => {
                 className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
                 حفظ الإعدادات
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Details Modal */}
+      {isCustomerDetailsModalOpen && selectedCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">تفاصيل العميل</h2>
+                <button
+                  onClick={closeCustomerDetailsModal}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Customer Info */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6">
+                <div className="flex items-center mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                    {selectedCustomer.fullName?.[0] || selectedCustomer.firstName?.[0] || selectedCustomer.name?.[0] || '؟'}
+                  </div>
+                  <div className="mr-4">
+                    <h3 className="text-xl font-bold text-gray-800">
+                      {selectedCustomer.fullName || 
+                       (selectedCustomer.firstName && selectedCustomer.lastName 
+                        ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}`
+                        : selectedCustomer.name || 'غير محدد'
+                       )}
+                    </h3>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedCustomer.status === 'active' 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-red-100 text-red-600'
+                    }`}>
+                      {selectedCustomer.status === 'active' ? 'نشط' : 'غير نشط'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center text-gray-700">
+                    <Mail className="w-5 h-5 ml-2 text-blue-500" />
+                    <span>{selectedCustomer.email}</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Phone className="w-5 h-5 ml-2 text-green-500" />
+                    <span>{selectedCustomer.phone || 'غير محدد'}</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <MapPin className="w-5 h-5 ml-2 text-red-500" />
+                    <span>{selectedCustomer.city || 'غير محدد'}</span>
+                  </div>
+                  <div className="flex items-center text-gray-700">
+                    <Calendar className="w-5 h-5 ml-2 text-purple-500" />
+                    <span>تاريخ التسجيل: {new Date(selectedCustomer.createdAt).toLocaleDateString('ar-SA')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-blue-50 rounded-xl p-6 text-center">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShoppingCart className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600">{customerOrders.length}</div>
+                  <div className="text-sm text-gray-600">إجمالي الطلبات</div>
+                </div>
+                <div className="bg-green-50 rounded-xl p-6 text-center">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {customerOrders.reduce((total, order) => total + order.total, 0).toFixed(2)} ر.س
+                  </div>
+                  <div className="text-sm text-gray-600">إجمالي الإنفاق</div>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-6 text-center">
+                  <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {customerOrders.length > 0 ? (customerOrders.reduce((total, order) => total + order.total, 0) / customerOrders.length).toFixed(2) : '0.00'} ر.س
+                  </div>
+                  <div className="text-sm text-gray-600">متوسط قيمة الطلب</div>
+                </div>
+              </div>
+
+              {/* Order History */}
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                  <Clock className="w-5 h-5 ml-2" />
+                  سجل الطلبات
+                </h4>
+                
+                {loadingCustomerOrders ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-600 mt-2">جاري تحميل الطلبات...</p>
+                  </div>
+                ) : customerOrders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <ShoppingCart className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600">لا توجد طلبات لهذا العميل</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-64 overflow-y-auto">
+                    {customerOrders.map(order => (
+                      <div key={order.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-medium text-gray-800">طلب #{order.id}</span>
+                            <span className={`mr-2 px-2 py-1 rounded-full text-xs font-medium ${
+                              order.status === 'delivered' ? 'bg-green-100 text-green-600' :
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-600' :
+                              order.status === 'preparing' ? 'bg-yellow-100 text-yellow-600' :
+                              order.status === 'confirmed' ? 'bg-purple-100 text-purple-600' :
+                              order.status === 'cancelled' ? 'bg-red-100 text-red-600' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {order.status === 'pending' ? 'في الانتظار' :
+                               order.status === 'confirmed' ? 'مؤكد' :
+                               order.status === 'preparing' ? 'قيد التحضير' :
+                               order.status === 'shipped' ? 'تم الشحن' :
+                               order.status === 'delivered' ? 'تم التسليم' :
+                               order.status === 'cancelled' ? 'ملغي' : order.status}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <div className="font-bold text-green-600">{order.total.toFixed(2)} ر.س</div>
+                            <div className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</div>
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {order.items.length} منتج - {order.address}, {order.city}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={closeCustomerDetailsModal}
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Edit Modal */}
+      {isCustomerEditModalOpen && editingCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">تعديل بيانات العميل</h2>
+                <button
+                  onClick={closeCustomerEditModal}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الكامل</label>
+                  <input
+                    type="text"
+                    value={editingCustomer.fullName || editingCustomer.name || ''}
+                    onChange={(e) => setEditingCustomer({
+                      ...editingCustomer,
+                      fullName: e.target.value,
+                      name: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                  <input
+                    type="email"
+                    value={editingCustomer.email}
+                    onChange={(e) => setEditingCustomer({
+                      ...editingCustomer,
+                      email: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف</label>
+                  <input
+                    type="tel"
+                    value={editingCustomer.phone || ''}
+                    onChange={(e) => setEditingCustomer({
+                      ...editingCustomer,
+                      phone: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">المدينة</label>
+                  <input
+                    type="text"
+                    value={editingCustomer.city || ''}
+                    onChange={(e) => setEditingCustomer({
+                      ...editingCustomer,
+                      city: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">حالة الحساب</label>
+                  <select
+                    value={editingCustomer.status || 'active'}
+                    onChange={(e) => setEditingCustomer({
+                      ...editingCustomer,
+                      status: e.target.value as 'active' | 'inactive'
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="active">نشط</option>
+                    <option value="inactive">غير نشط</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={closeCustomerEditModal}
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={updateCustomer}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                حفظ التغييرات
               </button>
             </div>
           </div>

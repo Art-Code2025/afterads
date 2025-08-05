@@ -12,6 +12,11 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/.netlify/functions'),
       },
+      '/.netlify/functions': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   optimizeDeps: {

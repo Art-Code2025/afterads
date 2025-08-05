@@ -114,13 +114,18 @@ export const handler = async (event, context) => {
 
     // POST /products - Create new product
     if (method === 'POST') {
-      const body = event.body ? JSON.parse(event.body) : {};
+      let body = {};
+      
+      // Check if the request contains FormData or JSON
+      // Handle JSON request (both ProductForm and ServiceForm now send JSON)
+      body = event.body ? JSON.parse(event.body) : {};
+      
       console.log('➕ Creating new product:', body.name);
       console.log('📋 Product data received:', JSON.stringify(body, null, 2));
       
-      // Validate required fields - تخفيف التحقق
-      if (!body.name || !body.price) {
-        console.error('❌ Missing required fields:', { name: body.name, price: body.price });
+      // Validate required fields for ServiceForm
+      if (!body.name || (!body.basePrice && !body.originalPrice)) {
+        console.error('❌ Missing required fields:', { name: body.name, basePrice: body.basePrice, originalPrice: body.originalPrice });
         return {
           statusCode: 400,
           headers,
@@ -128,48 +133,54 @@ export const handler = async (event, context) => {
         };
       }
       
-      // إعداد البيانات مع قيم افتراضية
-      const productData = {
+      // إعداد البيانات للخدمة مع قيم افتراضية
+      const serviceData = {
         name: body.name,
+        homeShortDescription: body.homeShortDescription || '',
+        detailsShortDescription: body.detailsShortDescription || '',
         description: body.description || '',
-        price: parseFloat(body.price) || 0,
         originalPrice: parseFloat(body.originalPrice) || 0,
-        stock: parseInt(body.stock) || 0,
-        categoryId: body.categoryId || null, // السماح بـ null
-        productType: body.productType || '',
+        basePrice: parseFloat(body.basePrice) || 0,
+        status: body.status || 'active',
+        categories: body.categories || [],
+        faqs: body.faqs || [],
+        addOns: body.addOns || [],
+        seoTitle: body.seoTitle || '',
+        seoDescription: body.seoDescription || '',
         mainImage: body.mainImage || '',
         detailedImages: body.detailedImages || [],
-        specifications: body.specifications || [],
-        dynamicOptions: body.dynamicOptions || [],
+        imageDetails: body.imageDetails || [],
+        features: body.features || [],
+        deliveryTime: body.deliveryTime || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      console.log('💾 Saving product with data:', JSON.stringify(productData, null, 2));
+      console.log('💾 Saving service with data:', JSON.stringify(serviceData, null, 2));
       
       try {
-        const productsCollection = collection(db, 'products');
-        const docRef = await addDoc(productsCollection, productData);
+        const servicesCollection = collection(db, 'services');
+        const docRef = await addDoc(servicesCollection, serviceData);
         
-        const newProduct = {
+        const newService = {
           id: docRef.id,
-          ...productData
+          ...serviceData
         };
         
-        console.log('✅ Product created successfully with ID:', docRef.id);
+        console.log('✅ Service created successfully with ID:', docRef.id);
         
         return {
           statusCode: 201,
           headers,
-          body: JSON.stringify(newProduct),
+          body: JSON.stringify(newService),
         };
       } catch (firebaseError) {
-        console.error('❌ Firebase error creating product:', firebaseError);
+        console.error('❌ Firebase error creating service:', firebaseError);
         return {
           statusCode: 500,
           headers,
           body: JSON.stringify({ 
-            error: 'فشل في حفظ المنتج في قاعدة البيانات',
+            error: 'فشل في حفظ الخدمة في قاعدة البيانات',
             details: firebaseError.message
           }),
         };
@@ -292,4 +303,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};

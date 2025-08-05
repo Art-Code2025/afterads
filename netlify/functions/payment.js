@@ -244,11 +244,21 @@ export const handler = async (event, context) => {
            },
            currency: PAYMENT_CURRENCY,
            integration_id: PAYMOB_CONFIG.INTEGRATION_ID,
-           // إضافة روابط إعادة التوجيه مع معلومات مفصلة
-           success_url: `${baseUrl}/payment-result?success=true&order=${encodeURIComponent(orderNumber)}&id=${orderData.id}&amount=${amount}`,
-           failure_url: `${baseUrl}/payment-result?success=false&order=${encodeURIComponent(orderNumber)}&id=${orderData.id}&reason=payment_failed`,
+           // إضافة روابط إعادة التوجيه للـ frontend
+           return_url: `${baseUrl}/payment-redirect`,
+           success_url: `${baseUrl}/payment-redirect?success=true&order=${encodeURIComponent(orderNumber)}&id=${orderData.id}&amount_cents=${Math.round(amount * 100)}&merchant_order_id=${encodeURIComponent(orderNumber)}&currency=${PAYMENT_CURRENCY}`,
+           failure_url: `${baseUrl}/payment-redirect?success=false&order=${encodeURIComponent(orderNumber)}&id=${orderData.id}&reason=payment_failed&merchant_order_id=${encodeURIComponent(orderNumber)}`,
            cancel_url: `${baseUrl}/checkout?cancelled=true&order=${encodeURIComponent(orderNumber)}`
          };
+         
+         // إضافة logs مفصلة للتحقق من الـ URLs
+         console.log('🔍 Sending Payment Key Payload:', {
+           return_url: paymentKeyPayload.return_url,
+           success_url: paymentKeyPayload.success_url,
+           failure_url: paymentKeyPayload.failure_url,
+           cancel_url: paymentKeyPayload.cancel_url,
+           fullPayload: paymentKeyPayload
+         });
          console.log('🔑 Payment key payload:', JSON.stringify(paymentKeyPayload, null, 2));
          
          // الخطوة 3: إنشاء Payment Key
@@ -346,6 +356,93 @@ export const handler = async (event, context) => {
             success: false,
             error: 'خطأ في معالجة إشعار الدفع: ' + error.message 
           }),
+        };
+      }
+    }
+
+    // GET /payment/redirect - معالجة إعادة التوجيه من Paymob وحفظ الطلب
+    if (method === 'GET' && pathSegments.includes('redirect')) {
+      const params = event.queryStringParameters || {};
+      console.log('🔄 Payment redirect received from Paymob:', params);
+
+      try {
+        const {
+          success,
+          order,
+          id: transactionId,
+          amount_cents,
+          merchant_order_id,
+          currency,
+          'data.message': message,
+          'source_data.type': cardType,
+          'source_data.sub_type': cardSubType
+        } = params;
+
+        // التحقق من نجاح الدفع
+        if (success === 'true' && (order || merchant_order_id)) {
+          console.log('✅ Payment successful, saving order to database');
+          
+          const orderId = merchant_order_id || order;
+          const amount = amount_cents ? (parseInt(amount_cents) / 100) : 0;
+          
+          // إنشاء بيانات الطلب
+          const orderData = {
+            id: orderId,
+            orderNumber: orderId,
+            transactionId,
+            amount,
+            currency: currency || 'EGP',
+            paymentStatus: 'paid',
+            status: 'pending',
+            paymentMethod: 'paymob',
+            paymentMessage: message,
+            cardType,
+            cardSubType,
+            createdAt: new Date().toISOString(),
+            paymentCompletedAt: new Date().toISOString(),
+            paymobData: params
+          };
+
+          // حفظ الطلب في Firebase
+          if (db) {
+            const { addDoc, collection } = await import('firebase/firestore');
+            const orderRef = await addDoc(collection(db, 'orders'), orderData);
+            console.log('✅ Order saved to Firebase with ID:', orderRef.id);
+            
+            // تحديث ID الطلب
+            await updateDoc(orderRef, { firebaseId: orderRef.id });
+          }
+
+          console.log('🎉 Order processing completed successfully');
+        }
+
+        // إعادة التوجيه للواجهة الأمامية
+        const redirectUrl = success === 'true' 
+          ? `${event.headers.origin || 'http://localhost:5175'}/thank-you?order=${encodeURIComponent(merchant_order_id || order)}&amount=${amount_cents ? (parseInt(amount_cents) / 100) : 0}&transaction=${encodeURIComponent(transactionId)}&currency=${currency || 'EGP'}`
+          : `${event.headers.origin || 'http://localhost:5175'}/payment-result?success=false&order=${encodeURIComponent(merchant_order_id || order)}&reason=payment_failed`;
+
+        return {
+          statusCode: 302,
+          headers: {
+            ...headers,
+            'Location': redirectUrl
+          },
+          body: ''
+        };
+
+      } catch (error) {
+        console.error('❌ Error processing payment redirect:', error);
+        
+        // إعادة التوجيه لصفحة خطأ
+        const errorUrl = `${event.headers.origin || 'http://localhost:5175'}/payment-result?success=false&reason=processing_error`;
+        
+        return {
+          statusCode: 302,
+          headers: {
+            ...headers,
+            'Location': errorUrl
+          },
+          body: ''
         };
       }
     }

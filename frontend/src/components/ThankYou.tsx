@@ -28,10 +28,26 @@ interface OrderData {
   userData?: any;
   paymentMethod?: string;
   total?: number;
+  totalAmount?: number;
   estimatedDelivery?: string;
+  shippingCost?: number;
+  discount?: number;
+  customerInfo?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    shippingAddress?: string;
+  };
+  shippingAddress?: string;
+  deliveryNotes?: string;
+  paymentStatus?: string;
+  status?: string;
+  estimatedProcessingTime?: string;
+  trackingNumber?: string;
 }
 
-const ThankYou: React.FC = () => {
+const ThankYou = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showConfetti, setShowConfetti] = useState(false);
@@ -74,6 +90,7 @@ const ThankYou: React.FC = () => {
         setOrderData(parsedOrder);
       } catch (error) {
         console.error('❌ [ThankYou] Error parsing final order data:', error);
+        // Continue to next data source
       }
     }
     // الأولوية الثالثة: بيانات الطلب المعلق
@@ -85,6 +102,7 @@ const ThankYou: React.FC = () => {
         setOrderData(parsedPendingOrder);
       } catch (error) {
         console.error('❌ [ThankYou] Error parsing pending order data:', error);
+        // Continue to next data source
       }
     }
     // الأولوية الرابعة: بيانات الطلب الأخير
@@ -96,6 +114,7 @@ const ThankYou: React.FC = () => {
         setOrderData(parsedLastOrder);
       } catch (error) {
         console.error('❌ [ThankYou] Error parsing last order data:', error);
+        // Continue to fallback
       }
     }
     
@@ -312,7 +331,7 @@ const ThankYou: React.FC = () => {
                             <div className="font-medium">{orderData.userData?.name || orderData.customerInfo?.name || 'غير محدد'}</div>
                             <div className="text-gray-500">{orderData.userData?.phone || orderData.customerInfo?.phone || 'غير محدد'}</div>
                             {(orderData.userData?.email || orderData.customerInfo?.email) && (
-                              <div className="text-gray-500" dir="ltr">{orderData.userData.email || orderData.customerInfo.email}</div>
+                              <div className="text-gray-500" dir="ltr">{orderData.userData?.email || orderData.customerInfo?.email}</div>
                             )}
                           </div>
                         </div>

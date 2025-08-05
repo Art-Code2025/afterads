@@ -33,6 +33,7 @@ interface Service {
   detailedImages: string[];
   imageDetails: string[];
   features: string[];
+  deliveryTime: string; // مدة التنفيذ
 }
 
 // تعريف نوع المنتج

@@ -15,6 +15,7 @@ interface Service {
   detailedImages: string[];
   imageDetails: string[];
   features: string[];
+  deliveryTime: string; // مدة التنفيذ
 }
 
 // نوع البيانات المستخدمة في الفورم يرث من Service
@@ -34,6 +35,7 @@ const ServiceForm: React.FC = () => {
     detailedImages: [],
     imageDetails: [],
     features: [],
+    deliveryTime: ''
   });
   const [newFeature, setNewFeature] = useState<string>('');
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -61,6 +63,7 @@ const ServiceForm: React.FC = () => {
               detailedImages: service.detailedImages || [],
               imageDetails: service.imageDetails || [],
               features: service.features || [],
+              deliveryTime: service.deliveryTime || ''
             });
             setImageDetailInputs(service.imageDetails || []);
           }

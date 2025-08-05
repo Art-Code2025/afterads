@@ -49,6 +49,10 @@ export const API_ENDPOINTS = {
   PRODUCTS: 'products',
   PRODUCT_BY_ID: (id) => `products/${id}`,
   
+  // Services
+  SERVICES: 'products', // Using same endpoint as products for services
+  SERVICE_BY_ID: (id) => `products/${id}`,
+  
   // Categories
   CATEGORIES: 'categories',
   CATEGORY_BY_ID: (id) => `categories/${id}`,
@@ -116,8 +120,7 @@ export const apiCall = async (endpoint, options = {}) => {
   // Add fallback mode header if enabled
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
-    ...(FORCE_FALLBACK_MODE && { 'X-Force-Fallback': 'true' })
+    ...(options.headers || {})
   };
 
   const fetchOptions = {
