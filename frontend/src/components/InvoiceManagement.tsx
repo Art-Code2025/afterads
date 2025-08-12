@@ -66,7 +66,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                        order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) || // Convert to string
-                       order.customerPhone.includes(searchTerm);
+                       (order.customerPhone?.includes(searchTerm) || false);
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
@@ -446,7 +446,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredOrders.map((order) => {
-                const statusInfo = getStatusInfo(order.status);
+                const statusInfo = getStatusInfo(order.status || 'pending');
                 const StatusIcon = statusInfo.icon;
                 
                 return (
@@ -466,7 +466,7 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
                     <td className="px-6 py-4">
                       <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
                         <StatusIcon className="w-4 h-4 ml-1" />
-                        {getStatusText(order.status)}
+                        {getStatusText(order.status || 'pending')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

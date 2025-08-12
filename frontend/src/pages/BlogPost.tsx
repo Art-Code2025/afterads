@@ -36,24 +36,25 @@ const BlogPost: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#292929' }} dir="rtl">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#4da6ff' }}></div>
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#292929' }} dir="rtl">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <BookOpen className="w-10 h-10 text-gray-400" />
+          <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="w-10 h-10" style={{ color: '#4da6ff' }} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">المقال غير موجود</h1>
-          <p className="text-gray-600 mb-6">عذراً، لم نتمكن من العثور على المقال المطلوب</p>
+          <h1 className="text-2xl font-bold text-white mb-4">المقال غير موجود</h1>
+          <p className="mb-6" style={{ color: '#4da6ff' }}>عذراً، لم نتمكن من العثور على المقال المطلوب</p>
           <Link 
             to="/blog" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-colors hover:bg-white/20"
+            style={{ backgroundColor: '#4da6ff' }}
           >
             العودة للمدونة
             <ArrowRight className="w-5 h-5" />
@@ -64,16 +65,16 @@ const BlogPost: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen" style={{ backgroundColor: '#292929' }} dir="rtl">
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white/5 backdrop-blur-sm border-b border-white/10">
         <div className="container mx-auto max-w-4xl px-4 py-4">
-          <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <Link to="/" className="hover:text-blue-600 transition-colors">الرئيسية</Link>
+          <nav className="flex items-center gap-2 text-sm" style={{ color: '#4da6ff' }}>
+            <Link to="/" className="hover:text-white transition-colors">الرئيسية</Link>
             <span>/</span>
-            <Link to="/blog" className="hover:text-blue-600 transition-colors">المدونة</Link>
+            <Link to="/blog" className="hover:text-white transition-colors">المدونة</Link>
             <span>/</span>
-            <span className="text-gray-900 font-medium">{post.title}</span>
+            <span className="text-white font-medium">{post.title}</span>
           </nav>
         </div>
       </div>
@@ -81,7 +82,7 @@ const BlogPost: React.FC = () => {
       <article className="container mx-auto max-w-4xl px-4 py-12">
         {/* Article Header */}
         <header className="mb-8">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
             {/* Cover Image */}
             {post.coverImageUrl && (
               <div className="h-64 md:h-80 overflow-hidden">
@@ -98,7 +99,7 @@ const BlogPost: React.FC = () => {
               {post.tags && post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {post.tags.map((tag: string) => (
-                    <span key={tag} className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-lg font-medium">
+                    <span key={tag} className="px-3 py-1 bg-white/10 text-sm rounded-lg font-medium" style={{ color: '#4da6ff' }}>
                       {tag}
                     </span>
                   ))}
@@ -106,19 +107,19 @@ const BlogPost: React.FC = () => {
               )}
               
               {/* Title */}
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
                 {post.title}
               </h1>
               
               {/* Meta Description */}
               {post.metaDescription && (
-                <p className="text-xl text-gray-600 mb-6 leading-relaxed">
+                <p className="text-xl mb-6 leading-relaxed" style={{ color: '#4da6ff' }}>
                   {post.metaDescription}
                 </p>
               )}
               
               {/* Article Meta */}
-              <div className="flex flex-wrap items-center gap-6 text-gray-500 mb-6">
+              <div className="flex flex-wrap items-center gap-6 mb-6" style={{ color: '#4da6ff' }}>
                 <div className="flex items-center gap-2">
                   <User className="w-5 h-5" />
                   <span className="font-medium">{post.author || 'Admin'}</span>
@@ -143,12 +144,12 @@ const BlogPost: React.FC = () => {
               </div>
               
               {/* Social Actions */}
-              <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors">
+              <div className="flex items-center gap-4 pt-6 border-t border-white/10">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors" style={{ color: '#4da6ff' }}>
                   <Share2 className="w-4 h-4" />
                   مشاركة
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-colors" style={{ color: '#4da6ff' }}>
                   <Heart className="w-4 h-4" />
                   إعجاب
                 </button>
@@ -158,18 +159,19 @@ const BlogPost: React.FC = () => {
         </header>
 
         {/* Article Content */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8 mb-8">
           <div 
-            className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-headings:font-bold prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700" 
+            className="prose prose-lg max-w-none prose-headings:text-white prose-headings:font-bold prose-p:leading-relaxed prose-a:no-underline hover:prose-a:underline prose-strong:text-white prose-ul:text-white prose-ol:text-white"
+            style={{ color: '#4da6ff' }}
             dangerouslySetInnerHTML={{ __html: post.content || '' }} 
           />
         </div>
 
         {/* Related Posts */}
         {relatedPosts.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#4da6ff' }}>
                 <BookOpen className="w-4 h-4 text-white" />
               </div>
               مقالات ذات صلة
@@ -179,7 +181,7 @@ const BlogPost: React.FC = () => {
                 <Link 
                   key={relatedPost.id}
                   to={`/blog/${relatedPost.slug}`}
-                  className="group block bg-gray-50 rounded-xl overflow-hidden hover:shadow-md transition-all duration-200"
+                  className="group block bg-white/5 rounded-xl overflow-hidden hover:bg-white/10 transition-all duration-200"
                 >
                   <div className="h-32 overflow-hidden">
                     {relatedPost.coverImageUrl ? (
@@ -189,16 +191,16 @@ const BlogPost: React.FC = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" 
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                        <BookOpen className="w-8 h-8 text-gray-400" />
+                      <div className="w-full h-full bg-white/10 flex items-center justify-center">
+                        <BookOpen className="w-8 h-8" style={{ color: '#4da6ff' }} />
                       </div>
                     )}
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                    <h3 className="font-bold text-white mb-2 line-clamp-2 group-hover:text-white transition-colors">
                       {relatedPost.title}
                     </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm" style={{ color: '#4da6ff' }}>
                       <Clock className="w-4 h-4" />
                       <span>{relatedPost.readTime || 3} دقائق</span>
                     </div>
@@ -213,7 +215,8 @@ const BlogPost: React.FC = () => {
         <div className="text-center mt-12">
           <Link 
             to="/blog" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+            className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-xl transition-all duration-200 font-medium hover:bg-white/20"
+            style={{ backgroundColor: '#4da6ff' }}
           >
             العودة للمدونة
             <ArrowRight className="w-5 h-5" />
