@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { apiCall, API_ENDPOINTS } from '../config/api.js';
+import { apiCall, API_ENDPOINTS } from '../config/api.ts';
 
 interface Coupon {
   id?: string | number;
@@ -398,4 +398,4 @@ const CouponForm: React.FC<CouponFormProps> = ({ isEdit: propIsEdit = false }) =
   );
 };
 
-export default CouponForm; 
+export default CouponForm;

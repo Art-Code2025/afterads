@@ -7,7 +7,7 @@ interface DeleteModalProps {
   title: string;
   message: string;
   itemName?: string;
-  type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone';
+  type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone' | 'blog';
   loading?: boolean;
 }
 
@@ -31,18 +31,20 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       case 'customer': return '👤';
       case 'coupon': return '🎫';
       case 'shippingZone': return '🚚';
+      case 'blog': return '📝';
       default: return '🗑️';
     }
   };
 
   const getColor = () => {
     switch (type) {
-      case 'product': return 'from-blue-500 to-blue-600';
-      case 'category': return 'from-orange-500 to-orange-600';
-      case 'order': return 'from-purple-500 to-purple-600';
-      case 'customer': return 'from-green-500 to-green-600';
-      case 'coupon': return 'from-pink-500 to-pink-600';
-      case 'shippingZone': return 'from-indigo-500 to-indigo-600';
+      case 'product': return 'from-dark-400 to-dark-500';
+      case 'category': return 'from-dark-300 to-dark-400';
+      case 'order': return 'from-dark-500 to-dark-600';
+      case 'customer': return 'from-dark-400 to-dark-500';
+      case 'coupon': return 'from-dark-300 to-dark-400';
+      case 'shippingZone': return 'from-dark-500 to-dark-600';
+      case 'blog': return 'from-dark-400 to-dark-500';
       default: return 'from-red-500 to-red-600';
     }
   };
@@ -134,4 +136,4 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   );
 };
 
-export default DeleteModal; 
+export default DeleteModal;

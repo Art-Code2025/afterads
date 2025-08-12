@@ -338,6 +338,38 @@ export const paymentAPI = {
   },
 };
 
+// Static Pages API
+export const staticPagesAPI = {
+  getAll: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/static-pages${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getBySlug: (slug) => {
+    return apiRequest(`/static-pages/${slug}`);
+  },
+
+  create: (pageData) => {
+    return apiRequest('/static-pages', {
+      method: 'POST',
+      body: JSON.stringify(pageData),
+    });
+  },
+
+  update: (id, pageData) => {
+    return apiRequest(`/static-pages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(pageData),
+    });
+  },
+
+  delete: (id) => {
+    return apiRequest(`/static-pages/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default {
   products: productsAPI,
   categories: categoriesAPI,
@@ -347,6 +379,7 @@ export default {
   upload: uploadAPI,
   auth: authAPI,
   payment: paymentAPI,
+  staticPages: staticPagesAPI,
   setAuthToken,
   getAuthToken,
   isAuthenticated,

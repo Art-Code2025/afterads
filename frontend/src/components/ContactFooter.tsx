@@ -1,8 +1,91 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Mail, MapPin, ExternalLink, Users, Headphones, UserCheck, Shield, RotateCcw } from 'lucide-react';
+import { Phone, Mail, MapPin, ExternalLink, Users, Headphones, UserCheck, Shield, RotateCcw, FileText } from 'lucide-react';
+
+interface StaticPage {
+  id: number;
+  title: string;
+  slug: string;
+  content: string;
+  metaDescription?: string;
+  isActive: boolean;
+  showInFooter: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const ContactSection = () => {
+  const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
+
+  // Fetch static pages for footer
+  useEffect(() => {
+    const fetchStaticPages = async () => {
+      try {
+        // Try to get pages from localStorage first (from App.tsx)
+        let pages: StaticPage[] = [];
+        const savedPages = localStorage.getItem('staticPages');
+        if (savedPages) {
+          try {
+            const parsedPages = JSON.parse(savedPages);
+            if (Array.isArray(parsedPages)) {
+              pages = parsedPages;
+            }
+          } catch (error) {
+            console.error('Error parsing saved static pages:', error);
+          }
+        }
+        
+        // If no pages in localStorage, use fallback mock data
+        if (pages.length === 0) {
+          const mockPages: StaticPage[] = [
+          {
+            id: 1,
+            title: 'من نحن',
+            slug: 'about-us',
+            content: 'نحن شركة رائدة في مجال الخدمات الرقمية...',
+            metaDescription: 'تعرف على شركتنا وخدماتنا المميزة',
+            isActive: true,
+            showInFooter: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            id: 2,
+            title: 'سياسة الخصوصية',
+            slug: 'privacy-policy',
+            content: 'نحن نحترم خصوصيتك ونلتزم بحماية بياناتك الشخصية...',
+            metaDescription: 'سياسة الخصوصية وحماية البيانات',
+            isActive: true,
+            showInFooter: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            id: 3,
+            title: 'شروط الاستخدام',
+            slug: 'terms-of-service',
+            content: 'شروط وأحكام استخدام الموقع والخدمات...',
+            metaDescription: 'شروط وأحكام استخدام الموقع',
+            isActive: true,
+            showInFooter: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ];
+          pages = mockPages;
+        }
+        
+        // Filter only active pages that should show in footer
+        const footerPages = pages.filter(page => page.isActive && page.showInFooter);
+        setStaticPages(footerPages);
+      } catch (error) {
+        console.error('Error fetching static pages:', error);
+      }
+    };
+
+    fetchStaticPages();
+  }, []);
+
   const openGoogleMaps = () => {
     window.open(
       "https://www.google.com/maps/place/24%C2%B045'04.5%22N+46%C2%B043'12.1%22E/@24.7512609,46.7200274,17z",
@@ -160,15 +243,21 @@ const ContactSection = () => {
       <footer className="relative py-6 sm:py-8 mt-12 sm:mt-16 border-t border-dark-700/30">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-dark-800/30 to-transparent" />
         <div className="relative">
-          {/* Policy Links Section */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-6">
-            <Link
-              to="/privacy-policy"
-              className="inline-flex items-center text-dark-300 text-xs sm:text-sm font-medium hover:text-dark-200 transition-all duration-300 bg-dark-900/60 backdrop-blur-xl border border-dark-700/40 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-dark-800/80 transform hover:scale-105"
-            >
-              <Shield className="w-4 h-4 ml-2 text-dark-400" />
-              <span>سياسة الاستخدام والخصوصية</span>
-            </Link>
+          {/* Static Pages Links Section */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-6 flex-wrap">
+            {/* Dynamic Static Pages */}
+            {staticPages.map((page) => (
+              <Link
+                key={page.id}
+                to={page.slug}
+                className="inline-flex items-center text-dark-300 text-xs sm:text-sm font-medium hover:text-dark-200 transition-all duration-300 bg-dark-900/60 backdrop-blur-xl border border-dark-700/40 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-dark-800/80 transform hover:scale-105"
+              >
+                <FileText className="w-4 h-4 ml-2 text-dark-400" />
+                <span>{page.title}</span>
+              </Link>
+            ))}
+            
+            {/* Static Return Policy Link */}
             <Link
               to="/return-policy"
               className="inline-flex items-center text-dark-300 text-xs sm:text-sm font-medium hover:text-dark-200 transition-all duration-300 bg-dark-900/60 backdrop-blur-xl border border-dark-700/40 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl hover:bg-dark-800/80 transform hover:scale-105"

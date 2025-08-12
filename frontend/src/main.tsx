@@ -32,6 +32,8 @@ const PaymentResult = React.lazy(() => import('./components/PaymentResult'));
 const ThankYou = React.lazy(() => import('./components/ThankYou'));
 const PaymentRedirectHandler = React.lazy(() => import('./components/PaymentRedirectHandler'));
 const PaymobTestRedirect = React.lazy(() => import('./components/PaymobTestRedirect'));
+import BlogList from './pages/BlogList'; 
+import BlogPost from './pages/BlogPost';   
 const About = React.lazy(() => import('./pages/About'));
 const Contact = React.lazy(() => import('./pages/Contact'));
 const Media = React.lazy(() => import('./pages/Media'));
@@ -39,6 +41,7 @@ const Partners = React.lazy(() => import('./pages/Partners'));
 const CategoryPage = React.lazy(() => import('./components/CategoryPage'));
 const PrivacyPolicy = React.lazy(() => import('./components/PrivacyPolicy'));
 const ReturnPolicy = React.lazy(() => import('./components/ReturnPolicy'));
+const StaticPageView = React.lazy(() => import('./components/StaticPageView'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -160,6 +163,10 @@ const LayoutWrapper: React.FC = () => {
             {/* Admin Dashboard Routes */}
             <Route path="/admin" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             
+            {/* Public Blog Routes */}
+            <Route path="/blog" element={<BlogList />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            
             {/* Services Management Routes (Legacy) */}
             <Route path="/admin/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
             <Route path="/admin/service/add" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
@@ -194,6 +201,11 @@ const LayoutWrapper: React.FC = () => {
             {/* Policy Routes */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/return-policy" element={<ReturnPolicy />} />
+            
+            {/* Static Pages Routes */}
+            <Route path="/page/:slug" element={<StaticPageView />} />
+            {/* Dynamic Static Pages Routes (without /page/ prefix) */}
+            <Route path="/:slug" element={<StaticPageView />} />
           </Routes>
         </Suspense>
       </div>
@@ -206,9 +218,14 @@ initCartStorageFix();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <LayoutWrapper />
-      {/* Global ToastContainer for all pages */}
+
       <ToastContainer 
         position="top-center"
         autoClose={3000}

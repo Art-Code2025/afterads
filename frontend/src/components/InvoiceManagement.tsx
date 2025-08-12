@@ -35,22 +35,16 @@ interface OrderItem {
 }
 
 interface Order {
-  id: number;
+  id: string | number; // Changed from number to string | number for consistency
   customerName: string;
-  customerPhone: string;
-  customerEmail: string;
+  customerPhone?: string; // Changed from string to optional
+  customerEmail?: string;
   address: string;
   city: string;
   items: OrderItem[];
   total: number;
-  subtotal?: number;
-  deliveryFee?: number;
-  couponDiscount?: number;
-  paymentMethod?: string;
-  paymentStatus?: string;
-  status: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
-  createdAt: string;
-  notes?: string;
+  status?: string; // Changed from string to optional
+  createdAt?: string; // Changed from string to optional
 }
 
 interface InvoiceManagementProps {
@@ -68,14 +62,15 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
 
   // Filter orders based on search and filters
+  // Update filteredOrders to handle mixed ID types
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerPhone.includes(searchTerm);
+                       order.id.toString().toLowerCase().includes(searchTerm.toLowerCase()) || // Convert to string
+                       order.customerPhone.includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     
-    const orderDate = new Date(order.createdAt);
+    const orderDate = new Date(order.createdAt || new Date()); // Provide fallback date
     const today = new Date();
     let matchesDate = true;
     
@@ -93,9 +88,11 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
   });
 
   // Generate invoice for single order
-  const generateSingleInvoice = async (orderId: string) => {
+  const generateSingleInvoice = async (orderId: string | number) => {
     setIsGenerating(true);
     try {
+      const orderIdStr = typeof orderId === 'string' ? orderId : orderId.toString();
+      
       const response = await fetch('/.netlify/functions/invoice-generator', {
         method: 'POST',
         headers: {
@@ -103,25 +100,25 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
         },
         body: JSON.stringify({
           type: 'single-order',
-          orderId
+          orderId: orderIdStr
         })
       });
-
+  
       if (!response.ok) {
         throw new Error('فشل في إنشاء الفاتورة');
       }
-
+  
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `invoice-${orderId}.xlsx`;
+      a.download = `invoice-${orderIdStr}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
-      toast.success(`تم تحميل فاتورة الطلب #${orderId} بنجاح`);
+  
+      toast.success(`تم تحميل فاتورة الطلب #${orderIdStr} بنجاح`);
     } catch (error) {
       console.error('Error generating invoice:', error);
       toast.error('فشل في إنشاء الفاتورة');
@@ -472,10 +469,8 @@ const InvoiceManagement: React.FC<InvoiceManagementProps> = ({ orders }) => {
                         {getStatusText(order.status)}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {new Date(order.createdAt).toLocaleDateString('ar-SA')}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">

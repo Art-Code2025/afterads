@@ -1,6 +1,6 @@
-import { getApiBaseUrl } from '../config/api';
+import { getApiBaseUrl } from '../config/api.ts';
 import { getMockProducts, getMockCategories, getMockProductById, MockProduct, MockCategory } from './mockData';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../config/api.ts';
 
 // Debug log for API base URL
 const apiConfig = {
@@ -607,19 +607,119 @@ export const api = {
   },
 };
 
-// -------------------- Auth API --------------------
+// Add this new Static Pages API
+export const staticPagesAPI = {
+  getAll: async (params: Record<string, string> = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/static-pages${queryString ? `?${queryString}` : ''}`, { method: 'GET' }, true);
+  },
+
+  getById: async (id: string | number) => {
+    return apiRequest(`/static-pages/${id}`, { method: 'GET' }, true);
+  },
+
+  getBySlug: async (slug: string) => {
+    return apiRequest(`/static-pages/slug/${slug}`, { method: 'GET' }, true);
+  },
+
+  create: async (pageData: any) => {
+    return apiRequest('/static-pages', {
+      method: 'POST',
+      body: JSON.stringify(pageData),
+    });
+  },
+
+  update: async (id: string | number, pageData: any) => {
+    return apiRequest(`/static-pages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(pageData),
+    });
+  },
+
+  delete: async (id: string | number) => {
+    return apiRequest(`/static-pages/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// -------------------- Blog API --------------------
+export const blogAPI = {
+  getAll: async (params: Record<string, string> = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = `/blog${queryString ? `?${queryString}` : ''}`;
+    return apiRequest(endpoint, { method: 'GET' }, true);
+  },
+
+  getByIdOrSlug: async (idOrSlug: string) => {
+    return apiRequest(`/blog/${encodeURIComponent(idOrSlug)}`, { method: 'GET' }, true);
+  },
+
+  create: async (postData: any) => {
+    return apiRequest('/blog', {
+      method: 'POST',
+      body: JSON.stringify(postData),
+    });
+  },
+
+  update: async (id: string, postData: any) => {
+    return apiRequest(`/blog/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(postData),
+    });
+  },
+
+  delete: async (id: string) => {
+    return apiRequest(`/blog/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+};
+
+// Auth API
 export const authAPI = {
-  // Admin login (no auth token required)
+  login: async (email: string, password: string) => {
+    return apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  },
+  
   adminLogin: async (username: string, password: string) => {
-    try {
-      return await apiRequest(`/${API_ENDPOINTS.AUTH_ADMIN}`, {
-        method: 'POST',
-        body: JSON.stringify({ username, password })
-      }, true);
-    } catch (error) {
-      throw error;
-    }
-  }
+    return apiRequest('/auth/admin', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+  },
+  
+  register: async (email: string, password: string, adminKey: string) => {
+    return apiRequest('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, adminKey }),
+    });
+  },
+  
+  logout: async () => {
+    return apiRequest('/auth/logout', {
+      method: 'POST',
+    });
+  },
+  
+  resetPassword: async (email: string) => {
+    return apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+  
+  verifyToken: async (token: string) => {
+    return apiRequest('/auth/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  },
+  
+  getCurrentUser: async () => {
+    return apiRequest('/auth/me');
+  },
 };
 
 export default {
@@ -632,4 +732,7 @@ export default {
   setAuthToken,
   getAuthToken,
   isAuthenticated,
-}; 
+  auth: authAPI,
+  staticPages: staticPagesAPI,
+  blog: blogAPI,
+};

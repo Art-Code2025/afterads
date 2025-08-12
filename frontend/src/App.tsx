@@ -14,7 +14,7 @@ import { createCategorySlug, createProductSlug } from './utils/slugify';
 import cover2 from './assets/cover2.jpg';
 import cover3 from './assets/cover3.jpg';
 // Import API functions
-import { productsAPI, categoriesAPI } from './utils/api';
+import api, { productsAPI, categoriesAPI } from './utils/api';
 import { buildImageUrl } from './config/api';
 import { addToCartUnified } from './utils/cartUtils';
 import Navbar from './components/Navbar';
@@ -60,6 +60,18 @@ interface CartItem {
   quantity: number;
 }
 
+interface StaticPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  metaDescription?: string;
+  isActive: boolean;
+  showInFooter: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const App: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [categoryProducts, setCategoryProducts] = useState<CategoryProducts[]>([]);
@@ -69,6 +81,7 @@ const App: React.FC = () => {
   const [quantities, setQuantities] = useState<{[key: number]: number}>({});
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState('All');
+  const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
   const heroImages = [cover1, cover2, cover3];
   // Load cart count from localStorage
   useEffect(() => {
@@ -146,6 +159,115 @@ const App: React.FC = () => {
       window.removeEventListener('productDeleted', handleCategoriesUpdate);
     };
   }, []);
+
+  // Load static pages from localStorage on component mount
+  useEffect(() => {
+    const savedPages = localStorage.getItem('staticPages');
+    if (savedPages) {
+      try {
+        const parsedPages = JSON.parse(savedPages);
+        if (Array.isArray(parsedPages)) {
+          setStaticPages(parsedPages);
+          console.log('🚀 Initial load: Static pages from localStorage');
+        }
+      } catch (error) {
+        console.error('❌ Error parsing saved static pages on mount:', error);
+      }
+    }
+  }, []);
+
+  // Fetch static pages from API
+  useEffect(() => {
+    fetchStaticPages();
+  }, []);
+
+  const fetchStaticPages = async () => {
+    // Define main site pages that should always be present in quick links
+    const mainSitePages: StaticPage[] = [
+      {
+        id: 'main-1',
+        title: 'الرئيسية',
+        slug: '/',
+        content: '',
+        metaDescription: 'الصفحة الرئيسية',
+        isActive: true,
+        showInFooter: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'main-2',
+        title: 'المنتجات',
+        slug: '/products',
+        content: '',
+        metaDescription: 'جميع المنتجات',
+        isActive: true,
+        showInFooter: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'main-3',
+        title: 'التصنيفات',
+        slug: '/categories',
+        content: '',
+        metaDescription: 'تصنيفات المنتجات',
+        isActive: true,
+        showInFooter: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'main-4',
+        title: 'اتصل بنا',
+        slug: '/contact',
+        content: '',
+        metaDescription: 'تواصل معنا',
+        isActive: true,
+        showInFooter: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
+    let dynamicPages: StaticPage[] = [];
+    
+    try {
+      console.log('🔄 Fetching dynamic static pages...');
+      const pages = await (api as any).staticPages.getAll();
+      console.log('📄 Dynamic static pages received:', pages);
+      if (Array.isArray(pages)) {
+        dynamicPages = pages;
+        console.log('✅ Dynamic static pages loaded from API');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching dynamic static pages:', error);
+      // Try to load from localStorage as fallback
+      const savedPages = localStorage.getItem('staticPages');
+      if (savedPages) {
+        try {
+          const parsedPages = JSON.parse(savedPages);
+          if (Array.isArray(parsedPages)) {
+            // Filter out main site pages from saved data to avoid duplicates
+            dynamicPages = parsedPages.filter(page => 
+              !mainSitePages.some(mainPage => mainPage.slug === page.slug)
+            );
+            console.log('📦 Dynamic static pages loaded from localStorage');
+          }
+        } catch (parseError) {
+          console.error('❌ Error parsing saved static pages:', parseError);
+        }
+      }
+    }
+    
+    // Combine main site pages with dynamic pages
+    const allPages = [...mainSitePages, ...dynamicPages];
+    setStaticPages(allPages);
+    
+    // Save combined pages to localStorage
+    localStorage.setItem('staticPages', JSON.stringify(allPages));
+    console.log('📝 Combined static pages set:', allPages.length);
+  };
 
   const fetchCategoriesWithProducts = async () => {
     try {
@@ -502,23 +624,20 @@ const App: React.FC = () => {
                   <div className="absolute bottom-0 left-0 w-12 h-0.5 bg-gradient-to-r from-dark-400 to-dark-500 rounded-full"></div>
                 </h4>
                 <ul className="space-y-3">
-                  {[
-                    { to: '/', label: 'الرئيسية' },
-                    { to: '/products', label: 'المنتجات' },
-                    { to: '/categories', label: 'التصنيفات' },
-                    { to: '/blog', label: 'المدونة' },
-                    { to: '/contact', label: 'اتصل بنا' }
-                  ].map(({ to, label }) => (
-                    <li key={to}>
-                      <Link 
-                        to={to} 
-                        className="group flex items-center gap-2 text-dark-300 hover:text-white transition-colors duration-300"
-                      >
-                        <div className="w-1 h-1 bg-dark-400 rounded-full group-hover:w-2 transition-all duration-300"></div>
-                        {label}
-                      </Link>
-                    </li>
-                  ))}
+                  {/* Static Pages */}
+                  {staticPages
+                    .filter(page => page.isActive && page.showInFooter)
+                    .map((page) => (
+                      <li key={page.id}>
+                        <Link 
+                          to={page.slug} 
+                          className="group flex items-center gap-2 text-dark-300 hover:text-white transition-colors duration-300"
+                        >
+                          <div className="w-1 h-1 bg-dark-400 rounded-full group-hover:w-2 transition-all duration-300"></div>
+                          {page.title}
+                        </Link>
+                      </li>
+                    ))}
                 </ul>
             </div>
 

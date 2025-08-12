@@ -1,12 +1,10 @@
 // API Configuration for Serverless environment
 export const API_CONFIG = {
-  // للتطوير المحلي مع Netlify Dev
   development: {
-    baseURL: 'http://localhost:8888/.netlify/functions',
+    baseURL: '/.netlify/functions',  // Use relative path
   },
-  // للإنتاج - Netlify Functions
   production: {
-    baseURL: '/.netlify/functions', // الصيغة الصحيحة لـ Netlify Functions
+    baseURL: '/.netlify/functions',
   }
 };
 
@@ -251,6 +249,16 @@ export const API_ENDPOINTS = {
   AUTH_RESET_PASSWORD: 'customers/reset-password',
   AUTH_VERIFY: 'auth/verify',
   AUTH_ME: 'auth/me',
+  
+  // Static Pages - NEW
+  STATIC_PAGES: {
+    GET_ALL: 'static-pages',
+    GET_BY_ID: (id: string | number) => `static-pages/${id}`,
+    GET_BY_SLUG: (slug: string) => `static-pages/slug/${slug}`,
+    CREATE: 'static-pages',
+    UPDATE: (id: string | number) => `static-pages/${id}`,
+    DELETE: (id: string | number) => `static-pages/${id}`
+  },
   
   // Legacy endpoints for backward compatibility
   CHECKOUT: 'orders', // Orders endpoint handles checkout

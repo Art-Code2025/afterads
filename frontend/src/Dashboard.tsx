@@ -4,21 +4,23 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { 
   Package, Users, ShoppingCart, DollarSign, TrendingUp, Calendar, 
-  Eye, Edit, Trash2, Plus, Search, Filter, Download, RefreshCw,
-  BarChart3, PieChart, Activity, Clock, CheckCircle, XCircle,
-  AlertTriangle, Star, Heart, MessageSquare, Phone, Mail,
-  MapPin, CreditCard, Truck, Gift, Tag, Percent, Settings,
-  LogOut, Home, Menu, X, ChevronDown, ChevronRight, Bell,
-  FileText, Image, Upload, Save, ArrowLeft, ArrowRight,
-  Grid, List, MoreVertical, AlertCircle as AlertIcon,
-  Circle, Zap, Shield, Monitor, Smartphone
+  Eye, Edit, Trash2, Plus, Search, RefreshCw,
+  BarChart3, Clock, CheckCircle, XCircle,
+  AlertTriangle, Heart, Phone, Mail,
+  MapPin, Truck, Gift, Tag, Settings,
+  LogOut, Home, Menu, X, Bell,
+  FileText, 
+  Grid, AlertCircle as AlertIcon,
+  Circle, Globe, Activity
 } from 'lucide-react';
 import { PieChart as RechartsPieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ResponsiveContainer } from 'recharts';
-import { apiCall, API_ENDPOINTS, buildImageUrl } from './config/api';
+import { apiCall, API_ENDPOINTS, buildImageUrl } from './config/api.ts';
 import OrderModal from './components/OrderModal';
 import DeleteModal from './components/DeleteModal';
 import InvoiceManagement from './components/InvoiceManagement';
+import StaticPageModal from './components/StaticPageModal';
 import logo from './assets/logo.png';
+import BlogManagement from './components/blog/BlogManagement';
 
 // تعريف الأنواع
 interface Service {
@@ -34,18 +36,22 @@ interface Service {
 }
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   description: string;
   price: number;
-  originalPrice?: number;
+  category: string;
   stock: number;
-  categoryId: number | null;
+  image: string;
+  status: 'available' | 'unavailable';
+  type: string;
+  originalPrice?: number;
+  categoryId?: number | null;
   productType?: string;
   dynamicOptions?: any[];
-  mainImage: string;
-  detailedImages: string[];
-  specifications: { name: string; value: string }[];
+  mainImage?: string;
+  detailedImages?: string[];
+  specifications?: { name: string; value: string }[];
   createdAt?: string;
 }
 
@@ -73,40 +79,41 @@ interface OrderItem {
 }
 
 interface Order {
-  id: number;
+  id: string | number; // Make id flexible to handle both types
   customerName: string;
-  customerPhone: string;
-  customerEmail: string;
+  total: number;
+  status?: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled'; // Make optional
+  createdAt?: string; // Make optional to handle undefined
+  items: any[];
   address: string;
   city: string;
-  items: OrderItem[];
-  total: number;
+  customerPhone?: string;
+  customerEmail?: string;
   subtotal?: number;
   deliveryFee?: number;
   couponDiscount?: number;
   paymentMethod?: string;
   paymentStatus?: string;
-  status: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
-  createdAt: string;
   notes?: string;
 }
 
 interface Customer {
-  id: number;
-  email: string;
+  id: string;
+  name?: string;
+  fullName?: string;
   firstName?: string;
   lastName?: string;
-  fullName?: string;
-  name?: string;
+  email: string;
   phone?: string;
   city?: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  lastLogin?: string;
+  cartItems?: number;
+  wishlistItems?: number;
   totalOrders?: number;
   totalSpent?: number;
   lastOrderDate?: string;
-  lastLogin?: string;
-  createdAt: string;
-  status?: 'active' | 'inactive';
-  // إضافة الإحصائيات الجديدة
   cartItemsCount?: number;
   wishlistItemsCount?: number;
   hasCart?: boolean;
@@ -144,6 +151,21 @@ interface ShippingSettings {
   expressShippingDays: string;
   shippingTaxRate: number;
   updatedAt: string;
+}
+
+interface StaticPage {
+  id: string | number; // Allow both string and number
+  title: string;
+  slug: string;
+  content: string;
+  metaDescription?: string;
+  isActive: boolean;
+  showInFooter: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  status?: string;
+  priority?: number;
+  publishDate?: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -247,6 +269,30 @@ const Dashboard: React.FC = () => {
   const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(false);
   const [dailyStats, setDailyStats] = useState<any[]>([]);
   const [monthlyStats, setMonthlyStats] = useState<any[]>([]);
+
+  // حالات الصفحات الثابتة
+  const [staticPages, setStaticPages] = useState<StaticPage[]>([]);
+  const [filteredStaticPages, setFilteredStaticPages] = useState<StaticPage[]>([]);
+  const [pageSearchTerm, setPageSearchTerm] = useState<string>('');
+  const [showPageModal, setShowPageModal] = useState<boolean>(false);
+  const [editingPage, setEditingPage] = useState<StaticPage | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [newPage, setNewPage] = useState<Partial<StaticPage> & {
+    keywords?: string;
+    contentType?: string;
+    status?: string;
+    priority?: number;
+    publishDate?: string;
+    imageFile?: File | null;
+    imageUrl?: string;
+  }>({
+    title: '',
+    slug: '',
+    content: '',
+    metaDescription: '',
+    isActive: true,
+    showInFooter: true
+  });
 
   // حالة تحميل الطلبات
   const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
@@ -727,7 +773,7 @@ const Dashboard: React.FC = () => {
         
         // فقط للعميل الحالي نحصل على بيانات المفضلة من localStorage
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (currentUser.id === customer.id) {
+        if (currentUser.id && customer.id && currentUser.id.toString() === customer.id.toString()) {
           try {
             const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
             if (Array.isArray(wishlist)) {
@@ -793,9 +839,9 @@ const Dashboard: React.FC = () => {
     if (searchTerm) {
       filtered = filtered.filter(order =>
         order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customerPhone.includes(searchTerm) ||
-        order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.id.toString().includes(searchTerm)
+        (order.customerPhone && order.customerPhone.includes(searchTerm)) ||
+        (order.customerEmail && order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        order.id.toString().includes(searchTerm) // Convert to string for search
       );
     }
 
@@ -803,28 +849,31 @@ const Dashboard: React.FC = () => {
   };
 
   // Order update handler
-  const handleOrderStatusUpdate = async (orderId: number, newStatus: string) => {
+  const handleOrderStatusUpdate = async (orderId: string | number, newStatus: string) => {
     try {
       setLoading(true);
       
-      await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderId), {
+      // Convert orderId to string for API call consistency
+      const orderIdStr = typeof orderId === 'string' ? orderId : orderId.toString();
+      
+      await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderIdStr), {
         method: 'PUT',
         body: JSON.stringify({ status: newStatus }),
       });
       
-      // تحديث الطلب في الحالة المحلية
+      // Update order in local state - compare as strings for consistency
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId 
+          order.id.toString() === orderId.toString()
             ? { ...order, status: newStatus as Order['status'] }
             : order
         )
-      );
+      ); 
       
-      // تحديث الطلبات المفلترة أيضاً
+      // Update filtered orders as well
       setFilteredOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId 
+          order.id.toString() === orderId.toString()
             ? { ...order, status: newStatus as Order['status'] }
             : order
         )
@@ -839,17 +888,20 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteOrder = async (orderId: number) => {
+  const handleDeleteOrder = async (orderId: string | number) => {
     try {
       setLoading(true);
       
-      await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderId), {
+      // Convert orderId to string for API call consistency
+      const orderIdStr = typeof orderId === 'string' ? orderId : orderId.toString();
+      
+      await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderIdStr), {
         method: 'DELETE',
       });
 
-      // إزالة الطلب من الحالة المحلية
-      setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
-      setFilteredOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+      // Remove order from local state - compare as strings for consistency
+      setOrders(prevOrders => prevOrders.filter(order => order.id.toString() !== orderId.toString()));
+      setFilteredOrders(prevOrders => prevOrders.filter(order => order.id.toString() !== orderId.toString()));
       
       toast.success('تم حذف الطلب بنجاح');
     } catch (error) {
@@ -860,7 +912,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getOrderStatusColor = (status: string) => {
+  const getOrderStatusColor = (status?: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
       case 'confirmed': return 'bg-blue-100 text-blue-800 border-blue-300';
@@ -872,7 +924,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getOrderStatusText = (status: string) => {
+  const getOrderStatusText = (status?: string) => {
     switch (status) {
       case 'pending': return 'قيد المراجعة';
       case 'confirmed': return 'مؤكد';
@@ -880,7 +932,7 @@ const Dashboard: React.FC = () => {
       case 'shipped': return 'تم الشحن';
       case 'delivered': return 'تم التسليم';
       case 'cancelled': return 'ملغي';
-      default: return status;
+      default: return status || 'غير محدد';
     }
   };
 
@@ -926,8 +978,9 @@ const Dashboard: React.FC = () => {
         method: 'DELETE',
       });
       
-      setProducts(products.filter(p => p.id !== id));
-      setFilteredProducts(filteredProducts.filter(p => p.id !== id));
+      // Convert id to string for comparison since Product.id is string
+      setProducts(products.filter(p => p.id !== id.toString()));
+      setFilteredProducts(filteredProducts.filter(p => p.id !== id.toString()));
       toast.success('تم حذف المنتج بنجاح');
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -1093,82 +1146,360 @@ const Dashboard: React.FC = () => {
     };
   };
 
+  // دوال إدارة الصفحات الثابتة
+  const fetchStaticPages = async () => {
+    try {
+      console.log('Fetching static pages from API...');
+      const response = await apiCall(API_ENDPOINTS.STATIC_PAGES.GET_ALL);
+      console.log('Static pages received:', response);
+      
+      if (response && Array.isArray(response)) {
+        setStaticPages(response);
+        setFilteredStaticPages(response);
+        // Save to localStorage for persistence
+        localStorage.setItem('dashboardStaticPages', JSON.stringify(response));
+      } else {
+        console.warn('Invalid response format for static pages');
+        setStaticPages([]);
+        setFilteredStaticPages([]);
+      }
+    } catch (error) {
+      console.error('Error fetching static pages:', error);
+      // Try to load from localStorage as fallback
+      try {
+        const savedPages = localStorage.getItem('dashboardStaticPages');
+        if (savedPages) {
+          const parsedPages = JSON.parse(savedPages);
+          setStaticPages(parsedPages);
+          setFilteredStaticPages(parsedPages);
+          console.log('Loaded static pages from localStorage:', parsedPages);
+        } else {
+          setStaticPages([]);
+          setFilteredStaticPages([]);
+        }
+      } catch (storageError) {
+        console.error('Error loading from localStorage:', storageError);
+        setStaticPages([]);
+        setFilteredStaticPages([]);
+      }
+      toast.error('حدث خطأ في تحميل الصفحات');
+    }
+  };
 
-  // Delete Modal Functions
-  const openDeleteModal = (type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone', id: string | number, name: string) => {
+  const handlePageSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setPageSearchTerm(term);
+    
+    if (term) {
+      const filtered = staticPages.filter(page =>
+        page.title.toLowerCase().includes(term.toLowerCase()) ||
+        page.slug.toLowerCase().includes(term.toLowerCase()) ||
+        page.content.toLowerCase().includes(term.toLowerCase())
+      );
+      setFilteredStaticPages(filtered);
+    } else {
+      setFilteredStaticPages(staticPages);
+    }
+  };
+
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06FF\s-]/g, '') // Keep Arabic, English, numbers, spaces, and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .trim();
+  };
+
+  const openPageModal = (page?: StaticPage) => {
+    if (page) {
+      setEditingPage(page);
+      setNewPage({
+        title: page.title,
+        slug: page.slug,
+        content: page.content,
+        metaDescription: page.metaDescription,
+        isActive: page.isActive,
+        showInFooter: page.showInFooter,
+        keywords: '',
+        contentType: 'page',
+        status: 'published',
+        priority: 1,
+        publishDate: new Date().toISOString().split('T')[0],
+        imageFile: null,
+        imageUrl: ''
+      });
+    } else {
+      setEditingPage(null);
+      setNewPage({
+        title: '',
+        slug: '',
+        content: '',
+        metaDescription: '',
+        isActive: true,
+        showInFooter: true,
+        keywords: '',
+        contentType: 'page',
+        status: 'published',
+        priority: 1,
+        publishDate: new Date().toISOString().split('T')[0],
+        imageFile: null,
+        imageUrl: ''
+      });
+    }
+    setShowPageModal(true);
+    setShowPreview(false);
+  };
+
+  const closePageModal = () => {
+    setShowPageModal(false);
+    setEditingPage(null);
+    setShowPreview(false);
+    setNewPage({
+      title: '',
+      slug: '',
+      content: '',
+      metaDescription: '',
+      isActive: true,
+      showInFooter: true,
+      keywords: '',
+      contentType: 'page',
+      status: 'published',
+      priority: 1,
+      publishDate: new Date().toISOString().split('T')[0],
+      imageFile: null,
+      imageUrl: ''
+    });
+  };
+
+  // دوال مساعدة للمحرر المتقدم
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setNewPage(prev => ({
+          ...prev,
+          imageFile: file,
+          imageUrl: e.target?.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const insertTextAtCursor = (text: string) => {
+    const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentContent = newPage.content || '';
+      const newContent = currentContent.substring(0, start) + text + currentContent.substring(end);
+      setNewPage(prev => ({ ...prev, content: newContent }));
+      
+      // إعادة تعيين موضع المؤشر
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
+    }
+  };
+
+  const formatText = (tag: string, prompt?: string) => {
+    if (prompt) {
+      const userInput = window.prompt(prompt);
+      if (userInput) {
+        if (tag === 'link') {
+          insertTextAtCursor(`<a href="${userInput}" target="_blank">النص المحدد</a>`);
+        } else if (tag === 'image') {
+          insertTextAtCursor(`<img src="${userInput}" alt="وصف الصورة" class="max-w-full h-auto rounded-lg" />`);
+        }
+      }
+    } else {
+      const formats: { [key: string]: string } = {
+        bold: '<strong>النص المحدد</strong>',
+        italic: '<em>النص المحدد</em>',
+        underline: '<u>النص المحدد</u>',
+        h1: '<h1 class="text-3xl font-bold mb-4">العنوان الرئيسي</h1>',
+        h2: '<h2 class="text-2xl font-bold mb-3">العنوان الفرعي</h2>',
+        h3: '<h3 class="text-xl font-bold mb-2">عنوان فرعي صغير</h3>',
+        ul: '<ul class="list-disc list-inside mb-4">\n  <li>العنصر الأول</li>\n  <li>العنصر الثاني</li>\n</ul>',
+        ol: '<ol class="list-decimal list-inside mb-4">\n  <li>العنصر الأول</li>\n  <li>العنصر الثاني</li>\n</ol>',
+        blockquote: '<blockquote class="border-r-4 border-blue-500 pr-4 py-2 bg-blue-50 mb-4">\n  النص المقتبس\n</blockquote>',
+        alert: '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">\n  <div class="flex items-center">\n    <span class="text-yellow-600">⚠️</span>\n    <span class="mr-2 font-medium text-yellow-800">تنبيه مهم</span>\n  </div>\n</div>',
+        hr: '<hr class="my-6 border-gray-300" />'
+      };
+      
+      if (formats[tag]) {
+        insertTextAtCursor(formats[tag]);
+      }
+    }
+  };
+
+  const getWordCount = (text: string) => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  const savePage = async (pageData: {
+    title: string;
+    slug: string;
+    content: string;
+    metaDescription?: string;
+    isActive: boolean;
+    showInFooter: boolean;
+  }) => {
+    try {
+      // لا نكرر التحقق هنا؛ المودال قام بالفعل بالتحقق وإرسال بيانات مُنظّفة
+      const title = pageData.title?.trim();
+      const slug = pageData.slug?.trim();
+      const content = pageData.content?.trim();
+      const metaDescription = (pageData.metaDescription || '').trim();
+      const isActive = pageData.isActive;
+      const showInFooter = pageData.showInFooter;
+
+      // تحقق من تكرار الـ slug (مع استثناء الصفحة الحالية إذا كنا بنعدّل)
+      const slugExists = staticPages.some(page =>
+        page.slug === slug && page.id !== editingPage?.id
+      );
+      
+      if (slugExists) {
+        toast.error('هذا الرابط مستخدم بالفعل، يرجى اختيار رابط آخر');
+        return;
+      }
+
+      if (editingPage) {
+        // تحديث صفحة موجودة
+        const updateData = { title, slug, content, metaDescription, isActive, showInFooter };
+        
+        const response = await apiCall(API_ENDPOINTS.STATIC_PAGES.UPDATE(editingPage.id), {
+          method: 'PUT',
+          body: JSON.stringify(updateData)
+        });
+        
+        if (response) {
+          await fetchStaticPages();
+          toast.success('تم تحديث الصفحة بنجاح');
+        }
+      } else {
+        // إضافة صفحة جديدة
+        const newPageData = { title, slug, content, metaDescription, isActive, showInFooter };
+        
+        const response = await apiCall(API_ENDPOINTS.STATIC_PAGES.CREATE, {
+          method: 'POST',
+          body: JSON.stringify(newPageData)
+        });
+        
+        if (response) {
+          await fetchStaticPages();
+          toast.success('تم إضافة الصفحة بنجاح');
+        }
+      }
+      
+      closePageModal();
+    } catch (error) {
+      console.error('Error saving page:', error);
+      toast.error('حدث خطأ في حفظ الصفحة');
+    }
+  };
+
+  const deletePage = async (pageId: string | number) => {
+    try {
+      setLoading(true);
+      
+      await apiCall(API_ENDPOINTS.STATIC_PAGES.DELETE(pageId), {
+        method: 'DELETE',
+      });
+
+      // تحديث الحالة محلياً مع توحيد المقارنة كسلاسل نصية
+      setStaticPages(prevPages => prevPages.filter(page => String(page.id) !== String(pageId)));
+      setFilteredStaticPages(prevPages => prevPages.filter(page => String(page.id) !== String(pageId)));
+      
+      toast.success('تم حذف الصفحة بنجاح');
+    } catch (error) {
+      console.error('Error deleting static page:', error);
+      toast.error('فشل في حذف الصفحة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  // Event handlers
+  const handleOrderClick = (order: Order) => {
+    setSelectedOrder(order);
+    setIsOrderModalOpen(true);
+  };
+
+  const handleDeleteClick = (type: string, id: number, name: string) => {
     setDeleteModal({
       isOpen: true,
-      type,
-      id: typeof id === 'string' ? id : id.toString(),
+      type: type as 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone',
+      id: id.toString(),
       name,
       loading: false
     });
   };
 
-  const closeDeleteModal = () => {
-    setDeleteModal(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const confirmDelete = async () => {
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.id) return;
+    
     setDeleteModal(prev => ({ ...prev, loading: true }));
     
     try {
-      // التعامل مع مناطق الشحن محلياً
-      if (deleteModal.type === 'shippingZone') {
-        const updatedZones = shippingZones.filter(item => item.id.toString() !== deleteModal.id.toString());
-        setShippingZones(updatedZones);
-        setFilteredShippingZones(updatedZones);
-        
-        // حفظ المناطق المحدثة في localStorage
-        localStorage.setItem('shippingZones', JSON.stringify(updatedZones));
-        
-        // إشعار المكونات الأخرى بالتحديث
-        window.dispatchEvent(new Event('shippingZonesUpdated'));
-        
-        toast.success('تم حذف منطقة الشحن بنجاح!');
-        closeDeleteModal();
-        return;
-      }
-
-      // التعامل مع باقي الأنواع عبر API
       let endpoint = '';
       let successMessage = '';
       
       switch (deleteModal.type) {
         case 'product':
-          endpoint = API_ENDPOINTS.PRODUCT_BY_ID(deleteModal.id.toString());
+          endpoint = API_ENDPOINTS.PRODUCTS + '/' + deleteModal.id;
           successMessage = 'تم حذف المنتج بنجاح!';
           break;
         case 'category':
-          endpoint = API_ENDPOINTS.CATEGORY_BY_ID(deleteModal.id.toString());
+          endpoint = API_ENDPOINTS.CATEGORIES + '/' + deleteModal.id;
           successMessage = 'تم حذف التصنيف بنجاح!';
           break;
         case 'order':
-          endpoint = `orders/${deleteModal.id}`;
+          endpoint = API_ENDPOINTS.ORDERS + '/' + deleteModal.id;
           successMessage = 'تم حذف الطلب بنجاح!';
           break;
         case 'customer':
-          endpoint = `customers/${deleteModal.id}`;
+          endpoint = API_ENDPOINTS.CUSTOMERS + '/' + deleteModal.id;
           successMessage = 'تم حذف العميل بنجاح!';
           break;
         case 'coupon':
-          endpoint = API_ENDPOINTS.COUPON_BY_ID(deleteModal.id.toString());
+          endpoint = API_ENDPOINTS.COUPONS + '/' + deleteModal.id;
           successMessage = 'تم حذف الكوبون بنجاح!';
           break;
+        case 'shippingZone':
+          // Handle shipping zone deletion locally
+          const updatedZones = shippingZones.filter(zone => zone.id.toString() !== deleteModal.id.toString());
+          setShippingZones(updatedZones);
+          setFilteredShippingZones(updatedZones);
+          localStorage.setItem('shippingZones', JSON.stringify(updatedZones));
+          window.dispatchEvent(new Event('shippingZonesUpdated'));
+          setDeleteModal(prev => ({ ...prev, isOpen: false, loading: false }));
+          toast.success('تم حذف منطقة الشحن بنجاح');
+          return;
+        default:
+          throw new Error('نوع غير معروف للحذف');
       }
-
-      console.log('🗑️ Deleting via API:', endpoint);
-      await apiCall(endpoint, { method: 'DELETE' });
-
-      // Update local state
+      
+      const response = await apiCall(endpoint, { method: 'DELETE' });
+      
+      // Update local state based on type
       switch (deleteModal.type) {
         case 'product':
-          setProducts(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
-          setFilteredProducts(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
+          setProducts(prev => prev.filter(p => p.id.toString() !== deleteModal.id.toString()));
+          setFilteredProducts(prev => prev.filter(p => p.id.toString() !== deleteModal.id.toString()));
           break;
         case 'category':
-          setCategories(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
-          setFilteredCategories(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
+          setCategories(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
+          setFilteredCategories(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
           // Update products that had this category
           const updatedProducts = products.map(product => 
             product.categoryId?.toString() === deleteModal.id.toString() ? { ...product, categoryId: null } : product
@@ -1180,27 +1511,40 @@ const Dashboard: React.FC = () => {
           window.dispatchEvent(new Event('categoriesUpdated'));
           break;
         case 'order':
-          setOrders(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
-          setFilteredOrders(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
+          setOrders(prev => prev.filter(o => o.id.toString() !== deleteModal.id.toString()));
+          setFilteredOrders(prev => prev.filter(o => o.id.toString() !== deleteModal.id.toString()));
           break;
         case 'customer':
-          setCustomers(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
-          setFilteredCustomers(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
+          setCustomers(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
+          setFilteredCustomers(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
           break;
         case 'coupon':
-          setCoupons(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
-          setFilteredCoupons(prev => prev.filter(item => item.id.toString() !== deleteModal.id.toString()));
+          setCoupons(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
+          setFilteredCoupons(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
           break;
       }
-
+      
       toast.success(successMessage);
-      closeDeleteModal();
     } catch (error) {
-      console.error('❌ Error deleting item:', error);
-      const errorMessage = error instanceof Error ? error.message : 'فشل في الحذف';
+      console.error('Delete error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ في الحذف';
       toast.error(errorMessage);
-      setDeleteModal(prev => ({ ...prev, loading: false }));
+    } finally {
+      setDeleteModal(prev => ({ ...prev, isOpen: false, loading: false }));
     }
+  };
+
+  // Delete Modal Functions
+  const openDeleteModal = (type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone', id: string | number, name: string) => {
+    handleDeleteClick(type, typeof id === 'string' ? parseInt(id) : id, name);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const confirmDelete = async () => {
+    await handleDeleteConfirm();
   };
 
   // وظائف إدارة العملاء الجديدة
@@ -1212,8 +1556,8 @@ const Dashboard: React.FC = () => {
     try {
       // جلب طلبات العميل
       const customerOrdersData = orders.filter(order => 
-        order.customerEmail === customer.email || 
-        order.customerName === (customer.fullName || customer.name)
+        (order.customerEmail && customer.email && order.customerEmail === customer.email) || 
+        (order.customerName && (customer.fullName || customer.name) && order.customerName === (customer.fullName || customer.name))
       );
       setCustomerOrders(customerOrdersData);
     } catch (error) {
@@ -1252,10 +1596,10 @@ const Dashboard: React.FC = () => {
       
       // تحديث الحالة المحلية
       setCustomers(prev => prev.map(customer => 
-        customer.id === editingCustomer.id ? updatedCustomer : customer
+        customer.id && editingCustomer.id && customer.id.toString() === editingCustomer.id.toString() ? updatedCustomer : customer
       ));
       setFilteredCustomers(prev => prev.map(customer => 
-        customer.id === editingCustomer.id ? updatedCustomer : customer
+        customer.id && editingCustomer.id && customer.id.toString() === editingCustomer.id.toString() ? updatedCustomer : customer
       ));
       
       toast.success('تم تحديث بيانات العميل بنجاح!');
@@ -1266,7 +1610,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const toggleCustomerStatus = async (customerId: number, currentStatus: string) => {
+  const toggleCustomerStatus = async (customerId: string | number, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
       const endpoint = `customers/${customerId}`;
@@ -1278,10 +1622,10 @@ const Dashboard: React.FC = () => {
       
       // تحديث الحالة المحلية
       setCustomers(prev => prev.map(customer => 
-        customer.id === customerId ? { ...customer, status: newStatus as 'active' | 'inactive' } : customer
+        customer.id && customer.id.toString() === customerId.toString() ? { ...customer, status: newStatus as 'active' | 'inactive' } : customer
       ));
       setFilteredCustomers(prev => prev.map(customer => 
-        customer.id === customerId ? { ...customer, status: newStatus as 'active' | 'inactive' } : customer
+        customer.id && customer.id.toString() === customerId.toString() ? { ...customer, status: newStatus as 'active' | 'inactive' } : customer
       ));
       
       toast.success(`تم ${newStatus === 'active' ? 'تفعيل' : 'إلغاء تفعيل'} العميل بنجاح!`);
@@ -1291,9 +1635,22 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // إضافة معالجة أفضل للأخطاء
+  const handleError = (error: any, message: string) => {
+    console.error(message, error);
+    toast.error(message);
+  };
+
+  // حالة تحميل الشحن
+  const [loadingShipping, setLoadingShipping] = useState<boolean>(false);
+
   // وظائف نظام الشحن
   const fetchShippingZones = async () => {
     try {
+      setLoadingShipping(true);
+      // محاكاة استدعاء API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // محاولة تحميل البيانات من localStorage أولاً
       const savedZones = localStorage.getItem('shippingZones');
       if (savedZones) {
@@ -1350,8 +1707,9 @@ const Dashboard: React.FC = () => {
       setShippingZones(mockZones);
       setFilteredShippingZones(mockZones);
     } catch (error) {
-      console.error('Error fetching shipping zones:', error);
-      toast.error('فشل في جلب مناطق الشحن');
+      handleError(error, 'فشل في جلب مناطق الشحن');
+    } finally {
+      setLoadingShipping(false);
     }
   };
 
@@ -1373,6 +1731,10 @@ const Dashboard: React.FC = () => {
 
   const handleAddShippingZone = async () => {
     try {
+      setLoadingShipping(true);
+      // محاكاة استدعاء API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const zoneData: Omit<ShippingZone, 'id' | 'createdAt'> = {
         name: newShippingZone.name || '',
         description: newShippingZone.name || '', // استخدام اسم المنطقة كوصف
@@ -1401,9 +1763,6 @@ const Dashboard: React.FC = () => {
       // إشعار المكونات الأخرى بالتحديث
       window.dispatchEvent(new Event('shippingZonesUpdated'));
       
-      // إشعار المكونات الأخرى بالتحديث
-      window.dispatchEvent(new Event('shippingZonesUpdated'));
-      
       setShowShippingZoneModal(false);
       setNewShippingZone({
         name: '',
@@ -1417,8 +1776,9 @@ const Dashboard: React.FC = () => {
       });
       toast.success('تم إضافة منطقة الشحن بنجاح');
     } catch (error) {
-      console.error('Error adding shipping zone:', error);
-      toast.error('فشل في إضافة منطقة الشحن');
+      handleError(error, 'فشل في إضافة منطقة الشحن');
+    } finally {
+      setLoadingShipping(false);
     }
   };
 
@@ -1426,6 +1786,10 @@ const Dashboard: React.FC = () => {
     if (!editingShippingZone) return;
 
     try {
+      setLoadingShipping(true);
+      // محاكاة استدعاء API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // محاكاة تحديث المنطقة (سيتم ربطها بالباك إند لاحقاً)
       const updatedZones = shippingZones.map(z => z.id === editingShippingZone.id ? editingShippingZone : z);
       setShippingZones(updatedZones);
@@ -1438,13 +1802,18 @@ const Dashboard: React.FC = () => {
       setEditingShippingZone(null);
       toast.success('تم تحديث منطقة الشحن بنجاح');
     } catch (error) {
-      console.error('Error updating shipping zone:', error);
-      toast.error('فشل في تحديث منطقة الشحن');
+      handleError(error, 'فشل في تحديث منطقة الشحن');
+    } finally {
+      setLoadingShipping(false);
     }
   };
 
   const handleDeleteShippingZone = async (id: number) => {
     try {
+      setLoadingShipping(true);
+      // محاكاة استدعاء API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // محاكاة حذف المنطقة (سيتم ربطها بالباك إند لاحقاً)
       const updatedZones = shippingZones.filter(z => z.id !== id);
       setShippingZones(updatedZones);
@@ -1458,13 +1827,18 @@ const Dashboard: React.FC = () => {
       
       toast.success('تم حذف منطقة الشحن بنجاح');
     } catch (error) {
-      console.error('Error deleting shipping zone:', error);
-      toast.error('فشل في حذف منطقة الشحن');
+      handleError(error, 'فشل في حذف منطقة الشحن');
+    } finally {
+      setLoadingShipping(false);
     }
   };
 
   const handleUpdateShippingSettings = async () => {
     try {
+      setLoadingShipping(true);
+      // محاكاة استدعاء API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // محاكاة تحديث إعدادات الشحن (سيتم ربطها بالباك إند لاحقاً)
       const updatedSettings = {
         ...shippingSettings,
@@ -1479,8 +1853,9 @@ const Dashboard: React.FC = () => {
       setShowShippingSettingsModal(false);
       toast.success('تم تحديث إعدادات الشحن بنجاح');
     } catch (error) {
-      console.error('Error updating shipping settings:', error);
-      toast.error('فشل في تحديث إعدادات الشحن');
+      handleError(error, 'فشل في تحديث إعدادات الشحن');
+    } finally {
+      setLoadingShipping(false);
     }
   };
 
@@ -1488,6 +1863,30 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (currentTab === 'shipping') {
       fetchShippingZones();
+    }
+  }, [currentTab]);
+
+  // Load static pages from localStorage on component mount
+  useEffect(() => {
+    const savedPages = localStorage.getItem('dashboardStaticPages');
+    if (savedPages) {
+      try {
+        const parsedPages = JSON.parse(savedPages);
+        if (Array.isArray(parsedPages)) {
+          setStaticPages(parsedPages);
+          setFilteredStaticPages(parsedPages);
+          console.log('🚀 Initial load: Dashboard static pages from localStorage');
+        }
+      } catch (error) {
+        console.error('❌ Error parsing saved dashboard static pages on mount:', error);
+      }
+    }
+  }, []);
+
+  // تحميل الصفحات الثابتة عند فتح التبويب
+  useEffect(() => {
+    if (currentTab === 'pages') {
+      fetchStaticPages();
     }
   }, [currentTab]);
 
@@ -1689,6 +2088,17 @@ const Dashboard: React.FC = () => {
                 <FileText className="w-4 h-4 inline-block ml-2" />
                 الفواتير
               </button>
+              <button
+                onClick={() => switchTab('pages')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  currentTab === 'pages'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Globe className="w-4 h-4 inline-block ml-2" />
+                اضافة صفحة
+              </button>
             </nav>
 
             {/* User Menu */}
@@ -1807,6 +2217,27 @@ const Dashboard: React.FC = () => {
                 <FileText className="w-4 h-4 inline-block ml-2" />
                 الفواتير
               </button>
+              <button
+                onClick={() => switchTab('pages')}
+                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  currentTab === 'pages'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Globe className="w-4 h-4 inline-block ml-2" />
+                اضافة صفحة
+              </button>
+              <button
+                onClick={() => switchTab('blog')}
+                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  currentTab === 'blog'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                المدونة
+              </button>
               <div className="border-t border-gray-200 pt-4">
                 <button
                   onClick={handleLogout}
@@ -1846,6 +2277,7 @@ const Dashboard: React.FC = () => {
                     {currentTab === 'coupons' && 'إدارة الكوبونات'}
                     {currentTab === 'shipping' && 'إدارة الشحن والتوصيل'}
                     {currentTab === 'analytics' && 'التحليلات والإحصائيات'}
+                    {currentTab === 'pages' && 'إدارة الصفحات الثابتة'}
                   </h1>
                   <p className="text-gray-600 text-sm">
                     آخر تحديث: {new Date().toLocaleDateString('ar-SA')} - {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
@@ -2676,7 +3108,7 @@ const Dashboard: React.FC = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <select
-                                  value={order.status}
+                                  value={order.status || 'pending'}
                                   onChange={(e) => handleOrderStatusUpdate(order.id, e.target.value)}
                                   className={`text-sm font-medium px-3 py-1 rounded-full border ${getOrderStatusColor(order.status)}`}
                                 >
@@ -2689,7 +3121,7 @@ const Dashboard: React.FC = () => {
                                 </select>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(order.createdAt).toLocaleDateString('ar-SA')}
+                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
@@ -2968,6 +3400,9 @@ const Dashboard: React.FC = () => {
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-gray-900">{(order.total || 0).toFixed(2)} ر.س</p>
+                              <div className="text-sm text-gray-500">
+                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}
+                              </div>
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${getOrderStatusColor(order.status)}`}>
                                 {getOrderStatusText(order.status)}
                               </span>
@@ -3229,7 +3664,13 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* Shipping Zones */}
-              {filteredShippingZones.length === 0 ? (
+              {loadingShipping ? (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">جاري تحميل مناطق الشحن</h3>
+                  <p className="text-gray-600">يرجى الانتظار...</p>
+                </div>
+              ) : filteredShippingZones.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                   <Truck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد مناطق شحن</h3>
@@ -3237,6 +3678,7 @@ const Dashboard: React.FC = () => {
                   <button
                     onClick={() => setShowShippingZoneModal(true)}
                     className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                    disabled={loadingShipping}
                   >
                     <Plus className="w-4 h-4 ml-2" />
                     إضافة أول منطقة شحن
@@ -3276,12 +3718,14 @@ const Dashboard: React.FC = () => {
                               setShowShippingZoneModal(true);
                             }}
                             className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                            disabled={loadingShipping}
                           >
                             تعديل
                           </button>
                           <button
                             onClick={() => openDeleteModal('shippingZone', zone.id, zone.name)}
                             className="flex-1 bg-red-50 text-red-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                            disabled={loadingShipping}
                           >
                             حذف
                           </button>
@@ -3788,6 +4232,148 @@ const Dashboard: React.FC = () => {
           {currentTab === 'invoices' && (
             <InvoiceManagement orders={orders} />
           )}
+
+          {/* Blog Tab */}
+          {currentTab === 'blog' && (
+            <BlogManagement />
+          )}
+
+          {/* Pages Tab */}
+          {currentTab === 'pages' && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">الصفحات الثابتة</h2>
+                  <p className="text-gray-600">إنشاء وإدارة صفحات المحتوى الثابت مثل "من نحن" و "سياسة الخصوصية"</p>
+                </div>
+                <button
+                  onClick={() => openPageModal()}
+                  className="inline-flex items-center justify-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                >
+                  <Plus className="w-4 h-4 ml-2" />
+                  إضافة صفحة جديدة
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="البحث في الصفحات..."
+                    value={pageSearchTerm}
+                    onChange={handlePageSearch}
+                    className="w-full pr-10 pl-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Pages List */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                {filteredStaticPages.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            العنوان
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            الرابط
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            الحالة
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            في الفوتر
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            تاريخ الإنشاء
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            الإجراءات
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredStaticPages.map((page) => (
+                          <tr key={page.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">{page.title}</div>
+                              {page.metaDescription && (
+                                <div className="text-sm text-gray-500 truncate max-w-xs">{page.metaDescription}</div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900 font-mono">/{page.slug}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                page.isActive
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {page.isActive ? 'نشط' : 'غير نشط'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                page.showInFooter
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {page.showInFooter ? 'نعم' : 'لا'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(page.createdAt).toLocaleDateString('ar-SA')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => openPageModal(page)}
+                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deletePage(page.id)}
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Globe className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">لا توجد صفحات</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {pageSearchTerm ? 'لا توجد صفحات تطابق البحث' : 'ابدأ بإنشاء صفحة جديدة'}
+                    </p>
+                    {!pageSearchTerm && (
+                      <div className="mt-6">
+                        <button
+                          onClick={() => openPageModal()}
+                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black"
+                        >
+                          <Plus className="w-4 h-4 ml-2" />
+                          إضافة صفحة جديدة
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -3931,12 +4517,20 @@ const Dashboard: React.FC = () => {
               </button>
               <button
                 onClick={editingShippingZone ? handleUpdateShippingZone : handleAddShippingZone}
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-                disabled={!(editingShippingZone?.name || newShippingZone.name) || 
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loadingShipping || 
+                         !(editingShippingZone?.name || newShippingZone.name) || 
                          !(editingShippingZone?.shippingCost || newShippingZone.shippingCost) ||
                          !(editingShippingZone?.estimatedDays || newShippingZone.estimatedDays)}
               >
-                {editingShippingZone ? 'تحديث' : 'إضافة'}
+                {loadingShipping ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                    {editingShippingZone ? 'جاري التحديث...' : 'جاري الإضافة...'}
+                  </div>
+                ) : (
+                  editingShippingZone ? 'تحديث' : 'إضافة'
+                )}
               </button>
             </div>
           </div>
@@ -4099,9 +4693,17 @@ const Dashboard: React.FC = () => {
               </button>
               <button
                 onClick={handleUpdateShippingSettings}
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loadingShipping}
               >
-                حفظ الإعدادات
+                {loadingShipping ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                    جاري الحفظ...
+                  </div>
+                ) : (
+                  'حفظ الإعدادات'
+                )}
               </button>
             </div>
           </div>
@@ -4242,7 +4844,9 @@ const Dashboard: React.FC = () => {
                           </div>
                           <div className="text-left">
                             <div className="font-bold text-green-600">{order.total.toFixed(2)} ر.س</div>
-                            <div className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString('ar-SA')}</div>
+                            <div className="text-sm text-gray-500">
+                              {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}
+                            </div>
                           </div>
                         </div>
                         <div className="text-sm text-gray-600">
@@ -4368,8 +4972,30 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Page Modal */}
+      <StaticPageModal
+        isOpen={showPageModal}
+        onClose={closePageModal}
+        onSave={savePage}
+        editingPage={editingPage}
+      />
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-left"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={true}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </div>
   );
-};
+};              
 
 export default Dashboard;

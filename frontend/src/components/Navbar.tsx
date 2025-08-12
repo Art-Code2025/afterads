@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, ShoppingCart, Heart, User, Menu, X, Package, Sparkles, Home, Grid, Phone, Info, LogOut, ChevronLeft, Crown, Droplets, Star } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { createCategorySlug, createProductSlug } from '../utils/slugify';
-import { productsAPI, categoriesAPI } from '../utils/api';
+import { productsAPI, categoriesAPI } from '../utils/api.ts';
 import { buildImageUrl, apiCall, API_ENDPOINTS } from '../config/api';
 import logo from '../assets/logo.png';
 import AuthModal from './AuthModal';
@@ -196,15 +196,23 @@ const Navbar: React.FC<NavbarProps> = ({ onCartClick }) => {
       
       console.log('🔄 [Navbar] Fetching cart count for user:', user.id);
       const data = await apiCall(API_ENDPOINTS.USER_CART(user.id));
-      const totalItems = data.reduce((sum: number, item: any) => sum + item.quantity, 0);
-      
+  
+      let totalItems = 0;
+      if (Array.isArray(data)) {
+        totalItems = data.reduce((sum: number, item: any) => sum + (item?.quantity || 1), 0);
+      } else if (data && Array.isArray((data as any).items)) {
+        totalItems = (data as any).items.reduce((sum: number, item: any) => sum + (item?.quantity || 1), 0);
+      } else if (data && typeof (data as any).count === 'number') {
+        totalItems = (data as any).count;
+      } else {
+        totalItems = 0;
+      }
+  
       console.log('📊 [Navbar] Cart count fetched:', totalItems);
       setCartItemsCount(totalItems);
-      
-      // حفظ العداد في localStorage بنفس طريقة cartUtils
+  
       localStorage.setItem('lastCartCount', totalItems.toString());
       localStorage.setItem(`cartCount_${user.id}`, totalItems.toString());
-      
       console.log('💾 [Navbar] Cart count saved to localStorage:', totalItems);
     } catch (error) {
       console.error('❌ [Navbar] Error fetching cart count:', error);

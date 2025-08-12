@@ -15,43 +15,29 @@ interface OrderItem {
 }
 
 interface Order {
-  id: number;
-  customerName?: string;
+  id: string | number;
+  customerName: string;
+  total: number;
+  status?: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled'; // Make optional
+  createdAt?: string; // Make optional
+  items?: OrderItem[]; // Make optional
   customerPhone?: string;
   customerEmail?: string;
   address?: string;
   city?: string;
-  items: OrderItem[];
-  total?: number;
   subtotal?: number;
   deliveryFee?: number;
   couponDiscount?: number;
   paymentMethod?: string;
   paymentStatus?: string;
-  status: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
-  createdAt: string;
   notes?: string;
-  serviceName?: string;
-  serviceId?: string;
-  categoryName?: string;
-  serviceCategoryName?: string;
-  startLocation?: string;
-  endLocation?: string;
-  selectedDestination?: string;
-  fullName?: string;
-  phoneNumber?: string;
-  customAnswers?: Record<string, any>;
-  customAnswersWithQuestions?: Record<string, any>;
-  price?: string;
-  fullData?: any;
-  type?: 'product' | 'booking' | 'service';
 }
 
 interface OrderModalProps {
   order: Order | null;
   isOpen: boolean;
   onClose: () => void;
-  onStatusUpdate: (orderId: number, newStatus: string) => void;
+  onStatusUpdate: (orderId: string | number, newStatus: string) => void;
 }
 
 const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatusUpdate }) => {
@@ -60,7 +46,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
 
   if (!isOpen || !order) return null;
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'confirmed': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -72,7 +58,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status?: string) => {
     switch (status) {
       case 'pending': return 'قيد المراجعة';
       case 'confirmed': return 'مؤكد';
@@ -80,7 +66,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
       case 'shipped': return 'تم الشحن';
       case 'delivered': return 'تم التسليم';
       case 'cancelled': return 'ملغي';
-      default: return status;
+      default: return status || 'غير محدد';
     }
   };
 
@@ -378,16 +364,16 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
               <div class="order-info">
                 <div>
                   <strong>📅 تاريخ الطلب</strong><br>
-                  ${new Date(order.createdAt).toLocaleDateString('ar-SA', {
+                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
-                  })}
+                  }) : 'تاريخ غير محدد'}
                 </div>
                 <div>
                   <strong>🕐 وقت الطلب</strong><br>
-                  ${new Date(order.createdAt).toLocaleTimeString('ar-SA')}
+                  {order.createdAt ? new Date(order.createdAt).toLocaleTimeString('ar-SA') : 'وقت غير محدد'}
                 </div>
                 <div>
                   <strong>📊 حالة الطلب</strong><br>
@@ -531,13 +517,13 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
               <div>
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">الطلب #{order.id}</h2>
                 <p className="text-blue-100 text-sm sm:text-base">
-                  {new Date(order.createdAt).toLocaleDateString('ar-SA', {
+                  {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
-                  })}
+                  }) : 'تاريخ غير محدد'}
                 </p>
               </div>
             </div>
@@ -833,6 +819,23 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
                   })}
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  حالة الطلب
+                </label>
+                <select
+                  value={order.status || 'pending'} // Provide default value
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pending">في الانتظار</option>
+                  <option value="confirmed">مؤكد</option>
+                  <option value="preparing">قيد التحضير</option>
+                  <option value="shipped">تم الشحن</option>
+                  <option value="delivered">تم التسليم</option>
+                  <option value="cancelled">ملغي</option>
+                </select>
+              </div>
             </div>
           )}
 
@@ -886,12 +889,17 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
               </div>
               
               <div className="bg-white border-2 border-gray-200 rounded-2xl p-8">
-                <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">متجر غيم</h2>
-                  <p className="text-gray-600">فاتورة الطلب #{order.id}</p>
-                  <p className="text-sm text-gray-500">تاريخ الطلب: {new Date(order.createdAt).toLocaleDateString('ar-SA')}</p>
+                <div className="print-section">
+                  <div className="invoice-header" style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <h1 style={{ color: '#333', fontSize: '24px', marginBottom: '10px' }}>فاتورة رقم #{order.id}</h1>
+                    <p style={{ color: '#666', fontSize: '14px' }}>
+                      تاريخ الطلب: {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}
+                    </p>
+                    <p style={{ color: '#666', fontSize: '12px' }}>
+                      الوقت: {order.createdAt ? new Date(order.createdAt).toLocaleTimeString('ar-SA') : 'وقت غير محدد'}
+                    </p>
+                  </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-8 mb-8">
                   <div>
                     <h4 className="font-bold text-gray-800 mb-3">بيانات العميل:</h4>
