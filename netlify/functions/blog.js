@@ -1,5 +1,5 @@
-import { db } from './config/firebase.js';
-import {
+const { db } = require('./config/firebase.js');
+const {
   collection,
   doc,
   getDocs,
@@ -11,7 +11,7 @@ import {
   where,
   orderBy,
   limit,
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -29,7 +29,7 @@ const getBySlug = async (slug) => {
   return { id: d.id, ...d.data() };
 };
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   try {
     // CORS preflight
     if (event.httpMethod === 'OPTIONS') {

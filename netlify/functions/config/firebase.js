@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+const { initializeApp } = require("firebase/app");
+const { getAuth } = require("firebase/auth");
+const { getFirestore, connectFirestoreEmulator } = require("firebase/firestore");
 
 const firebaseConfig = {
   apiKey: "AIzaSyAr-8KXPyqsqcwiDSiIbyn6alhFcQCN4gU",
@@ -42,14 +42,14 @@ try {
 }
 
 // Helper function to check Firebase connection
-export const testFirebaseConnection = async () => {
+const testFirebaseConnection = async () => {
   try {
     if (!db) {
       throw new Error('Firestore not initialized');
     }
     
     // Try a simple operation to test connection
-    const { collection, getDocs } = await import('firebase/firestore');
+    const { collection, getDocs } = require('firebase/firestore');
     const testCollection = collection(db, 'test');
     await getDocs(testCollection);
     
@@ -61,4 +61,4 @@ export const testFirebaseConnection = async () => {
   }
 };
 
-export { auth, db }; 
+module.exports = { auth, db, testFirebaseConnection };

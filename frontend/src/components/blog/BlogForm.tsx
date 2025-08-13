@@ -18,7 +18,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ initial, onSaved, onCancel }) => {
     tags: [] as string[],
     author: '',
     readTime: 3,
-    published: false,
+    published: true, // تغيير من false إلى true
     metaDescription: ''
   });
   const [loading, setLoading] = useState(false);
