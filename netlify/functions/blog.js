@@ -46,23 +46,27 @@ exports.handler = async (event) => {
       const publishedParam = params.published;
       const tag = params.tag?.trim();
       const search = params.search?.trim();
-
+    
       let qRef = collection(db, 'blogPosts');
       let qExec = query(qRef, orderBy('createdAt', 'desc'));
-
-      const filters = [];
-      if (publishedParam === 'true') filters.push(where('published', '==', true));
-      if (publishedParam === 'false') filters.push(where('published', '==', false));
-      if (tag) filters.push(where('tags', 'array-contains', tag));
-
-      if (filters.length > 0) {
-        qExec = query(qRef, ...filters, orderBy('createdAt', 'desc'));
-      }
-
+    
+      // جلب جميع المقالات أولاً ثم الفلترة
       const snap = await getDocs(qExec);
       let posts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-      // simple search by title/content
+    
+      // فلترة المقالات المنشورة
+      if (publishedParam === 'true') {
+        posts = posts.filter(p => p.published === true);
+      } else if (publishedParam === 'false') {
+        posts = posts.filter(p => p.published === false);
+      }
+    
+      // فلترة حسب الوسم
+      if (tag) {
+        posts = posts.filter(p => p.tags && p.tags.includes(tag));
+      }
+    
+      // البحث النصي
       if (search) {
         const s = search.toLowerCase();
         posts = posts.filter(
@@ -71,7 +75,7 @@ exports.handler = async (event) => {
             (p.content || '').toLowerCase().includes(s)
         );
       }
-
+    
       return { statusCode: 200, headers, body: JSON.stringify(posts) };
     }
 
