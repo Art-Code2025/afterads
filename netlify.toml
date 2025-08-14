@@ -18,7 +18,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["firebase", "firebase-admin", "firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "cloudinary"]
+  external_node_modules = ["firebase", "firebase-admin", "firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "cloudinary", "bcryptjs", "node-fetch"]
 
 [build.processing]
   skip_processing = false
@@ -35,4 +35,4 @@
   pretty_urls = true
 
 [build.processing.images]
-  compress = true 
+  compress = true
