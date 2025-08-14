@@ -313,12 +313,11 @@ const App: React.FC = () => {
       const validServices = Array.isArray(services) ? services : [];
       const validCategories = Array.isArray(categories) ? categories : [];
       
-      // تخزين البيانات الأساسية فقط للسرعة الخارقة
+      // تخزين البيانات الأساسية للقوائم
       const compactCategories = validCategories.map(cat => ({
         id: cat.id,
         name: cat.name,
         image: cat.image
-        // إزالة الوصف لتوفير مساحة أكبر
       }));
       
       const compactServices = validServices.map(service => ({
@@ -327,12 +326,18 @@ const App: React.FC = () => {
         price: service.price,
         categoryId: service.categoryId,
         mainImage: service.mainImage
-        // حفظ الحقول الأساسية فقط للعرض السريع
       }));
       
-      // حفظ البيانات المضغوطة في Cache Manager
+      // حفظ البيانات المضغوطة للقوائم
       cacheManager.set(CACHE_KEYS.CATEGORIES, compactCategories);
       cacheManager.set(CACHE_KEYS.SERVICES, compactServices);
+      
+      // تحميل مسبق لكل خدمة منفردة للعرض الفوري
+      validServices.forEach(service => {
+        cacheManager.set(CACHE_KEYS.SERVICE_DETAIL(service.id.toString()), service, 30 * 60 * 1000);
+      });
+      
+      console.log(`⚡ تم تحميل ${validServices.length} خدمة مسبقاً للعرض الفوري`);
 
       // Group services by category
       const groupedData = validCategories.map(category => ({
@@ -364,9 +369,31 @@ const App: React.FC = () => {
       const validServices = Array.isArray(services) ? services : [];
       const validCategories = Array.isArray(categories) ? categories : [];
       
-      // تحديث Cache
-      cacheManager.set(CACHE_KEYS.CATEGORIES, validCategories, 30 * 60 * 1000);
-      cacheManager.set(CACHE_KEYS.SERVICES, validServices, 30 * 60 * 1000);
+      // تحديث البيانات المضغوطة للقوائم
+      const compactCategories = validCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        image: cat.image
+      }));
+      
+      const compactServices = validServices.map(service => ({
+        id: service.id,
+        name: service.name,
+        price: service.price,
+        categoryId: service.categoryId,
+        mainImage: service.mainImage
+      }));
+      
+      // تحديث Cache للقوائم
+      cacheManager.set(CACHE_KEYS.CATEGORIES, compactCategories, 30 * 60 * 1000);
+      cacheManager.set(CACHE_KEYS.SERVICES, compactServices, 30 * 60 * 1000);
+      
+      // تحديث التحميل المسبق لكل خدمة منفردة
+      validServices.forEach(service => {
+        cacheManager.set(CACHE_KEYS.SERVICE_DETAIL(service.id.toString()), service, 30 * 60 * 1000);
+      });
+      
+      console.log(`⚡ تم تحديث ${validServices.length} خدمة مسبقاً في الخلفية`);
       
       // تحديث البيانات المعروضة
       const groupedData = validCategories.map(category => ({

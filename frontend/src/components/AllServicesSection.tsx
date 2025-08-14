@@ -19,91 +19,97 @@ interface Service {
   brand?: string;
 }
 
-// Global cache for services
-let servicesCache: Service[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// استخدام localStorage للسرعة القصوى
+const CACHE_DURATION = 30 * 60 * 1000; // 30 دقيقة
+const CACHE_KEY = 'ultra_fast_services';
+
+// دوال localStorage فائقة السرعة
+const fastCache = {
+  set: (data: Service[]) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch (e) { 
+      console.warn('Cache set failed:', e);
+      try {
+        localStorage.clear();
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+      } catch (e2) {
+        console.warn('Cache set failed after clear:', e2);
+      }
+    }
+  },
+  get: (): Service[] | null => {
+    try {
+      const item = localStorage.getItem(CACHE_KEY);
+      if (!item) return null;
+      const parsed = JSON.parse(item);
+      if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      return parsed.data;
+    } catch (e) { return null; }
+  }
+};
 
 const AllServicesSection: React.FC = () => {
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
+  // تحميل فوري من localStorage
+  const [services, setServices] = useState<Service[]>(() => {
+    const cachedServices = fastCache.get();
+    return cachedServices || [];
+  });
   const [error, setError] = useState<string | null>(null);
   const fetchAttempted = useRef(false);
 
   useEffect(() => {
-    // Check if we have valid cached data
-    const now = Date.now();
-    if (servicesCache && (now - cacheTimestamp) < CACHE_DURATION) {
-      console.log('✅ Using cached services data');
-      setServices(servicesCache);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    // Only fetch if we haven't attempted yet or cache is expired
-    if (!fetchAttempted.current) {
-      fetchAttempted.current = true;
-      fetchServices();
+    // إذا كانت هناك خدمات محملة، تحديث في الخلفية
+    if (services.length > 0) {
+      refreshServicesInBackground();
+    } else {
+      // إذا لم توجد خدمات، جلب البيانات
+      fetchInitialServices();
     }
   }, []);
 
-  const fetchServices = async () => {
+  const fetchInitialServices = async () => {
+    if (fetchAttempted.current) return;
+    fetchAttempted.current = true;
+    
     try {
-      setLoading(true);
-      console.log('🔄 Fetching all services...');
+      console.log('🔄 جلب الخدمات الأولية');
+      const response = await apiCall(API_ENDPOINTS.SERVICES);
       
-      // Set a shorter timeout for this specific request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds
-      
-      const servicesData = await apiCall(API_ENDPOINTS.SERVICES, {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      console.log('✅ Services loaded:', servicesData?.length || 0);
-      const services = servicesData || [];
-      
-      // Update cache
-      servicesCache = services;
-      cacheTimestamp = Date.now();
-      
-      setServices(services);
-      setError(null);
-    } catch (error: any) {
-      console.error('❌ Error fetching services:', error);
-      
-      // If we have cached data, use it instead of showing error
-      if (servicesCache && servicesCache.length > 0) {
-        console.log('📦 Using cached services due to fetch error');
-        setServices(servicesCache);
+      if (response.success && Array.isArray(response.data)) {
+        console.log('✅ تم جلب الخدمات بنجاح:', response.data.length);
+        setServices(response.data);
+        fastCache.set(response.data);
         setError(null);
-        toast.info('تم تحميل البيانات من الذاكرة المؤقتة');
-      } else {
-        setError('فشل في تحميل الخدمات');
-        toast.error('فشل في تحميل الخدمات');
-        setServices([]);
       }
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.warn('فشل في جلب الخدمات الأولية:', error);
+      setError('فشل في تحميل الخدمات');
     }
   };
 
-  if (loading) {
-    return (
-      <section className="py-24 bg-gradient-to-br from-[#FAF8F5] to-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#8B4513] mx-auto"></div>
-            <p className="mt-4 text-gray-600">جاري تحميل الخدمات...</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  const refreshServicesInBackground = async () => {
+    try {
+      console.log('🔄 تحديث الخدمات في الخلفية');
+      const response = await apiCall(API_ENDPOINTS.SERVICES);
+      
+      if (response.success && Array.isArray(response.data)) {
+        console.log('✅ تم تحديث الخدمات في localStorage');
+        setServices(response.data);
+        fastCache.set(response.data);
+      }
+    } catch (error) {
+      console.warn('فشل في تحديث الخدمات في الخلفية:', error);
+    }
+  };
 
+  const retryFetch = async () => {
+    fetchAttempted.current = false;
+    await fetchInitialServices();
+  };
   if (error) {
     return (
       <section className="py-24 bg-gradient-to-br from-[#FAF8F5] to-white">
@@ -112,7 +118,7 @@ const AllServicesSection: React.FC = () => {
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">{error}</p>
             <button 
-              onClick={fetchServices}
+              onClick={retryFetch}
               className="mt-4 px-6 py-2 bg-[#8B4513] text-white rounded-lg hover:bg-[#A0522D] transition-colors"
             >
               إعادة المحاولة

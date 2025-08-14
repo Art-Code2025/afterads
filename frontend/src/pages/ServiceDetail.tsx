@@ -1,10 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, Calendar, User, Eye, Star, Heart, Share2, RefreshCw } from 'lucide-react';
+import { ArrowRight, Calendar } from 'lucide-react';
 import { servicesAPI } from '../utils/api';
 import { buildImageUrl } from '../config/api';
 import ContactFooter from '../components/ContactFooter';
-import { cacheManager, CACHE_KEYS, CachedService } from '../utils/cacheManager';
+// استخدام localStorage للسرعة القصوى
+const CACHE_DURATION = 30 * 60 * 1000; // 30 دقيقة
+const CACHE_KEYS = {
+  SERVICE_DETAIL: (id: string) => `ultra_fast_service_${id}`,
+  SERVICES: 'ultra_fast_services'
+};
+
+// دوال localStorage فائقة السرعة مع معالجة QuotaExceededError
+const fastCache = {
+  set: (key: string, data: any) => {
+    try {
+      // تنظيف البيانات القديمة أولاً لتوفير مساحة
+      const keysToCheck = ['ultra_fast_services', 'ultra_fast_categories'];
+      keysToCheck.forEach(k => {
+        if (k !== key) {
+          const item = localStorage.getItem(k);
+          if (item) {
+            try {
+              const parsed = JSON.parse(item);
+              if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+                localStorage.removeItem(k);
+              }
+            } catch (e) { localStorage.removeItem(k); }
+          }
+        }
+      });
+      
+      // محاولة حفظ البيانات الجديدة
+      localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch (e) { 
+      console.warn('Cache set failed:', e);
+      // في حالة امتلاء التخزين، نظف كل شيء ثم حاول مرة أخرى
+      try {
+        localStorage.clear();
+        localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+      } catch (e2) {
+        console.warn('Cache set failed after clear:', e2);
+      }
+    }
+  },
+  get: (key: string) => {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return null;
+      const parsed = JSON.parse(item);
+      if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return parsed.data;
+    } catch (e) { return null; }
+  },
+  clear: () => {
+    const keys = Object.keys(localStorage).filter(key => key.startsWith('ultra_fast_'));
+    keys.forEach(key => localStorage.removeItem(key));
+  }
+};
 
 // تعريف نوع الخدمة
 interface Service {
@@ -22,127 +78,80 @@ interface Service {
 
 function ServiceDetail() {
   const { id } = useParams<{ id: string }>();
-  const [service, setService] = useState<Service | null>(null);
+  
+  // تحميل فوري من localStorage مثل CategoryPage
+  const [service, setService] = useState<Service | null>(() => {
+    if (!id) return null;
+    
+    // محاولة تحميل الخدمة من localStorage فوراً
+    const cachedService = fastCache.get(CACHE_KEYS.SERVICE_DETAIL(id)) as Service;
+    if (cachedService) {
+      return cachedService;
+    }
+    
+    // محاولة البحث في قائمة الخدمات المخزنة
+    const cachedServices = fastCache.get(CACHE_KEYS.SERVICES) as Service[];
+    if (cachedServices) {
+      const foundInList = cachedServices.find((s: Service) => s.id.toString() === id);
+      if (foundInList) {
+        // حفظ الخدمة منفردة في localStorage
+        fastCache.set(CACHE_KEYS.SERVICE_DETAIL(id), foundInList);
+        return foundInList;
+      }
+    }
+    
+    return null;
+  });
+  
   const [openImage, setOpenImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // جلب بيانات الخدمة من الـ API مع استخدام Cache Manager
+  // تحديث البيانات في الخلفية بصمت مثل CategoryPage
   useEffect(() => {
-    if (id) {
-      fetchService();
+    if (id && service) {
+      // تحديث البيانات في الخلفية بصمت
+      refreshServiceInBackground();
+    } else if (id && !service) {
+      // إذا لم توجد بيانات مخزنة، جلب البيانات في الخلفية
+      fetchInitialData();
     }
   }, [id]);
 
-  const fetchService = async () => {
-    setError(null);
-    
+  const fetchInitialData = async () => {
     try {
-      // محاولة تحميل الخدمة من Cache فوراً
-      const cachedService = cacheManager.get<Service>(CACHE_KEYS.SERVICE_DETAIL(id!));
-      
-      if (cachedService) {
-        console.log('✅ تحميل فوري للخدمة من Cache Manager');
-        setService(cachedService);
-        setLoading(false);
-        
-        // تحديث البيانات في الخلفية
-        refreshServiceInBackground();
-        return;
+      console.log('🔄 جلب بيانات الخدمة الأولية');
+      const foundService = await servicesAPI.getById(id!);
+      if (foundService) {
+        setService(foundService);
+        fastCache.set(CACHE_KEYS.SERVICE_DETAIL(id!), foundService);
+        console.log('✅ تم حفظ الخدمة في localStorage');
       }
-      
-      // محاولة البحث في قائمة الخدمات المخزنة
-      const cachedServices = cacheManager.get<CachedService[]>(CACHE_KEYS.SERVICES);
-      if (cachedServices) {
-        const foundInList = cachedServices.find(s => s.id.toString() === id);
-        if (foundInList) {
-          console.log('✅ تحميل الخدمة من قائمة الخدمات المخزنة');
-          setService(foundInList as Service);
-          setLoading(false);
-          
-          // حفظ الخدمة منفردة في Cache
-          cacheManager.set(CACHE_KEYS.SERVICE_DETAIL(id!), foundInList, 30 * 60 * 1000);
-          
-          // تحديث البيانات في الخلفية
-          refreshServiceInBackground();
-          return;
-        }
-      }
-      
-      // إذا لم توجد بيانات مخزنة، جلب البيانات الجديدة
-      setLoading(true);
-      await fetchFreshService();
-      
     } catch (error) {
-      console.error('خطأ في جلب بيانات الخدمة:', error);
-      setError('فشل في تحميل الخدمة');
-      setLoading(false);
+      console.warn('فشل في جلب بيانات الخدمة الأولية:', error);
     }
-  };
-  
-  const fetchFreshService = async () => {
-    console.log('🔄 جلب بيانات الخدمة الجديدة من الخادم');
-    
-    const foundService = await servicesAPI.getById(id!);
-    if (foundService) {
-      setService(foundService);
-      
-      // حفظ الخدمة في Cache Manager
-      cacheManager.set(CACHE_KEYS.SERVICE_DETAIL(id!), foundService, 30 * 60 * 1000);
-      
-      console.log('✅ تم حفظ الخدمة في Cache Manager');
-    } else {
-      setError('الخدمة غير موجودة');
-    }
-    
-    setLoading(false);
   };
   
   const refreshServiceInBackground = async () => {
     try {
       console.log('🔄 تحديث بيانات الخدمة في الخلفية');
-      await fetchFreshService();
-    } catch (err) {
-      console.warn('فشل في تحديث بيانات الخدمة في الخلفية:', err);
+      const foundService = await servicesAPI.getById(id!);
+      if (foundService) {
+        setService(foundService);
+        fastCache.set(CACHE_KEYS.SERVICE_DETAIL(id!), foundService);
+        console.log('✅ تم تحديث الخدمة في localStorage');
+      }
+    } catch (error) {
+      console.warn('فشل في تحديث بيانات الخدمة في الخلفية:', error);
     }
   };
-
-  // التمرير إلى محتوى الخدمة عند التحميل
-  useEffect(() => {
-    if (service) {
-      const serviceContent = document.getElementById('service-content');
-      if (serviceContent) {
-        serviceContent.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
-  }, [service]);
 
   const getImageSrc = (image: string) => {
     return image.startsWith('data:image/') ? image : buildImageUrl(image);
   };
 
-  // التحقق من الحالات المختلفة قبل عرض محتوى الخدمة
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" dir="rtl">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">جاري التحميل...</h1>
-          <p className="text-gray-600 mb-6">يتم تحميل بيانات الخدمة</p>
-        </div>
-      </div>
-    );
-  }
-
+  // عرض فوري بدون أي تحميل - إذا لم توجد خدمة، عرض صفحة فارغة مؤقتاً
   if (!service) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold mb-4">الخدمة غير موجودة</h1>
-        <Link to="/" className="text-green-600 hover:underline">
-          العودة إلى الصفحة الرئيسية
-        </Link>
-      </div>
-    );
+    return <div></div>;
   }
 
   return (

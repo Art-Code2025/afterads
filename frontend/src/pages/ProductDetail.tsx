@@ -30,9 +30,68 @@ import { toast } from 'react-toastify';
 import { productsAPI, servicesAPI } from '../utils/api';
 import { buildImageUrl } from '../config/api';
 
-// Cache for instant loading
-const productCache = new Map<string, any>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// استخدام localStorage للسرعة القصوى
+const CACHE_DURATION = 30 * 60 * 1000; // 30 دقيقة
+const CACHE_KEYS = {
+  PRODUCT_DETAIL: (id: string) => `ultra_fast_product_${id}`,
+  SERVICE_DETAIL: (id: string) => `ultra_fast_service_${id}`,
+  PRODUCTS: 'ultra_fast_products'
+};
+
+// دوال localStorage فائقة السرعة مع معالجة QuotaExceededError
+const fastCache = {
+  set: (key: string, data: any) => {
+    try {
+      // تنظيف البيانات القديمة أولاً لتوفير مساحة
+      const keysToCheck = ['ultra_fast_products', 'ultra_fast_services', 'ultra_fast_categories'];
+      keysToCheck.forEach(k => {
+        if (k !== key) {
+          const item = localStorage.getItem(k);
+          if (item) {
+            try {
+              const parsed = JSON.parse(item);
+              if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+                localStorage.removeItem(k);
+              }
+            } catch (e) { localStorage.removeItem(k); }
+          }
+        }
+      });
+      
+      // محاولة حفظ البيانات الجديدة
+      localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch (e) { 
+      console.warn('Cache set failed:', e);
+      // في حالة امتلاء التخزين، نظف كل شيء ثم حاول مرة أخرى
+      try {
+        localStorage.clear();
+        localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+      } catch (e2) {
+        console.warn('Cache set failed after clear:', e2);
+      }
+    }
+  },
+  get: (key: string) => {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return null;
+      const parsed = JSON.parse(item);
+      if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return parsed.data;
+    } catch (e) {
+      localStorage.removeItem(key);
+      return null;
+    }
+  },
+  clear: () => {
+    try {
+      localStorage.clear();
+    } catch (e) { console.warn('Cache clear failed:', e); }
+  }
+};
 
 interface Product {
   id: string | number;
@@ -62,7 +121,7 @@ const ProductDetail: React.FC = () => {
   const isServicePage = window.location.pathname.includes('/service/');
   const [product, setProduct] = useState<Product | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+  // Removed isInitialLoad for instant display
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -98,7 +157,6 @@ const ProductDetail: React.FC = () => {
       if (!id) {
         console.error('❌ No product ID/slug provided');
         setError('معرف المنتج غير صحيح');
-        setIsInitialLoad(false);
         return;
       }
 
@@ -106,20 +164,19 @@ const ProductDetail: React.FC = () => {
         setError(null);
         
         // Check cache first for instant display
-        const cacheKey = `${isServicePage ? 'service' : 'product'}_${id}`;
-        const cachedData = productCache.get(cacheKey);
+        const cacheKey = isServicePage ? CACHE_KEYS.SERVICE_DETAIL(id) : CACHE_KEYS.PRODUCT_DETAIL(id);
+        const cachedData = fastCache.get(cacheKey);
         
-        if (cachedData && (Date.now() - cachedData.timestamp) < CACHE_DURATION) {
-          setProduct(cachedData.data);
-          setIsInitialLoad(false);
+        if (cachedData) {
+          setProduct(cachedData);
           setError(null);
           // Update SEO tags immediately
-          document.title = `${cachedData.data.name} - ${isServicePage ? 'خدمات' : 'منتجات'} شار`;
+          document.title = `${cachedData.name} - ${isServicePage ? 'خدمات' : 'منتجات'} شار`;
           const metaDescription = document.querySelector('meta[name="description"]');
           if (metaDescription) {
-            metaDescription.setAttribute('content', cachedData.data.description || `${cachedData.data.name} - ${isServicePage ? 'خدمة متميزة' : 'منتج عالي الجودة'} من شار`);
+            metaDescription.setAttribute('content', cachedData.description || `${cachedData.name} - ${isServicePage ? 'خدمة متميزة' : 'منتج عالي الجودة'} من شار`);
           }
-          console.log('✅ Loaded from cache instantly:', cachedData.data.name);
+          console.log('✅ Loaded from cache instantly:', cachedData.name);
           return;
         }
         
@@ -178,26 +235,19 @@ const ProductDetail: React.FC = () => {
         
         if (productData) {
           setProduct(productData);
-          setIsInitialLoad(false);
           
           // Cache the data for future instant loading
-          const cacheKey = `${isServicePage ? 'service' : 'product'}_${id}`;
-          productCache.set(cacheKey, {
-            data: productData,
-            timestamp: Date.now()
-          });
+          const cacheKey = isServicePage ? CACHE_KEYS.SERVICE_DETAIL(id) : CACHE_KEYS.PRODUCT_DETAIL(id);
+          fastCache.set(cacheKey, productData);
           
           // Quick SEO update
           document.title = `${productData.name} - ${isServicePage ? 'خدمات' : 'منتجات'} شار`;
         } else {
-          // Only show error after initial load attempt is complete
-          setIsInitialLoad(false);
           setError(isServicePage ? 'الخدمة غير موجودة' : 'المنتج غير موجود');
           console.log('Product/Service not found with ID:', id);
         }
         
       } catch (error) {
-        setIsInitialLoad(false);
         console.error('❌ Error fetching product:', error);
         setError(isServicePage ? 'الخدمة غير متوفرة' : 'المنتج غير متوفر');
       }
@@ -244,22 +294,8 @@ const ProductDetail: React.FC = () => {
     };
   }, [product]);
 
-  // Remove loading state - show content immediately
-
-  // Minimal loading state - only show for very brief moments
-  if (isInitialLoad && !product) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-gray-500 text-sm">تحميل...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state - only show after initial load is complete and no cached data
-  if (error || (!product && !isInitialLoad)) {
+  // Error state - show when there's an error or no product data
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center pt-20">
         <div className="text-center max-w-md mx-auto px-6">

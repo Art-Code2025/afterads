@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Package, Grid, ArrowRight, Sparkles, Filter, Search } from 'lucide-react';
+import { Package, ArrowRight, Search } from 'lucide-react';
 import ProductCard from './ProductCard';
-import { extractIdFromSlug, isValidSlug, createCategorySlug, createProductSlug } from '../utils/slugify';
+import { extractIdFromSlug } from '../utils/slugify';
 import { toast } from 'react-toastify';
 import { apiCall, API_ENDPOINTS, buildImageUrl } from '../config/api';
-import { cacheManager, CACHE_KEYS, CachedCategory, CachedService } from '../utils/cacheManager';
 
 interface Product {
   id: string | number;
@@ -32,24 +31,88 @@ interface Category {
   image: string;
 }
 
-// استخدام Cache Manager الجديد
+// استخدام localStorage للسرعة القصوى
 const CACHE_DURATION = 30 * 60 * 1000; // 30 دقيقة
+const CACHE_KEYS = {
+  CATEGORIES: 'ultra_fast_categories',
+  SERVICES: 'ultra_fast_services',
+  TIMESTAMP: 'ultra_fast_timestamp'
+};
+
+// دوال localStorage فائقة السرعة مع معالجة QuotaExceededError
+const fastCache = {
+  set: (key: string, data: any) => {
+    try {
+      // تنظيف البيانات القديمة أولاً لتوفير مساحة
+      const keysToCheck = ['ultra_fast_categories', 'ultra_fast_services', 'ultra_fast_timestamp'];
+      keysToCheck.forEach(k => {
+        if (k !== key) {
+          const item = localStorage.getItem(k);
+          if (item) {
+            try {
+              const parsed = JSON.parse(item);
+              if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+                localStorage.removeItem(k);
+              }
+            } catch (e) { localStorage.removeItem(k); }
+          }
+        }
+      });
+      
+      // محاولة حفظ البيانات الجديدة
+      localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch (e) { 
+      console.warn('Cache set failed:', e);
+      // في حالة امتلاء التخزين، نظف كل شيء ثم حاول مرة أخرى
+      try {
+        localStorage.clear();
+        localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+      } catch (e2) {
+        console.warn('Cache set failed after clear:', e2);
+      }
+    }
+  },
+  get: (key: string) => {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return null;
+      const parsed = JSON.parse(item);
+      if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return parsed.data;
+    } catch (e) { return null; }
+  },
+  clear: () => {
+    Object.values(CACHE_KEYS).forEach(key => localStorage.removeItem(key));
+  }
+};
 
 const CategoryPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   
-  // Remove loading state for instant display
-  const [category, setCategory] = useState<Category | null>(null);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('name');
-  const [wishlist, setWishlist] = useState<number[]>([]);
-
-  // Extract category ID from slug
+  // Extract category ID from slug first
   const categoryId = useMemo(() => {
     return slug ? extractIdFromSlug(slug) : null;
   }, [slug]);
+  
+  // تحميل فوري من localStorage مثل AllCategories
+  const [category, setCategory] = useState<Category | null>(() => {
+    const cachedCategories = fastCache.get(CACHE_KEYS.CATEGORIES) as Category[];
+    if (cachedCategories && categoryId) {
+      return cachedCategories.find((cat: Category) => cat.id.toString() === categoryId) || null;
+    }
+    return null;
+  });
+  const [allProducts, setAllProducts] = useState<Product[]>(() => {
+    const cachedProducts = fastCache.get(CACHE_KEYS.SERVICES) as Product[];
+    return cachedProducts || [];
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'price-low' | 'price-high'>('name');
+  const [wishlist, setWishlist] = useState<number[]>([]);
 
   // Memoize filtered services to prevent unnecessary recalculations
   const categoryProducts = useMemo(() => {
@@ -100,107 +163,64 @@ const CategoryPage: React.FC = () => {
     fetchInitialData();
   }, []);
 
-  // Handle category changes - optimized
+  // تحديث التصنيف عند تغيير الرابط - مبسط مثل AllCategories
   useEffect(() => {
-    if (!slug || !categoryId) {
-      setError('رابط التصنيف مفقود');
-      return;
-    }
-
-    if (categoryId === '0') {
-      setError('معرف التصنيف غير صحيح');
-      return;
-    }
-
-    // Reset search when category changes
-    setSearchTerm('');
-    setSortBy('name');
-    
-    if (categoryId && allProducts.length > 0) {
-      const cachedCategories = cacheManager.get<Category[]>(CACHE_KEYS.CATEGORIES);
+    if (categoryId) {
+      // إعادة تعيين البحث عند تغيير التصنيف
+      setSearchTerm('');
+      setSortBy('name');
+      
+      // البحث عن التصنيف في الكاش
+      const cachedCategories = fastCache.get(CACHE_KEYS.CATEGORIES) as Category[];
       if (cachedCategories) {
         const currentCategory = cachedCategories.find((cat: Category) => 
           cat.id.toString() === categoryId.toString()
         );
         
         if (currentCategory) {
-           setCategory(currentCategory);
-           setError(null);
-           console.log('✅ Category set from cache:', currentCategory.name);
-         } else {
-           setError('التصنيف غير موجود');
-           console.log('❌ Category not found for ID:', categoryId);
-         }
+          setCategory(currentCategory);
+          setError(null);
+        }
       }
     }
-  }, [slug, categoryId, allProducts]);
+  }, [categoryId]);
 
   const fetchInitialData = async () => {
-    setError(null);
-    
     try {
-      // محاولة تحميل البيانات من Cache فوراً
-      const cachedCategories = cacheManager.get<Category[]>(CACHE_KEYS.CATEGORIES);
-      const cachedServices = cacheManager.get<Product[]>(CACHE_KEYS.SERVICES);
+      // تحديث البيانات في الخلفية بدون تأثير على العرض - مثل AllCategories
+      console.log('🔄 Updating data in background...');
       
-      if (cachedCategories && cachedServices) {
-        console.log('✅ تحميل فوري من Cache Manager');
-        setAllProducts(cachedServices);
-        
-        const foundCategory = cachedCategories.find((cat: Category) => 
-          cat.id.toString() === categoryId?.toString()
+      const [categoriesData, servicesData] = await Promise.all([
+        apiCall(API_ENDPOINTS.CATEGORIES),
+        apiCall(API_ENDPOINTS.SERVICES)
+      ]);
+      
+      // تحديث الكاش
+      fastCache.set(CACHE_KEYS.CATEGORIES, categoriesData);
+      fastCache.set(CACHE_KEYS.SERVICES, servicesData);
+      
+      // تحديث البيانات فقط إذا كانت مختلفة
+      setAllProducts(servicesData);
+      
+      if (categoryId) {
+        const currentCategory = categoriesData.find((cat: Category) => 
+          cat.id.toString() === categoryId.toString()
         );
-        if (foundCategory) {
-          setCategory(foundCategory);
-        }
         
-        // تحديث البيانات في الخلفية (Background Refresh)
-        refreshDataInBackground();
-        return;
+        if (currentCategory) {
+          setCategory(currentCategory);
+          setError(null);
+        }
       }
       
-      // إذا لم توجد بيانات مخزنة، جلب البيانات الجديدة
-      await fetchFreshData();
-      
-    } catch (err) {
-      console.error('خطأ في جلب البيانات:', err);
-      setError('حدث خطأ في تحميل البيانات');
-      toast.error('فشل في تحميل البيانات');
+      console.log('✅ Background data update completed');
+    } catch (error) {
+      console.error('❌ Background update failed:', error);
+      // لا نعرض أخطاء التحديث في الخلفية
     }
   };
   
-  const fetchFreshData = async () => {
-    console.log('🔄 جلب البيانات الجديدة من الخادم');
-    
-    const [categoriesData, servicesData] = await Promise.all([
-      apiCall(API_ENDPOINTS.CATEGORIES),
-      apiCall(API_ENDPOINTS.SERVICES)
-    ]);
-    
-    // حفظ البيانات في Cache Manager
-    cacheManager.set(CACHE_KEYS.CATEGORIES, categoriesData, CACHE_DURATION);
-    cacheManager.set(CACHE_KEYS.SERVICES, servicesData, CACHE_DURATION);
-    
-    setAllProducts(servicesData);
-    
-    const foundCategory = categoriesData.find((cat: Category) => 
-      cat.id.toString() === categoryId?.toString()
-    );
-    if (foundCategory) {
-      setCategory(foundCategory);
-    } else {
-      setError('الفئة غير موجودة');
-    }
-  };
-  
-  const refreshDataInBackground = async () => {
-    try {
-      console.log('🔄 تحديث البيانات في الخلفية');
-      await fetchFreshData();
-    } catch (err) {
-      console.warn('فشل في تحديث البيانات في الخلفية:', err);
-    }
-  };
+  // تم حذف الدوال المعقدة - الآن نعمل مثل AllCategories بساطة وسرعة
 
 
 
@@ -210,73 +230,28 @@ const CategoryPage: React.FC = () => {
     toast.info('ميزة المفضلة غير متوفرة حالياً');
   };
 
-  // Show error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">خطأ في التحميل</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <Link
-            to="/"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            العودة للرئيسية
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // لا نعرض أخطاء - عرض فوري مثل AllCategories
 
-  // Only show "category not found" if data is loaded but category is still null
-  const cachedCategories = cacheManager.get<Category[]>(CACHE_KEYS.CATEGORIES);
-  if (!category && cachedCategories && cachedCategories.length > 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">تصنيف غير موجود</h2>
-          <p className="text-gray-600 mb-4">التصنيف المطلوب غير موجود</p>
-          <Link
-            to="/"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            العودة للرئيسية
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // If no data loaded yet, show nothing (let the page render with empty content)
-  if (!category && (!cachedCategories || cachedCategories.length === 0)) {
-    return null;
-  }
+  // عرض فوري بدون أي loading - مثل AllCategories تماماً
+  // إذا لم يوجد التصنيف، سيتم تحديثه في الخلفية
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
+        {/* Breadcrumb - عرض فوري */}
         <nav className="flex items-center space-x-2 space-x-reverse text-sm text-gray-600 mb-6">
           <Link to="/" className="hover:text-blue-600 transition-colors">الرئيسية</Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{category?.name}</span>
+          <span className="text-gray-900 font-medium">{category?.name || 'التصنيف'}</span>
         </nav>
 
-        {/* Category Header */}
+        {/* Category Header - عرض فوري حتى بدون بيانات */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             {category?.image && (
               <img
                 src={buildImageUrl(category.image)}
-                alt={category.name}
+                alt={category?.name || 'تصنيف'}
                 className="w-24 h-24 object-cover rounded-lg border border-gray-200"
                 onError={(e) => {
                   e.currentTarget.src = '/images/placeholder.jpg';
@@ -284,8 +259,12 @@ const CategoryPage: React.FC = () => {
               />
             )}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{category?.name}</h1>
-              <p className="text-gray-600 leading-relaxed">{category?.description}</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {category?.name || 'تحميل التصنيف...'}
+              </h1>
+              <p className="text-gray-600 leading-relaxed">
+                {category?.description || 'يتم تحميل بيانات التصنيف'}
+              </p>
               <div className="mt-4 flex items-center text-sm text-gray-500">
                 <Package className="w-4 h-4 ml-1" />
                 <span>{categoryProducts.length} منتج</span>
@@ -313,7 +292,7 @@ const CategoryPage: React.FC = () => {
             <div>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'price-low' | 'price-high')}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300"
               >
                 <option value="name">ترتيب حسب الاسم</option>
@@ -350,27 +329,25 @@ const CategoryPage: React.FC = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : searchTerm ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Package className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-600 mb-2">لا توجد خدمات</h3>
+            <h3 className="text-xl font-bold text-gray-600 mb-2">لم يتم العثور على نتائج</h3>
             <p className="text-gray-500 mb-4">
-              {searchTerm 
-                ? 'لم يتم العثور على خدمات تطابق البحث في هذا التصنيف'
-                : 'لا توجد خدمات في هذا التصنيف حالياً'
-              }
+              لم يتم العثور على خدمات تطابق البحث في هذا التصنيف
             </p>
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                مسح البحث
-              </button>
-            )}
+            <button
+              onClick={() => setSearchTerm('')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              مسح البحث
+            </button>
           </div>
+        ) : (
+          // عرض فارغ تماماً لضمان العرض الفوري بدون أي رسائل
+          <div className="min-h-[200px]"></div>
         )}
       </div>
     </div>
