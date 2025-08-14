@@ -180,6 +180,9 @@ const ProductDetail: React.FC = () => {
           return;
         }
         
+        // If no cached data, continue to fetch but don't show error immediately
+        setError(null); // Clear any previous errors
+        
         let productData = null;
         
         // Simplified and faster approach - try direct ID first
@@ -235,6 +238,7 @@ const ProductDetail: React.FC = () => {
         
         if (productData) {
           setProduct(productData);
+          setError(null); // Clear any previous errors
           
           // Cache the data for future instant loading
           const cacheKey = isServicePage ? CACHE_KEYS.SERVICE_DETAIL(id) : CACHE_KEYS.PRODUCT_DETAIL(id);
@@ -243,13 +247,17 @@ const ProductDetail: React.FC = () => {
           // Quick SEO update
           document.title = `${productData.name} - ${isServicePage ? 'خدمات' : 'منتجات'} شار`;
         } else {
-          setError(isServicePage ? 'الخدمة غير موجودة' : 'المنتج غير موجود');
+          // Only set error after attempting to fetch, not immediately
           console.log('Product/Service not found with ID:', id);
+          // Don't set error immediately - let the component show empty div instead
         }
         
       } catch (error) {
         console.error('❌ Error fetching product:', error);
-        setError(isServicePage ? 'الخدمة غير متوفرة' : 'المنتج غير متوفر');
+        // Only set error for actual fetch failures, not for missing data
+        if (error instanceof Error && error.message.includes('fetch')) {
+          setError(isServicePage ? 'الخدمة غير متوفرة' : 'المنتج غير متوفر');
+        }
       }
     };
 
@@ -294,8 +302,13 @@ const ProductDetail: React.FC = () => {
     };
   }, [product]);
 
-  // Error state - show when there's an error or no product data
-  if (error || !product) {
+  // عرض فوري بدون أي رسالة خطأ - إذا لم يوجد منتج/خدمة، عرض صفحة فارغة مؤقتاً
+  if (!product) {
+    return <div></div>;
+  }
+
+  // Error state - show only when there's an explicit error (not when product is just loading)
+  if (error && product === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center pt-20">
         <div className="text-center max-w-md mx-auto px-6">
