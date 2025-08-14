@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowRight, Calendar, User, Eye, Star, Heart, Share2, RefreshCw } from 'lucide-react';
-import { apiCall, API_ENDPOINTS, buildImageUrl } from '../config/api';
+import { servicesAPI } from '../utils/api';
+import { buildImageUrl } from '../config/api';
 import ContactFooter from '../components/ContactFooter';
+import { cacheManager, CACHE_KEYS, CachedService } from '../utils/cacheManager';
 
 // تعريف نوع الخدمة
 interface Service {
@@ -25,7 +27,7 @@ function ServiceDetail() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // جلب بيانات الخدمة من الـ API
+  // جلب بيانات الخدمة من الـ API مع استخدام Cache Manager
   useEffect(() => {
     if (id) {
       fetchService();
@@ -33,20 +35,75 @@ function ServiceDetail() {
   }, [id]);
 
   const fetchService = async () => {
-    setLoading(true);
+    setError(null);
+    
     try {
-      const data = await apiCall(API_ENDPOINTS.SERVICES);
-      const foundService = data.find((s: Service) => s.id === parseInt(id || '0'));
-      if (foundService) {
-        setService(foundService);
-      } else {
-        setError('فشل في تحميل الخدمة');
+      // محاولة تحميل الخدمة من Cache فوراً
+      const cachedService = cacheManager.get<Service>(CACHE_KEYS.SERVICE_DETAIL(id!));
+      
+      if (cachedService) {
+        console.log('✅ تحميل فوري للخدمة من Cache Manager');
+        setService(cachedService);
+        setLoading(false);
+        
+        // تحديث البيانات في الخلفية
+        refreshServiceInBackground();
+        return;
       }
+      
+      // محاولة البحث في قائمة الخدمات المخزنة
+      const cachedServices = cacheManager.get<CachedService[]>(CACHE_KEYS.SERVICES);
+      if (cachedServices) {
+        const foundInList = cachedServices.find(s => s.id.toString() === id);
+        if (foundInList) {
+          console.log('✅ تحميل الخدمة من قائمة الخدمات المخزنة');
+          setService(foundInList as Service);
+          setLoading(false);
+          
+          // حفظ الخدمة منفردة في Cache
+          cacheManager.set(CACHE_KEYS.SERVICE_DETAIL(id!), foundInList, 30 * 60 * 1000);
+          
+          // تحديث البيانات في الخلفية
+          refreshServiceInBackground();
+          return;
+        }
+      }
+      
+      // إذا لم توجد بيانات مخزنة، جلب البيانات الجديدة
+      setLoading(true);
+      await fetchFreshService();
+      
     } catch (error) {
-      console.error('Error fetching service:', error);
+      console.error('خطأ في جلب بيانات الخدمة:', error);
       setError('فشل في تحميل الخدمة');
-    } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchFreshService = async () => {
+    console.log('🔄 جلب بيانات الخدمة الجديدة من الخادم');
+    
+    const foundService = await servicesAPI.getById(id!);
+    if (foundService) {
+      setService(foundService);
+      
+      // حفظ الخدمة في Cache Manager
+      cacheManager.set(CACHE_KEYS.SERVICE_DETAIL(id!), foundService, 30 * 60 * 1000);
+      
+      console.log('✅ تم حفظ الخدمة في Cache Manager');
+    } else {
+      setError('الخدمة غير موجودة');
+    }
+    
+    setLoading(false);
+  };
+  
+  const refreshServiceInBackground = async () => {
+    try {
+      console.log('🔄 تحديث بيانات الخدمة في الخلفية');
+      await fetchFreshService();
+    } catch (err) {
+      console.warn('فشل في تحديث بيانات الخدمة في الخلفية:', err);
     }
   };
 

@@ -348,4 +348,125 @@ export const getMockProductById = (id: string | number): MockProduct | null => {
 export const getMockProductsByCategory = (categoryId: string | number): MockProduct[] => {
   const products = getMockProducts();
   return products.filter(p => p.categoryId.toString() === categoryId.toString());
-}; 
+};
+
+// Mock service interface
+export interface MockService {
+  id: string | number;
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  categoryId: string | number;
+  image: string;
+  rating: number;
+  duration: string;
+  features: string[];
+  slug?: string;
+  createdAt: string;
+}
+
+// Mock services data
+export const mockServices: MockService[] = [
+  {
+    id: 1,
+    name: "خدمة تركيب العطور المخصصة",
+    description: "خدمة تركيب عطر مخصص حسب ذوقك الشخصي مع استشارة مجانية من خبراء العطور",
+    price: 150,
+    originalPrice: 200,
+    categoryId: 1,
+    image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjNDc4NEIzIi8+Cjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsIj7Yrtiv2YXYqSDYqtix2YPZitioINi52LfYsdmKPC90ZXh0Pgo8L3N2Zz4K",
+    rating: 5,
+    duration: "ساعتان",
+    features: ["استشارة مجانية", "تركيب مخصص", "ضمان الجودة", "عبوة فاخرة"],
+    slug: "custom-perfume-blending",
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 2,
+    name: "خدمة التوصيل السريع",
+    description: "خدمة توصيل سريع لجميع المنتجات خلال ساعتين داخل المدينة",
+    price: 25,
+    categoryId: 2,
+    image: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjMjhBNzQ1Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMjAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIyMCIgZm9udC1mYW1pbHk9IkFyaWFsIj7Yrtiv2YXYqSDYp9mE2KrZiNi12YrZhDwvdGV4dD4KPC9zdmc+Cg==",
+    rating: 4,
+    duration: "ساعتان",
+    features: ["توصيل سريع", "تتبع الطلب", "دفع عند الاستلام", "ضمان الوصول"],
+    slug: "fast-delivery",
+    createdAt: new Date().toISOString()
+  }
+];
+
+// Services helper functions
+export const getMockServices = (): MockService[] => {
+  // Try to get services from localStorage first
+  const stored = localStorage.getItem('services');
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse stored services, using mock data');
+    }
+  }
+  
+  // Store mock data in localStorage for persistence
+  localStorage.setItem('services', JSON.stringify(mockServices));
+  return mockServices;
+};
+
+export const getMockServiceById = (id: string | number): MockService | null => {
+  console.log(`🔍 getMockServiceById called with ID/slug: ${id} (type: ${typeof id})`);
+  
+  const services = getMockServices();
+  console.log(`📋 Available services:`, services.map(s => ({ id: s.id, name: s.name, type: typeof s.id })));
+  
+  // First try exact ID match
+  let service = services.find(s => {
+    const match = s.id.toString() === id.toString();
+    console.log(`🔍 Comparing service ${s.id} (${typeof s.id}) with ${id} (${typeof id}): ${match}`);
+    return match;
+  });
+  
+  // If not found and it's not a numeric ID, try slug matching
+  if (!service && !/^\d+$/.test(id.toString())) {
+    console.log(`🔤 No exact match found, trying slug matching for: ${id}`);
+    
+    service = services.find(s => {
+      // Check if service has a slug property
+      if (s.slug) {
+        const match = s.slug === id.toString();
+        console.log(`🔍 Comparing slug "${s.slug}" with "${id}": ${match}`);
+        return match;
+      }
+      
+      // Generate slug from service name as fallback
+      const generatedSlug = s.name
+        ?.toLowerCase()
+        .replace(/[^\w\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .trim();
+      
+      const match = generatedSlug === id.toString();
+      console.log(`🔍 Comparing generated slug "${generatedSlug}" with "${id}": ${match}`);
+      return match;
+    });
+  }
+  
+  if (service) {
+    console.log(`✅ Found service:`, service);
+  } else {
+    console.log(`❌ Service not found. Searched for: ${id}`);
+    console.log(`📋 Available IDs: [${services.map(s => s.id).join(', ')}]`);
+    console.log(`📋 Available slugs: [${services.map(s => s.slug || s.name?.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').trim()).join(', ')}]`);
+  }
+  
+  return service || null;
+};
+
+export const getMockServicesByCategory = (categoryId: string | number): MockService[] => {
+  const services = getMockServices();
+  return services.filter(s => s.categoryId.toString() === categoryId.toString());
+};

@@ -14,13 +14,15 @@ import { createCategorySlug, createProductSlug } from './utils/slugify';
 import cover2 from './assets/cover2.jpg';
 import cover3 from './assets/cover3.jpg';
 // Import API functions
-import api, { productsAPI, categoriesAPI } from './utils/api';
+import api, { productsAPI, servicesAPI, categoriesAPI } from './utils/api';
 import { buildImageUrl } from './config/api';
 import { addToCartUnified } from './utils/cartUtils';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import CustomerFavoritesSection from './components/CustomerFavoritesSection';
 import DiscoverNewSection from './components/DiscoverNewSection';
+import AllServicesSection from './components/AllServicesSection';
+import { cacheManager, CACHE_KEYS } from './utils/cacheManager';
 // استيراد سكريپت بيانات العطور للداشبورد
 // import './utils/runPerfumeScript';
 
@@ -273,38 +275,109 @@ const App: React.FC = () => {
     try {
       setError(null);
 
-      console.log('🔄 Fetching real data from API...');
+      // محاولة تحميل البيانات من Cache فوراً
+      const cachedCategories = cacheManager.get(CACHE_KEYS.CATEGORIES);
+      const cachedServices = cacheManager.get(CACHE_KEYS.SERVICES);
+      
+      if (cachedCategories && cachedServices && Array.isArray(cachedCategories) && Array.isArray(cachedServices)) {
+        console.log('✅ تحميل فوري من Cache Manager في App.tsx');
+        
+        // تجميع البيانات
+        const groupedData = cachedCategories.map((category: any) => ({
+          category,
+          products: cachedServices.filter((service: any) => service.categoryId === category.id)
+        }));
+        
+        setCategoryProducts(groupedData);
+        setLoading(false);
+        
+        // تحديث البيانات في الخلفية
+        refreshAppDataInBackground();
+        return;
+      }
+
+      console.log('🔄 جلب البيانات الجديدة من API...');
 
       // Fetch real data from API
-      const [products, categories] = await Promise.all([
-        productsAPI.getAll({}, true), // Public request
+      const [services, categories] = await Promise.all([
+        servicesAPI.getAll({}, true), // Public request
         categoriesAPI.getAll()
       ]);
 
       console.log('✅ API Data loaded:', {
-        products: Array.isArray(products) ? products.length : 'Invalid',
+        services: Array.isArray(services) ? services.length : 'Invalid',
         categories: Array.isArray(categories) ? categories.length : 'Invalid'
       });
 
       // Ensure we have arrays
-      const validProducts = Array.isArray(products) ? products : [];
+      const validServices = Array.isArray(services) ? services : [];
       const validCategories = Array.isArray(categories) ? categories : [];
+      
+      // تخزين البيانات الأساسية فقط للسرعة الخارقة
+      const compactCategories = validCategories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        image: cat.image
+        // إزالة الوصف لتوفير مساحة أكبر
+      }));
+      
+      const compactServices = validServices.map(service => ({
+        id: service.id,
+        name: service.name,
+        price: service.price,
+        categoryId: service.categoryId,
+        mainImage: service.mainImage
+        // حفظ الحقول الأساسية فقط للعرض السريع
+      }));
+      
+      // حفظ البيانات المضغوطة في Cache Manager
+      cacheManager.set(CACHE_KEYS.CATEGORIES, compactCategories);
+      cacheManager.set(CACHE_KEYS.SERVICES, compactServices);
 
-      // Group products by category
+      // Group services by category
       const groupedData = validCategories.map(category => ({
         category,
-        products: validProducts.filter(product => product.categoryId === category.id)
+        products: validServices.filter(service => service.categoryId === category.id)
       }));
 
       setCategoryProducts(groupedData);
       setError(null);
       
-      // Data loaded successfully - no need to show message to user
+      console.log('✅ تم حفظ البيانات في Cache Manager');
 
     } catch (error) {
       console.error('❌ Error fetching data:', error);
       setError(error instanceof Error ? error.message : 'خطأ في تحميل البيانات');
       toast.error('فشل في تحميل البيانات');
+    }
+  };
+  
+  const refreshAppDataInBackground = async () => {
+    try {
+      console.log('🔄 تحديث بيانات التطبيق في الخلفية');
+      
+      const [services, categories] = await Promise.all([
+        servicesAPI.getAll({}, true),
+        categoriesAPI.getAll()
+      ]);
+      
+      const validServices = Array.isArray(services) ? services : [];
+      const validCategories = Array.isArray(categories) ? categories : [];
+      
+      // تحديث Cache
+      cacheManager.set(CACHE_KEYS.CATEGORIES, validCategories, 30 * 60 * 1000);
+      cacheManager.set(CACHE_KEYS.SERVICES, validServices, 30 * 60 * 1000);
+      
+      // تحديث البيانات المعروضة
+      const groupedData = validCategories.map(category => ({
+        category,
+        products: validServices.filter(service => service.categoryId === category.id)
+      }));
+      
+      setCategoryProducts(groupedData);
+      
+    } catch (err) {
+      console.warn('فشل في تحديث بيانات التطبيق في الخلفية:', err);
     }
   };
 
@@ -402,21 +475,21 @@ const App: React.FC = () => {
     </div>
   );
 
-  // Get all products for filtering
-  const allProducts = categoryProducts.flatMap(cp => cp.products);
+  // Get all services for filtering
+  const allServices = categoryProducts.flatMap(cp => cp.products);
   
-  // Filter products based on active tab
-  const filteredProducts = activeTab === 'All' 
-    ? allProducts 
+  // Filter services based on active tab
+  const filteredServices = activeTab === 'All' 
+    ? allServices 
     : activeTab === 'Featured'
-    ? allProducts.filter(p => p.rating === 5)
+    ? allServices.filter(p => p.rating === 5)
     : activeTab === 'Top selling'
-    ? allProducts.filter(p => p.originalPrice && p.originalPrice > p.price)
+    ? allServices.filter(p => p.originalPrice && p.originalPrice > p.price)
     : activeTab === 'Sale'
-    ? allProducts.filter(p => p.originalPrice && p.originalPrice > p.price)
+    ? allServices.filter(p => p.originalPrice && p.originalPrice > p.price)
     : activeTab === 'New'
-    ? allProducts.slice(0, 4)
-    : allProducts;
+    ? allServices.slice(0, 4)
+    : allServices;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -557,11 +630,13 @@ const App: React.FC = () => {
       <Hero />
 
       {/* CUSTOMER FAVORITES */}
-      <CustomerFavoritesSection products={allProducts} />
+      <CustomerFavoritesSection products={allServices} />
 
       {/* DISCOVER NEW SECTION */}
       <DiscoverNewSection />
 
+      {/* ALL SERVICES SECTION */}
+      <AllServicesSection />
 
       {/* Enhanced Professional Footer */}
       <footer className="relative bg-gradient-to-br from-dark-800 via-dark-900 to-dark-800 text-white overflow-hidden" dir="rtl">

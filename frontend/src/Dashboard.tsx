@@ -468,7 +468,7 @@ const Dashboard: React.FC = () => {
       try {
         // تحميل التصنيفات والخدمات مع بداية التطبيق
         await fetchCategories();
-        await fetchMyServices();
+        await fetchMyServices(false); // Use cache if available
         
         // استخدام API الداشبورد المحسن للتبويب الرئيسي
         if (currentTab === 'overview') {
@@ -829,8 +829,10 @@ const Dashboard: React.FC = () => {
       handleNewOrder();
     }
     
-    // تحميل بيانات الخدمات مسبقاً لتحسين الأداء
-    fetchMyServices();
+    // تحميل بيانات الخدمات مسبقاً لتحسين الأداء (استخدام cache إذا متوفر)
+    if (currentTab === 'myservices') {
+      fetchMyServices(false); // Use cache if available
+    }
     
     // الاستماع للإشعارات الجديدة
     window.addEventListener('newOrderAdded', handleNewOrder);
@@ -850,20 +852,63 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Global cache for my services
+  let myServicesCache: Service[] | null = null;
+  let myServicesCacheTimestamp: number = 0;
+  const MY_SERVICES_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
   // وظائف تبويب "خدماتي" الجديد
-  const fetchMyServices = async () => {
+  const fetchMyServices = async (forceRefresh = false) => {
+    // Check if we have valid cached data
+    const now = Date.now();
+    if (!forceRefresh && myServicesCache && (now - myServicesCacheTimestamp) < MY_SERVICES_CACHE_DURATION) {
+      console.log('✅ Using cached my services data');
+      setMyServices(myServicesCache);
+      setFilteredMyServices(myServicesCache);
+      setMyServicesError(null);
+      return;
+    }
+
     setMyServicesLoading(true);
     setMyServicesError(null);
     try {
-      const data = await apiCall(API_ENDPOINTS.SERVICES);
-
-      setMyServices(data || []);
-      setFilteredMyServices(data || []);
-    } catch (error) {
-      console.error('Error fetching my services:', error);
-      setMyServicesError('حدث خطأ في تحميل الخدمات');
-      setMyServices([]);
-      setFilteredMyServices([]);
+      console.log('🔄 Fetching my services from API...');
+      
+      // Set a timeout for this specific request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds
+      
+      const data = await apiCall(API_ENDPOINTS.SERVICES, {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('✅ My services loaded:', data?.length || 0);
+      const servicesData = data || [];
+      
+      // Update cache
+      myServicesCache = servicesData;
+      myServicesCacheTimestamp = Date.now();
+      
+      setMyServices(servicesData);
+      setFilteredMyServices(servicesData);
+      setMyServicesError(null);
+    } catch (error: any) {
+      console.error('❌ Error fetching my services:', error);
+      
+      // If we have cached data, use it instead of showing error
+      if (myServicesCache && myServicesCache.length > 0) {
+        console.log('📦 Using cached my services due to fetch error');
+        setMyServices(myServicesCache);
+        setFilteredMyServices(myServicesCache);
+        setMyServicesError(null);
+        toast.info('تم تحميل البيانات من الذاكرة المؤقتة');
+      } else {
+        setMyServicesError('حدث خطأ في تحميل الخدمات');
+        setMyServices([]);
+        setFilteredMyServices([]);
+      }
     } finally {
       setMyServicesLoading(false);
     }
@@ -3465,7 +3510,7 @@ const Dashboard: React.FC = () => {
                     إضافة خدمة جديدة
                   </Link>
                   <button 
-                    onClick={fetchMyServices}
+                    onClick={() => fetchMyServices(true)}
                     className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
                     disabled={myServicesLoading}
                   >
@@ -3520,7 +3565,7 @@ const Dashboard: React.FC = () => {
                   <h3 className="text-lg font-medium text-red-900 mb-2">خطأ في تحميل البيانات</h3>
                   <p className="text-red-700 mb-4">{myServicesError}</p>
                   <button
-                    onClick={fetchMyServices}
+                    onClick={() => fetchMyServices(true)}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                   >
                     إعادة المحاولة
@@ -5773,6 +5818,7 @@ const Dashboard: React.FC = () => {
                     })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+        
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">حالة الحساب</label>
@@ -5809,6 +5855,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+
       {/* Page Modal */}
       <StaticPageModal
         isOpen={showPageModal}
@@ -5816,6 +5863,7 @@ const Dashboard: React.FC = () => {
         onSave={savePage}
         editingPage={editingPage}
       />
+
 
       {/* Toast Container */}
       <ToastContainer

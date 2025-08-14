@@ -844,8 +844,82 @@ export const activityLogsAPI = {
   },
 };
 
+// Services API
+export const servicesAPI = {
+  getAll: async (params: any = {}, isPublic: boolean = false) => {
+    try {
+      const queryString = new URLSearchParams(params).toString();
+      const endpoint = `/services${queryString ? `?${queryString}` : ''}`;
+      const result = await apiRequest(endpoint, { method: 'GET' }, isPublic);
+      return result;
+    } catch (error) {
+      console.error('Services API Error:', error);
+      throw new Error('فشل في تحميل الخدمات - تأكد من اتصالك بالإنترنت');
+    }
+  },
+  
+  getById: async (id: string | number) => {
+    try {
+      const result = await apiRequest(`/services/${id}`, { method: 'GET' });
+      return result;
+    } catch (error) {
+      console.error('Service by ID API Error:', error);
+      throw new Error('الخدمة غير موجودة');
+    }
+  },
+  
+  create: async (serviceData: any) => {
+    try {
+      const result = await apiRequest('/services', {
+        method: 'POST',
+        body: JSON.stringify(serviceData),
+      });
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id: string | number, serviceData: any) => {
+    try {
+      return await apiRequest(`/services/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(serviceData),
+      });
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  delete: async (id: string | number) => {
+    try {
+      return await apiRequest(`/services/${id}`, { method: 'DELETE' });
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  getByCategory: (categoryId: string | number) => apiRequest(`/services/category/${categoryId}`),
+  
+  search: (query: string, params = {}) => {
+    const searchParams = new URLSearchParams({ q: query, ...params });
+    return apiRequest(`/services/search?${searchParams}`);
+  },
+
+  getBySlug: async (slug: string) => {
+    try {
+      const result = await apiRequest(`/services/slug/${slug}`, { method: 'GET' });
+      return result;
+    } catch (error) {
+      console.error('Service by Slug API Error:', error);
+      throw new Error('الخدمة غير موجودة');
+    }
+  },
+};
+
 export default {
   products: productsAPI,
+  services: servicesAPI,
   categories: categoriesAPI,
   orders: ordersAPI,
   coupons: couponsAPI,

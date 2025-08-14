@@ -5,7 +5,8 @@ import ProductCard from './ProductCard';
 import { extractIdFromSlug, isValidSlug, createCategorySlug, createProductSlug } from '../utils/slugify';
 import { toast } from 'react-toastify';
 import { productsAPI, categoriesAPI } from '../utils/api';
-import { buildImageUrl } from '../config/api';
+import { buildImageUrl, apiCall, API_ENDPOINTS } from '../config/api';
+import { cacheManager, CACHE_KEYS, CachedCategory, CachedService } from '../utils/cacheManager';
 
 interface Product {
   id: number;
@@ -49,43 +50,117 @@ const ProductsByCategory: React.FC = () => {
       return;
     }
 
-    fetchCategory();
-    fetchProducts();
+    fetchInitialData();
   }, [slug, categoryId]);
 
-  const fetchCategory = async () => {
+  const fetchInitialData = async () => {
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
+      // محاولة تحميل البيانات من Cache فوراً
+      const cachedCategories = cacheManager.get<CachedCategory[]>(CACHE_KEYS.CATEGORIES);
+      const cachedCategoryServices = cacheManager.get<CachedService[]>(CACHE_KEYS.CATEGORY_SERVICES(categoryId!));
       
-      const response = await categoriesAPI.getById(categoryId!);
-      if (response.success) {
-        setCategory(response.data);
-      } else {
-        throw new Error('فشل في تحميل التصنيف');
+      if (cachedCategories && cachedCategoryServices) {
+        console.log('✅ تحميل فوري من Cache Manager للتصنيف والخدمات');
+        
+        // العثور على التصنيف
+        const foundCategory = cachedCategories.find(cat => cat.id.toString() === categoryId!.toString());
+        if (foundCategory) {
+          setCategory(foundCategory as Category);
+        }
+        
+        // تعيين الخدمات
+        setProducts(cachedCategoryServices as Product[]);
+        setLoading(false);
+        
+        // تحديث البيانات في الخلفية
+        refreshDataInBackground();
+        return;
       }
+      
+      // محاولة استخدام البيانات العامة المخزنة
+      const cachedServices = cacheManager.get<CachedService[]>(CACHE_KEYS.SERVICES);
+      if (cachedCategories && cachedServices) {
+        console.log('✅ تحميل من البيانات العامة المخزنة');
+        
+        // العثور على التصنيف
+        const foundCategory = cachedCategories.find(cat => cat.id.toString() === categoryId!.toString());
+        if (foundCategory) {
+          setCategory(foundCategory as Category);
+        }
+        
+        // تصفية الخدمات حسب التصنيف
+        const categoryServices = cachedServices.filter(service => 
+          service.categoryId?.toString() === categoryId!.toString()
+        );
+        setProducts(categoryServices as Product[]);
+        
+        // حفظ خدمات التصنيف في Cache منفصل
+        cacheManager.set(CACHE_KEYS.CATEGORY_SERVICES(categoryId!), categoryServices, 30 * 60 * 1000);
+        
+        setLoading(false);
+        
+        // تحديث البيانات في الخلفية
+        refreshDataInBackground();
+        return;
+      }
+      
+      // إذا لم توجد بيانات مخزنة، جلب البيانات الجديدة
+      setLoading(true);
+      await fetchFreshData();
+      
     } catch (error) {
-      console.error('Error fetching category:', error);
-      setError('فشل في تحميل التصنيف');
-      toast.error('فشل في تحميل التصنيف');
+      console.error('خطأ في جلب البيانات:', error);
+      setError('فشل في تحميل البيانات');
+      toast.error('فشل في تحميل البيانات');
+      setLoading(false);
+    }
+  };
+  
+  const fetchFreshData = async () => {
+    console.log('🔄 جلب البيانات الجديدة من الخادم');
+    
+    try {
+      // جلب التصنيف
+      const categoryResponse = await categoriesAPI.getById(categoryId!);
+      if (categoryResponse.success) {
+        setCategory(categoryResponse.data);
+      }
+      
+      // جلب خدمات التصنيف
+      const servicesData = await apiCall(API_ENDPOINTS.SERVICES_BY_CATEGORY(categoryId!));
+      setProducts(servicesData || []);
+      
+      // حفظ البيانات في Cache Manager
+      if (categoryResponse.success) {
+        // تحديث قائمة التصنيفات في Cache
+        const cachedCategories = cacheManager.get<CachedCategory[]>(CACHE_KEYS.CATEGORIES) || [];
+        const updatedCategories = cachedCategories.filter(cat => cat.id.toString() !== categoryId!.toString());
+        updatedCategories.push(categoryResponse.data);
+        cacheManager.set(CACHE_KEYS.CATEGORIES, updatedCategories, 30 * 60 * 1000);
+      }
+      
+      // حفظ خدمات التصنيف
+      cacheManager.set(CACHE_KEYS.CATEGORY_SERVICES(categoryId!), servicesData || [], 30 * 60 * 1000);
+      
+      console.log('✅ تم حفظ البيانات في Cache Manager');
+      
+    } catch (error) {
+      console.error('Error fetching fresh data:', error);
+      setError('فشل في تحميل البيانات');
+      toast.error('فشل في تحميل البيانات');
     } finally {
       setLoading(false);
     }
   };
-
-  const fetchProducts = async () => {
+  
+  const refreshDataInBackground = async () => {
     try {
-      const response = await productsAPI.getByCategory(categoryId!);
-      if (response.success) {
-        setProducts(response.data);
-      } else {
-        console.warn('No products found for this category');
-        setProducts([]);
-      }
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('فشل في تحميل المنتجات');
-      setProducts([]);
+      console.log('🔄 تحديث البيانات في الخلفية');
+      await fetchFreshData();
+    } catch (err) {
+      console.warn('فشل في تحديث البيانات في الخلفية:', err);
     }
   };
 
@@ -308,4 +383,4 @@ const ProductsByCategory: React.FC = () => {
   );
 };
 
-export default ProductsByCategory; 
+export default ProductsByCategory;

@@ -27,21 +27,26 @@ import {
 import WhatsAppButton from './WhatsAppButton';
 import { buildImageUrl } from '../config/api';
 import { addToCartUnified } from '../utils/cartUtils';
-import { productsAPI } from '../utils/api';
+import { servicesAPI } from '../utils/api';
 import { createProductSlug } from '../utils/slugify';
 
 interface Product {
   id: string | number;
   name: string;
-  brand: string;
+  brand?: string;
   description: string;
-  price: number;
+  price?: number;
+  basePrice?: number;
   originalPrice?: number;
-  stock: number;
-  categoryName: string;
-  rating: number;
+  categoryId?: string | number | null;
+  categoryName?: string;
+  categories?: string[];
+  productType?: string;
+  dynamicOptions?: any[];
+  rating?: number;
   mainImage: string;
-  specifications: { name: string; value: string }[];
+  detailedImages?: string[];
+  specifications?: { name: string; value: string }[];
   createdAt?: string;
 }
 
@@ -69,20 +74,20 @@ const ProductDetail: React.FC = () => {
       
       const identifier = id || slug;
       if (!identifier) {
-        setError('معرف المنتج غير صحيح');
+        setError('معرف الخدمة غير صحيح');
         setLoading(false);
         return;
       }
       
       try {
-        const allProducts: Product[] = await productsAPI.getAll({}, true);
+        const allProducts: Product[] = await servicesAPI.getAll({}, true);
       
         if (!Array.isArray(allProducts)) {
-          console.error("API did not return an array for products:", allProducts);
-          throw new Error('فشل في تحميل قائمة المنتجات، البيانات المستلمة غير صالحة.');
+          console.error("API did not return an array for services:", allProducts);
+          throw new Error('فشل في تحميل قائمة الخدمات، البيانات المستلمة غير صالحة.');
         }
 
-        console.log('✅ Products loaded successfully:', allProducts.length);
+        console.log('✅ Services loaded successfully:', allProducts.length);
 
         const foundProduct = allProducts.find(p => {
           if (id) return p.id.toString() === id;
@@ -91,16 +96,16 @@ const ProductDetail: React.FC = () => {
           });
           
         if (foundProduct) {
-          console.log('✅ Product found:', foundProduct.name);
+          console.log('✅ Service found:', foundProduct.name);
           setProduct(foundProduct);
           setSelectedImage(buildImageUrl(foundProduct.mainImage));
         } else {
-          console.log('❌ Product not found with identifier:', identifier);
-          throw new Error('المنتج غير موجود');
-      }
+          console.log('❌ Service not found with identifier:', identifier);
+          throw new Error('الخدمة غير موجودة');
+        }
       } catch (err) {
         console.error('❌ Error in findAndSetProduct:', err);
-        const errorMessage = err instanceof Error ? err.message : 'فشل في تحميل المنتج';
+        const errorMessage = err instanceof Error ? err.message : 'فشل في تحميل الخدمة';
       setError(errorMessage);
         toast.error(errorMessage);
     } finally {
@@ -125,7 +130,7 @@ const ProductDetail: React.FC = () => {
     };
   }, [product]);
 
-  const incrementQuantity = () => setQuantity(prev => Math.min(prev + 1, product?.stock || 1));
+  const incrementQuantity = () => setQuantity(prev => prev + 1);
   const decrementQuantity = () => setQuantity(prev => Math.max(prev - 1, 1));
 
   const addToCart = async () => {
@@ -136,7 +141,7 @@ const ProductDetail: React.FC = () => {
       const success = await addToCartUnified(
         product.id,
         product.name,
-        product.price,
+        product.basePrice || product.originalPrice || product.price || 0,
         quantity,
         {},
         {},
@@ -168,7 +173,7 @@ const ProductDetail: React.FC = () => {
       <div className="min-h-screen bg-beige-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-brown-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-brown-800 mb-2">جاري تحميل المنتج...</h2>
+          <h2 className="text-xl font-semibold text-brown-800 mb-2">جاري تحميل الخدمة...</h2>
           <p className="text-brown-600">يرجى الانتظار قليلاً</p>
         </div>
       </div>
@@ -216,8 +221,8 @@ const ProductDetail: React.FC = () => {
           <div className="w-16 h-16 bg-beige-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Package className="w-8 h-8 text-brown-400" />
           </div>
-          <h2 className="text-2xl font-bold text-brown-800 mb-4">المنتج غير موجود</h2>
-          <p className="text-brown-600 mb-6">لم يتم العثور على المنتج المطلوب. قد يكون تم حذفه أو لا يوجد.</p>
+          <h2 className="text-2xl font-bold text-brown-800 mb-4">الخدمة غير موجودة</h2>
+          <p className="text-brown-600 mb-6">لم يتم العثور على الخدمة المطلوبة. قد تكون تم حذفها أو لا توجد.</p>
           <div className="space-y-3">
             <Link
               to="/"
@@ -226,10 +231,10 @@ const ProductDetail: React.FC = () => {
               العودة للرئيسية
             </Link>
             <Link
-              to="/products"
+              to="/services"
               className="block w-full bg-beige-100 text-brown-700 px-6 py-3 rounded-xl hover:bg-beige-200 transition-colors font-semibold"
             >
-              تصفح جميع المنتجات
+              تصفح جميع الخدمات
             </Link>
           </div>
         </div>
@@ -247,7 +252,7 @@ const ProductDetail: React.FC = () => {
         <nav className="flex items-center space-x-2 mb-8 text-sm">
           <Link to="/" className="text-brown-500 hover:text-brown-700">الرئيسية</Link>
           <ChevronLeft className="w-4 h-4 text-brown-400" />
-          <Link to="/products" className="text-brown-500 hover:text-brown-700">المنتجات</Link>
+          <Link to="/services" className="text-brown-500 hover:text-brown-700">الخدمات</Link>
           <ChevronLeft className="w-4 h-4 text-brown-400" />
           <span className="text-brown-800">{product.name}</span>
         </nav>
@@ -272,17 +277,17 @@ const ProductDetail: React.FC = () => {
             <div className="space-y-6">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-brown-600 font-medium">{product.brand}</span>
+                  {product.brand && <span className="text-brown-600 font-medium">{product.brand}</span>}
                   <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
                         className={`w-4 h-4 ${
-                          i < product.rating ? 'text-gold fill-current' : 'text-beige-300'
+                          i < (product.rating || 0) ? 'text-gold fill-current' : 'text-beige-300'
                         }`}
                       />
                     ))}
-                    <span className="text-sm text-brown-600 mr-2">({product.rating})</span>
+                    <span className="text-sm text-brown-600 mr-2">({product.rating || 0})</span>
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold text-brown-900 mb-4">{product.name}</h1>
@@ -291,9 +296,13 @@ const ProductDetail: React.FC = () => {
 
               {/* Price */}
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-brown-600">{(product.price || 0).toFixed(2)} ر.س</span>
-                {product.originalPrice && (
-                  <span className="text-xl text-brown-400 line-through">{(product.originalPrice || 0).toFixed(2)} ر.س</span>
+                <span className="text-3xl font-bold text-brown-600">
+                  {product.price && !isNaN(Number(product.price)) ? Number(product.price).toFixed(2) : '0.00'} ر.س
+                </span>
+                {product.originalPrice && !isNaN(Number(product.originalPrice)) && (
+                  <span className="text-xl text-brown-400 line-through">
+                    {Number(product.originalPrice).toFixed(2)} ر.س
+                  </span>
                 )}
               </div>
 
@@ -330,15 +339,13 @@ const ProductDetail: React.FC = () => {
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="text-sm text-brown-600">
-                    متوفر: {product.stock} قطعة
-                  </div>
+
                 </div>
 
                 <div className="flex space-x-4">
                   <button
                     onClick={addToCart}
-                    disabled={addingToCart || product.stock === 0}
+                    disabled={addingToCart}
                     className="flex-1 flex items-center justify-center space-x-2 bg-gradient-to-r from-brown-500 to-brown-600 text-white px-8 py-4 rounded-xl hover:from-brown-600 hover:to-brown-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 font-semibold shadow-lg"
                   >
                     {addingToCart ? (
@@ -474,12 +481,12 @@ const RelatedProducts: React.FC<{ currentProductId: string | number }> = ({ curr
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-brown-600">{(product.price || 0).toFixed(2)} ر.س</span>
+                    <span className="text-3xl font-bold text-brown-800">{(product.basePrice || product.originalPrice || product.price || 0).toFixed(2)} ر.س</span>
                     {product.originalPrice && (
-                        <span className="bg-red-500 text-white px-1 py-0.5 rounded text-xs font-bold">
-                          -{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
-                        </span>
-                    )}
+                          <span className="bg-red-500 text-white px-1 py-0.5 rounded text-xs font-bold">
+                            وفر {((product.originalPrice - (product.basePrice || product.originalPrice || product.price || 0)) / product.originalPrice * 100).toFixed(0)}%
+                          </span>
+                      )}
                       </div>
                 </div>
                 <button className="bg-gradient-to-r from-brown-500 to-brown-600 text-white px-3 py-2 rounded-lg hover:from-brown-600 hover:to-brown-700 transition-colors duration-200 text-sm">

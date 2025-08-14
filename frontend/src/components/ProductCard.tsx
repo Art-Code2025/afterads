@@ -177,7 +177,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/service/${product.id}`} className="block">
         
         {/* Product Image Container */}
         <div className="perfume-bottle-container relative p-6">
@@ -364,17 +364,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
             
-            {/* Stock Status */}
-            <div className="flex items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${
-                product.inStock !== false ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              <span className={`text-xs ${
-                product.inStock !== false ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {product.inStock !== false ? 'متوفر' : 'غير متوفر'}
-              </span>
-            </div>
+
           </div>
 
           {/* Longevity & Sillage */}

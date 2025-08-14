@@ -20,7 +20,7 @@ const Checkout = React.lazy(() => import('./components/Checkout'));
 const Login = React.lazy(() => import('./Login'));
 const Dashboard = React.lazy(() => import('./Dashboard'));
 const ServiceForm = React.lazy(() => import('./ServiceForm'));
-const ServiceDetails = React.lazy(() => import('./ServiceDetails'));
+const ServiceDetail = React.lazy(() => import('./pages/ServiceDetail'));
 const ProductForm = React.lazy(() => import('./components/ProductForm'));
 const CategoryForm = React.lazy(() => import('./components/CategoryForm'));
 const CategoryAdd = React.lazy(() => import('./CategoryAdd'));
@@ -146,6 +146,8 @@ const LayoutWrapper: React.FC = () => {
             <Route path="/categories" element={<AllCategories />} />
             {/* Single product route that handles both IDs and slugs */}
             <Route path="/product/:id" element={<ProductDetail />} />
+            {/* Service detail route */}
+            <Route path="/service/:id" element={<ProductDetail />} />
             {/* SEO-friendly category routes */}
             <Route path="/category/:slug" element={<CategoryPage />} />
             <Route path="/category/:id" element={<CategoryPage />} />
