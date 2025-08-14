@@ -1,7 +1,7 @@
 // API Configuration for Serverless environment
 export const API_CONFIG = {
   development: {
-    baseURL: '/.netlify/functions',  // Use relative path
+    baseURL: 'http://localhost:8888/.netlify/functions',  // Direct URL to Netlify Dev
   },
   production: {
     baseURL: '/.netlify/functions',

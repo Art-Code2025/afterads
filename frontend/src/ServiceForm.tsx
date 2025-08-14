@@ -258,11 +258,21 @@ const ServiceForm: React.FC = () => {
         body: JSON.stringify(serviceData),
       });
 
-      const responseData = await response.json();
+      let responseData: any = {};
+      const responseText = await response.text();
+      
+      try {
+        responseData = responseText ? JSON.parse(responseText) : {};
+      } catch (jsonError) {
+        console.error('JSON parsing error:', jsonError);
+        console.error('Response text:', responseText);
+        throw new Error(`خطأ في تحليل استجابة الخادم. كود الحالة: ${response.status}`);
+      }
+      
       console.log('Server response:', response.status, responseData);
 
       if (!response.ok) {
-        throw new Error(responseData.message || `فشل في حفظ الخدمة. كود الحالة: ${response.status}`);
+        throw new Error(responseData.message || responseData.error || `فشل في حفظ الخدمة. كود الحالة: ${response.status}`);
       }
 
       setLoading(false);
