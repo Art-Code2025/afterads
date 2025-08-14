@@ -1,5 +1,5 @@
-import { db } from './config/firebase.js';
-import { 
+const { db } = require('./config/firebase.js');
+const { 
   collection, 
   doc, 
   getDocs, 
@@ -12,9 +12,9 @@ import {
   orderBy,
   limit,
   startAfter 
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -371,4 +371,4 @@ export const handler = async (event, context) => {
       body: JSON.stringify({ error: 'خطأ في الخادم: ' + error.message }),
     };
   }
-}; 
+};

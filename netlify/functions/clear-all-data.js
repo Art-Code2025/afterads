@@ -1,12 +1,12 @@
-import { db } from './config/firebase.js';
-import { 
+const { db } = require('./config/firebase.js');
+const { 
   collection, 
   getDocs, 
   deleteDoc,
   doc
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   console.log('🗑️ Clear All Data API Called:', {
     method: event.httpMethod,
     timestamp: new Date().toISOString()
@@ -113,4 +113,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};

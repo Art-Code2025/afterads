@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, MapPin, Phone, Mail, Package, Clock, CreditCard, FileText, Printer, Copy, CheckCircle, Truck, AlertCircle, Star, Eye, Edit, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { buildImageUrl } from '../config/api';
+import api from '../utils/api';
 
 interface OrderItem {
   productId: number;
@@ -38,11 +39,14 @@ interface OrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStatusUpdate: (orderId: string | number, newStatus: string) => void;
+  onAddNote?: (orderId: string | number, note: string) => void;
 }
 
-const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatusUpdate }) => {
+const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatusUpdate, onAddNote }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'timeline' | 'invoice'>('details');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [adminNote, setAdminNote] = useState('');
+  const [isAddingNote, setIsAddingNote] = useState(false);
 
   if (!isOpen || !order) return null;
 
@@ -58,18 +62,6 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
     }
   };
 
-  const getStatusText = (status?: string) => {
-    switch (status) {
-      case 'pending': return 'قيد المراجعة';
-      case 'confirmed': return 'مؤكد';
-      case 'preparing': return 'قيد التحضير';
-      case 'shipped': return 'تم الشحن';
-      case 'delivered': return 'تم التسليم';
-      case 'cancelled': return 'ملغي';
-      default: return status || 'غير محدد';
-    }
-  };
-
   const getPaymentStatusColor = (status?: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-800 border-green-200';
@@ -79,10 +71,54 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
     }
   };
 
+  const getStatusText = (status?: string) => {
+    const statusMap: { [key: string]: string } = {
+      'pending': 'في الانتظار',
+      'confirmed': 'مؤكد',
+      'preparing': 'قيد التحضير',
+      'shipped': 'تم الشحن',
+      'delivered': 'تم التسليم',
+      'cancelled': 'ملغي'
+    };
+    return statusMap[status || 'pending'] || status || 'غير محدد';
+  };
+
   const handleStatusChange = async (newStatus: string) => {
     setIsUpdatingStatus(true);
     try {
+      const oldStatus = order.status;
       await onStatusUpdate(order.id, newStatus);
+      
+      // Log activity to localStorage
+      try {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const activeUser = currentUser.id ? currentUser : adminUser;
+        
+        const activityLog = {
+          id: Date.now().toString(),
+          staffId: activeUser.id || 'unknown',
+          staffName: activeUser.name || activeUser.firstName || 'مستخدم غير معروف',
+          action: 'order_status_change',
+          orderId: order.id.toString(),
+          timestamp: new Date().toISOString(),
+          details: {
+            oldStatus: getStatusText(oldStatus || 'pending'),
+            newStatus: getStatusText(newStatus),
+            customerName: order.customerName || '',
+            orderTotal: order.total || 0
+          },
+          ipAddress: '127.0.0.1'
+        };
+        
+        const existingLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+        existingLogs.unshift(activityLog);
+        if (existingLogs.length > 100) existingLogs.splice(100);
+        localStorage.setItem('activityLogs', JSON.stringify(existingLogs));
+      } catch (logError) {
+        console.error('Error logging activity:', logError);
+      }
+      
       toast.success(`تم تحديث حالة الطلب إلى: ${getStatusText(newStatus)}`);
     } catch (error) {
       toast.error('فشل في تحديث حالة الطلب');
@@ -779,7 +815,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
                 </div>
               </div>
 
-              {/* Notes */}
+              {/* Customer Notes */}
               {order.notes && (
                 <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6">
                   <h3 className="text-lg font-bold text-amber-800 mb-3 flex items-center">
@@ -789,6 +825,55 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, isOpen, onClose, onStatu
                   <p className="text-amber-700 bg-white p-4 rounded-lg">{order.notes}</p>
                 </div>
               )}
+
+              {/* Admin Notes Management */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-green-800 mb-4 flex items-center">
+                  <Edit className="w-5 h-5 ml-2" />
+                  الملاحظات الإدارية
+                </h3>
+                
+                {/* Current Admin Note */}
+                {(order as any).adminNotes && (
+                  <div className="mb-4 p-4 bg-white rounded-lg border border-green-200">
+                    <p className="text-sm text-gray-500 mb-1">الملاحظة الحالية:</p>
+                    <p className="text-gray-800">{(order as any).adminNotes}</p>
+                  </div>
+                )}
+                
+                {/* Add New Note */}
+                <div className="space-y-3">
+                  <textarea
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="أضف ملاحظة إدارية جديدة..."
+                    className="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                    rows={3}
+                    disabled={isAddingNote}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!adminNote.trim() || !onAddNote) return;
+                      
+                      setIsAddingNote(true);
+                      try {
+                        await onAddNote(order.id, adminNote.trim());
+                        setAdminNote('');
+                        toast.success('تم إضافة الملاحظة بنجاح');
+                      } catch (error) {
+                        toast.error('فشل في إضافة الملاحظة');
+                      } finally {
+                        setIsAddingNote(false);
+                      }
+                    }}
+                    disabled={!adminNote.trim() || isAddingNote || !onAddNote}
+                    className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Save className="w-4 h-4 ml-2" />
+                    {isAddingNote ? 'جاري الحفظ...' : 'حفظ الملاحظة'}
+                  </button>
+                </div>
+              </div>
 
               {/* Status Management */}
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-6">

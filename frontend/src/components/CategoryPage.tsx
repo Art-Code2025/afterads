@@ -120,7 +120,7 @@ const CategoryPage: React.FC = () => {
       // Fetch both categories and products in parallel
       const [categoriesData, productsData] = await Promise.all([
         apiCall(API_ENDPOINTS.CATEGORIES),
-        apiCall(API_ENDPOINTS.PRODUCTS)
+        apiCall(API_ENDPOINTS.SERVICES)
       ]);
 
       console.log('📂 Categories loaded:', categoriesData.length);

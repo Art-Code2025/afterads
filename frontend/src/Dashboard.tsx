@@ -9,7 +9,7 @@ import {
   AlertTriangle, Heart, Phone, Mail,
   MapPin, Truck, Gift, Tag, Settings,
   LogOut, Home, Menu, X, Bell,
-  FileText, 
+  FileText, Shield,
   Grid, AlertCircle as AlertIcon,
   Circle, Globe, Activity
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import InvoiceManagement from './components/InvoiceManagement';
 import StaticPageModal from './components/StaticPageModal';
 import logo from './assets/logo.png';
 import BlogManagement from './components/blog/BlogManagement';
+import StaffManagement from './components/StaffManagement';
 
 // تعريف الأنواع
 interface Service {
@@ -32,6 +33,10 @@ interface Service {
   mainImage: string;
   detailedImages: string[];
   imageDetails: string[];
+  basePrice: number;
+  originalPrice?: number;
+  status: 'active' | 'inactive';
+  categories: string[];
   createdAt?: string;
 }
 
@@ -43,9 +48,10 @@ interface Product {
   category: string;
   stock: number;
   image: string;
-  status: 'available' | 'unavailable';
+  status: 'active' | 'inactive';
   type: string;
   originalPrice?: number;
+  basePrice?: number;
   categoryId?: number | null;
   productType?: string;
   dynamicOptions?: any[];
@@ -95,6 +101,7 @@ interface Order {
   paymentMethod?: string;
   paymentStatus?: string;
   notes?: string;
+  adminNotes?: string; // ملاحظات الإدارة
 }
 
 interface Customer {
@@ -177,15 +184,27 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const navigate = useNavigate();
 
-  // حالات المنتجات والتصنيفات
+  // حالات الخدمات والتصنيفات
+  const [services, setServices] = useState<Service[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [serviceSearchTerm, setServiceSearchTerm] = useState<string>('');
   const [productSearchTerm, setProductSearchTerm] = useState<string>('');
   const [categorySearchTerm, setCategorySearchTerm] = useState<string>('');
+
+  // حالات تبويب "خدماتي" الجديد
+  const [myServices, setMyServices] = useState<Service[]>([]);
+  const [filteredMyServices, setFilteredMyServices] = useState<Service[]>([]);
+  const [myServicesSearchTerm, setMyServicesSearchTerm] = useState<string>('');
+  const [myServicesLoading, setMyServicesLoading] = useState<boolean>(false);
+  const [myServicesError, setMyServicesError] = useState<string | null>(null);
+
 
   // حالات الكوبونات والـ Wishlist
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -199,6 +218,7 @@ const Dashboard: React.FC = () => {
   const [orderSearchTerm, setOrderSearchTerm] = useState<string>('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [topServices, setTopServices] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false);
@@ -296,55 +316,142 @@ const Dashboard: React.FC = () => {
 
   // حالة تحميل الطلبات
   const [ordersLoading, setOrdersLoading] = useState<boolean>(false);
+  
+  // حالات إدارة الملاحظات
+  const [editingOrderNotes, setEditingOrderNotes] = useState<string | number | null>(null);
+  const [tempNotes, setTempNotes] = useState<string>('');
 
-  // وظائف الطلبات - محسنة للسرعة القصوى
+  // تحويل الستاف تلقائياً لتاب الطلبات
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'staff' && currentTab !== 'orders') {
+      setCurrentTab('orders');
+    }
+  }, [currentUser, currentTab]);
+
+  // وظائف الطلبات - محسنة للسرعة القصوى بدون تحميل
   const fetchOrders = useCallback(async (forceRefresh = false) => {
-    // تحقق من وجود بيانات محفوظة مؤقتاً
+    // تجنب التداخل مع fetchDashboardData في تبويب overview
+    if (currentTab === 'overview') {
+      console.log('⚠️ Skipping fetchOrders in overview tab - using fetchDashboardData instead');
+      return;
+    }
     const cachedOrders = sessionStorage.getItem('ordersData');
     const cacheTime = sessionStorage.getItem('ordersDataTime');
     const now = Date.now();
     
-    // استخدام البيانات المحفوظة إذا كانت حديثة (أقل من 2 دقيقة) ولم يتم طلب التحديث القسري
-    if (!forceRefresh && cachedOrders && cacheTime && (now - parseInt(cacheTime)) < 120000) {
+    // عرض البيانات المحفوظة فوراً إذا كانت متوفرة
+    if (cachedOrders) {
       try {
         const parsedOrders = JSON.parse(cachedOrders);
         setOrders(parsedOrders);
         setFilteredOrders(parsedOrders);
-        console.log('✅ Orders loaded from cache:', parsedOrders.length);
-        return;
+        console.log('⚡ Orders displayed instantly from cache:', parsedOrders.length);
       } catch (error) {
-        console.warn('⚠️ Cache parsing failed, fetching fresh data');
+        console.warn('⚠️ Cache parsing failed');
       }
     }
-
-    try {
-      setOrdersLoading(true);
-      console.log('🔄 Fetching orders from API...');
-      
-      const response = await apiCall(API_ENDPOINTS.ORDERS);
-      const ordersData = response?.data || response || [];
-      
-      if (Array.isArray(ordersData)) {
-        setOrders(ordersData);
-        setFilteredOrders(ordersData);
+    
+    // التحقق من الحاجة للتحديث (30 ثانية فقط)
+    const CACHE_DURATION = 30 * 1000; // 30 ثانية
+    const shouldRefresh = forceRefresh || !cacheTime || (now - parseInt(cacheTime)) > CACHE_DURATION;
+    
+    if (shouldRefresh) {
+      try {
+        // تحديث البيانات في الخلفية بدون تحميل
+        console.log('🔄 Refreshing orders in background...');
         
-        // حفظ البيانات في التخزين المؤقت
-        sessionStorage.setItem('ordersData', JSON.stringify(ordersData));
-        sessionStorage.setItem('ordersDataTime', now.toString());
+        const response = await apiCall(API_ENDPOINTS.ORDERS);
+        const ordersData = response?.data || response || [];
         
-        console.log('✅ Orders fetched from API:', ordersData.length);
-      } else {
-        console.warn('⚠️ Invalid orders data format:', ordersData);
-        setOrders([]);
-        setFilteredOrders([]);
+        if (Array.isArray(ordersData)) {
+          setOrders(ordersData);
+          setFilteredOrders(ordersData);
+          
+          // تحديث الكاش
+          sessionStorage.setItem('ordersData', JSON.stringify(ordersData));
+          sessionStorage.setItem('ordersDataTime', now.toString());
+          
+          console.log('✅ Orders refreshed silently:', ordersData.length);
+        } else {
+          console.warn('⚠️ Invalid orders data format:', ordersData);
+          // الاحتفاظ بالبيانات المحفوظة في حالة الخطأ
+          if (!cachedOrders) {
+            setOrders([]);
+            setFilteredOrders([]);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error refreshing orders:', error);
+        // الاحتفاظ بالبيانات المحفوظة في حالة الخطأ
+        if (!cachedOrders) {
+          setOrders([]);
+          setFilteredOrders([]);
+          toast.error('خطأ في جلب الطلبات');
+        }
       }
+    }
+  }, []);
+
+  // Initialize current user from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('adminUser');
+    if (storedUser) {
+      try {
+        setCurrentUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+      }
+    }
+  }, []);
+
+  // دالة جلب بيانات الداشبورد المحسنة
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      console.log('🚀 Fetching optimized dashboard data...');
+      const startTime = Date.now();
+      
+      const response = await fetch('/.netlify/functions/dashboard');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const fetchTime = Date.now() - startTime;
+      
+      console.log(`✅ Dashboard data fetched in ${fetchTime}ms:`, {
+        services: data.stats?.totalServices || 0,
+        orders: data.stats?.totalOrders || 0,
+        customers: data.stats?.totalCustomers || 0,
+        recentOrders: data.recentOrders?.length || 0
+      });
+      
+      // تحديث البيانات بشكل متسق
+      if (data.recentOrders) {
+        console.log(`📊 Updating orders state with ${data.recentOrders.length} orders`);
+        setOrders(data.recentOrders);
+        setFilteredOrders(data.recentOrders);
+        
+        // مسح أي cache قديم للطلبات لتجنب التضارب
+        sessionStorage.removeItem('ordersCache');
+        sessionStorage.removeItem('ordersCacheTime');
+      }
+      
+      // حفظ البيانات في sessionStorage للتخزين المؤقت
+      sessionStorage.setItem('dashboardData', JSON.stringify(data));
+      sessionStorage.setItem('dashboardDataTime', Date.now().toString());
+      
+      return data;
     } catch (error) {
-      console.error('❌ Error fetching orders:', error);
-      setOrders([]);
-      setFilteredOrders([]);
-      toast.error('خطأ في جلب الطلبات');
-    } finally {
-      setOrdersLoading(false);
+      console.error('❌ Error fetching dashboard data:', error);
+      
+      // محاولة استخدام البيانات المحفوظة
+      const cachedData = sessionStorage.getItem('dashboardData');
+      if (cachedData) {
+        console.log('🔄 Using cached dashboard data');
+        return JSON.parse(cachedData);
+      }
+      
+      throw error;
     }
   }, []);
 
@@ -359,8 +466,14 @@ const Dashboard: React.FC = () => {
     // تحميل البيانات الأساسية فقط (الطلبات للداشبورد الرئيسي)
     const loadEssentialData = async () => {
       try {
-        // تحميل الطلبات فقط للداشبورد الرئيسي
-        if (currentTab === 'dashboard') {
+        // تحميل التصنيفات والخدمات مع بداية التطبيق
+        await fetchCategories();
+        await fetchMyServices();
+        
+        // استخدام API الداشبورد المحسن للتبويب الرئيسي
+        if (currentTab === 'overview') {
+          await fetchDashboardData();
+        } else if (currentTab === 'orders') {
           await fetchOrders();
         }
       } catch (error) {
@@ -376,13 +489,13 @@ const Dashboard: React.FC = () => {
       // تحميل المنتجات بعد ثانية واحدة
       setTimeout(async () => {
         try {
-          const productsResponse = await apiCall(API_ENDPOINTS.PRODUCTS);
-          const productsData = productsResponse?.data || productsResponse || [];
-          setProducts(Array.isArray(productsData) ? productsData : []);
-          setFilteredProducts(Array.isArray(productsData) ? productsData : []);
-          console.log('✅ Products loaded in background:', productsData?.length || 0);
+          const servicesResponse = await apiCall(API_ENDPOINTS.SERVICES);
+          const servicesData = servicesResponse?.data || servicesResponse || [];
+          setProducts(Array.isArray(servicesData) ? servicesData : []);
+          setFilteredProducts(Array.isArray(servicesData) ? servicesData : []);
+          console.log('✅ Services loaded in background:', servicesData?.length || 0);
         } catch (err) {
-          console.warn('⚠️ Products failed:', err);
+          console.warn('⚠️ Services failed:', err);
           setProducts([]);
           setFilteredProducts([]);
         }
@@ -403,34 +516,52 @@ const Dashboard: React.FC = () => {
         }
       }, 2000);
       
-      // تحميل الكوبونات بعد 3 ثوانٍ
+      // تحميل الكوبونات بعد 3 ثوانٍ مع آلية إعادة المحاولة
       setTimeout(async () => {
-        try {
-          const couponsResponse = await apiCall(API_ENDPOINTS.COUPONS);
-          const couponsData = couponsResponse?.data || couponsResponse || [];
-          setCoupons(Array.isArray(couponsData) ? couponsData : []);
-          setFilteredCoupons(Array.isArray(couponsData) ? couponsData : []);
-          console.log('✅ Coupons loaded in background:', couponsData?.length || 0);
-        } catch (err) {
-          console.warn('⚠️ Coupons failed:', err);
-          setCoupons([]);
-          setFilteredCoupons([]);
-        }
+        const loadCouponsWithRetry = async (retries = 2) => {
+          try {
+            const couponsResponse = await apiCall(API_ENDPOINTS.COUPONS);
+            const couponsData = couponsResponse?.data || couponsResponse || [];
+            setCoupons(Array.isArray(couponsData) ? couponsData : []);
+            setFilteredCoupons(Array.isArray(couponsData) ? couponsData : []);
+            console.log('✅ Coupons loaded in background:', couponsData?.length || 0);
+          } catch (err) {
+            console.warn('⚠️ Coupons failed (attempt remaining: ' + retries + '):', err);
+            if (retries > 0 && err instanceof Error && err.message.includes('انتهت مهلة الطلب')) {
+              // إعادة المحاولة بعد 3 ثوانٍ في حالة timeout
+              setTimeout(() => loadCouponsWithRetry(retries - 1), 3000);
+            } else {
+              setCoupons([]);
+              setFilteredCoupons([]);
+            }
+          }
+        };
+        
+        await loadCouponsWithRetry();
       }, 3000);
       
-      // تحميل العملاء بعد 4 ثوانٍ
+      // تحميل العملاء بعد 4 ثوانٍ مع آلية إعادة المحاولة
       setTimeout(async () => {
-        try {
-          const customersResponse = await apiCall(API_ENDPOINTS.CUSTOMERS);
-          const customersData = customersResponse?.data || customersResponse || [];
-          setCustomers(Array.isArray(customersData) ? customersData : []);
-          setFilteredCustomers(Array.isArray(customersData) ? customersData : []);
-          console.log('✅ Customers loaded in background:', customersData?.length || 0);
-        } catch (err) {
-          console.warn('⚠️ Customers failed:', err);
-          setCustomers([]);
-          setFilteredCustomers([]);
-        }
+        const loadCustomersWithRetry = async (retries = 2) => {
+          try {
+            const customersResponse = await apiCall(API_ENDPOINTS.CUSTOMERS);
+            const customersData = customersResponse?.data || customersResponse || [];
+            setCustomers(Array.isArray(customersData) ? customersData : []);
+            setFilteredCustomers(Array.isArray(customersData) ? customersData : []);
+            console.log('✅ Customers loaded in background:', customersData?.length || 0);
+          } catch (err) {
+            console.warn('⚠️ Customers failed (attempt remaining: ' + retries + '):', err);
+            if (retries > 0 && err instanceof Error && err.message.includes('انتهت مهلة الطلب')) {
+              // إعادة المحاولة بعد 3 ثوانٍ في حالة timeout
+              setTimeout(() => loadCustomersWithRetry(retries - 1), 3000);
+            } else {
+              setCustomers([]);
+              setFilteredCustomers([]);
+            }
+          }
+        };
+        
+        await loadCustomersWithRetry();
       }, 4000);
     };
     
@@ -511,13 +642,13 @@ const Dashboard: React.FC = () => {
     }));
     setSalesData(salesData);
 
-    if (products.length > 0) {
-      const topProductsData = products.slice(0, 5).map((product, index) => ({
-        name: product.name,
+    if (services.length > 0) {
+        const topServicesData = services.slice(0, 5).map((service, index) => ({
+        name: service.name,
         sales: Math.floor(Math.random() * 80) + 20 - (index * 5),
-        revenue: (Math.floor(Math.random() * 80) + 20 - (index * 5)) * product.price
+        revenue: (Math.floor(Math.random() * 80) + 20 - (index * 5)) * (service.basePrice || service.originalPrice || 0)
       }));
-      setTopProducts(topProductsData);
+      setTopServices(topServicesData);
     }
   };
 
@@ -611,7 +742,7 @@ const Dashboard: React.FC = () => {
   // تحديث الإحصائيات (background job)
   const updateAnalyticsStats = async () => {
     try {
-      const response = await fetch('/.netlify/functions/analytics-stats', {
+      const response = await fetch('/.netlify/functions/analytics-stats?action=calculate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -650,35 +781,44 @@ const Dashboard: React.FC = () => {
 
   // تحديث تلقائي للطلبات في الداشبورد الرئيسي - محسن
   useEffect(() => {
-    if (currentTab === 'dashboard') {
-      fetchOrders(); // جلب الطلبات عند فتح الداشبورد
+    if (currentTab === 'overview') {
+      fetchDashboardData(); // جلب بيانات الداشبورد المحسنة
       
       // تحديث تلقائي كل 5 دقائق بدلاً من 30 ثانية لتوفير الموارد
       const interval = setInterval(() => {
-        fetchOrders(true); // تحديث قسري
+        fetchDashboardData(); // تحديث قسري
       }, 300000); // 5 دقائق
       
       return () => clearInterval(interval);
     }
-  }, [currentTab, fetchOrders]);
+  }, [currentTab, fetchDashboardData]);
 
   // تحديث الطلبات عند العودة للصفحة (focus) - محسن
   useEffect(() => {
     const handleFocus = () => {
-      if (currentTab === 'dashboard' || currentTab === 'orders') {
+      if (currentTab === 'overview') {
+        fetchDashboardData(); // تحديث بيانات الداشبورد المحسنة
+      } else if (currentTab === 'orders') {
         fetchOrders(true); // تحديث قسري عند العودة للصفحة
       }
     };
     
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [currentTab, fetchOrders]);
+  }, [currentTab, fetchDashboardData, fetchOrders]);
 
   // الاستماع لإشعارات الطلبات الجديدة - محسن
   useEffect(() => {
     const handleNewOrder = () => {
-      console.log('📢 [Dashboard] Received new order notification, refreshing orders...');
-      fetchOrders(true); // تحديث قسري للطلبات
+      console.log('📢 [Dashboard] Received new order notification, refreshing data...');
+      
+      // استخدام API الداشبورد المحسن إذا كنا في التبويب الرئيسي
+      if (currentTab === 'overview') {
+        fetchDashboardData(); // تحديث بيانات الداشبورد الكاملة
+      } else {
+        fetchOrders(true); // تحديث الطلبات فقط للتبويبات الأخرى
+      }
+      
       // إزالة الإشعار بعد المعالجة
       localStorage.removeItem('newOrderAdded');
       toast.success('تم استلام طلب جديد!');
@@ -689,21 +829,43 @@ const Dashboard: React.FC = () => {
       handleNewOrder();
     }
     
+    // تحميل بيانات الخدمات مسبقاً لتحسين الأداء
+    fetchMyServices();
+    
     // الاستماع للإشعارات الجديدة
     window.addEventListener('newOrderAdded', handleNewOrder);
     return () => window.removeEventListener('newOrderAdded', handleNewOrder);
-  }, [fetchOrders]);
+  }, [currentTab, fetchDashboardData, fetchOrders]);
 
-  // وظائف المنتجات
-  const fetchProducts = async () => {
+  // وظائف الخدمات
+  const fetchServices = async () => {
     try {
-      const data = await apiCall(API_ENDPOINTS.PRODUCTS);
-      setProducts(data || []);
-      setFilteredProducts(data || []);
+      const data = await apiCall(API_ENDPOINTS.SERVICES);
+      setServices(data || []);
+      setFilteredServices(data || []);
     } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
-      setFilteredProducts([]);
+      console.error('Error fetching services:', error);
+      setServices([]);
+      setFilteredServices([]);
+    }
+  };
+
+  // وظائف تبويب "خدماتي" الجديد
+  const fetchMyServices = async () => {
+    setMyServicesLoading(true);
+    setMyServicesError(null);
+    try {
+      const data = await apiCall(API_ENDPOINTS.SERVICES);
+
+      setMyServices(data || []);
+      setFilteredMyServices(data || []);
+    } catch (error) {
+      console.error('Error fetching my services:', error);
+      setMyServicesError('حدث خطأ في تحميل الخدمات');
+      setMyServices([]);
+      setFilteredMyServices([]);
+    } finally {
+      setMyServicesLoading(false);
     }
   };
 
@@ -711,6 +873,7 @@ const Dashboard: React.FC = () => {
   const fetchCategories = async () => {
     try {
       const data = await apiCall(API_ENDPOINTS.CATEGORIES);
+
       setCategories(data || []);
       setFilteredCategories(data || []);
     } catch (error) {
@@ -804,6 +967,37 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // تحميل المنتجات والتصنيفات عند فتح التبويب
+  useEffect(() => {
+    if (currentTab === 'services') {
+      fetchServices();
+    }
+    if (currentTab === 'categories') {
+      fetchCategories();
+    }
+  }, [currentTab]);
+
+  // الاستماع لأحداث تحديث المنتجات
+  useEffect(() => {
+    const handleProductsUpdate = () => {
+      if (currentTab === 'services') {
+        fetchServices();
+      }
+    };
+
+    window.addEventListener('productsUpdated', handleProductsUpdate);
+    window.addEventListener('productCreated', handleProductsUpdate);
+    window.addEventListener('productUpdated', handleProductsUpdate);
+    window.addEventListener('productDeleted', handleProductsUpdate);
+
+    return () => {
+      window.removeEventListener('productsUpdated', handleProductsUpdate);
+      window.removeEventListener('productCreated', handleProductsUpdate);
+      window.removeEventListener('productUpdated', handleProductsUpdate);
+      window.removeEventListener('productDeleted', handleProductsUpdate);
+    };
+  }, [currentTab]);
+
   // تحميل العملاء عند فتح التبويب فقط
   useEffect(() => {
     if (currentTab === 'customers') {
@@ -848,43 +1042,163 @@ const Dashboard: React.FC = () => {
     setFilteredOrders(filtered);
   };
 
-  // Order update handler
+  // Order update handler - محسن للسرعة القصوى
   const handleOrderStatusUpdate = async (orderId: string | number, newStatus: string) => {
     try {
-      setLoading(true);
-      
-      // Convert orderId to string for API call consistency
+      // إزالة صفحة التحميل - تحديث فوري في الواجهة
       const orderIdStr = typeof orderId === 'string' ? orderId : orderId.toString();
       
-      await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderIdStr), {
-        method: 'PUT',
-        body: JSON.stringify({ status: newStatus }),
-      });
+      // Find current order to get old status
+      const currentOrder = orders.find(order => order.id.toString() === orderId.toString());
+      const oldStatus = currentOrder?.status;
       
-      // Update order in local state - compare as strings for consistency
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
+      // تحديث الحالة فوراً في الواجهة قبل إرسال الطلب للخادم
+      const updateOrdersState = (orders: Order[]) => 
+        orders.map(order => 
           order.id.toString() === orderId.toString()
             ? { ...order, status: newStatus as Order['status'] }
             : order
-        )
-      ); 
+        );
       
-      // Update filtered orders as well
-      setFilteredOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id.toString() === orderId.toString()
-            ? { ...order, status: newStatus as Order['status'] }
-            : order
-        )
-      );
+      setOrders(updateOrdersState);
+      setFilteredOrders(updateOrdersState);
       
+      // إظهار رسالة النجاح فوراً
       toast.success(`تم تحديث حالة الطلب إلى: ${getOrderStatusText(newStatus)}`);
+      
+      // إرسال التحديث للخادم في الخلفية
+      try {
+        await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderIdStr), {
+          method: 'PUT',
+          body: JSON.stringify({ status: newStatus }),
+        });
+        
+        // Local activity logging (no API dependency)
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        
+        // استخدام بيانات المستخدم المناسبة
+        const activeUser = currentUser.id ? currentUser : adminUser;
+        const staffName = activeUser.name || activeUser.firstName || activeUser.username || 'مستخدم غير معروف';
+        const staffEmail = activeUser.email || '';
+        
+        // إنشاء سجل النشاط
+        const activityLog = {
+          id: Date.now().toString(),
+          staffId: activeUser.id || 'unknown',
+          staffName: staffName,
+          action: 'order_status_change',
+          orderId: orderIdStr,
+          timestamp: new Date().toISOString(),
+          details: {
+            oldStatus: getOrderStatusText(oldStatus),
+            newStatus: getOrderStatusText(newStatus),
+            customerName: currentOrder?.customerName || '',
+            orderTotal: currentOrder?.total || 0,
+            firstName: activeUser.firstName || '',
+            email: staffEmail
+          },
+          ipAddress: '127.0.0.1'
+        };
+        
+        // حفظ السجل في localStorage
+        const existingLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+        existingLogs.unshift(activityLog);
+        
+        // الاحتفاظ بآخر 100 سجل فقط
+        if (existingLogs.length > 100) {
+          existingLogs.splice(100);
+        }
+        
+        localStorage.setItem('activityLogs', JSON.stringify(existingLogs));
+        
+        console.log('✅ Order status updated successfully on server');
+        
+      } catch (error) {
+        console.error('❌ Error updating order status on server:', error);
+        // في حالة فشل التحديث على الخادم، إعادة الحالة السابقة
+        const revertOrdersState = (orders: Order[]) => 
+          orders.map(order => 
+            order.id.toString() === orderId.toString()
+              ? { ...order, status: oldStatus }
+              : order
+          );
+        
+        setOrders(revertOrdersState);
+        setFilteredOrders(revertOrdersState);
+        toast.error('فشل في تحديث حالة الطلب على الخادم، تم استرجاع الحالة السابقة');
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('فشل في تحديث حالة الطلب');
-    } finally {
-      setLoading(false);
+    }
+  };
+  
+  // إضافة ملاحظة للطلب
+  const handleAddOrderNote = async (orderId: string | number, note: string) => {
+    try {
+      const orderIdStr = typeof orderId === 'string' ? orderId : orderId.toString();
+      
+      // تحديث الطلب بالملاحظة الجديدة فوراً في الواجهة
+      const updateOrdersWithNote = (orders: Order[]) => 
+        orders.map(order => 
+          order.id.toString() === orderId.toString()
+            ? { ...order, adminNotes: note }
+            : order
+        );
+      
+      setOrders(updateOrdersWithNote);
+      setFilteredOrders(updateOrdersWithNote);
+      
+      toast.success('تم إضافة الملاحظة بنجاح');
+      
+      // إرسال التحديث للخادم في الخلفية
+      try {
+        await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderIdStr), {
+          method: 'PUT',
+          body: JSON.stringify({ 
+            adminNotes: note,
+            updatedAt: new Date().toISOString()
+          }),
+        });
+        
+        // تسجيل النشاط
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const activeUser = currentUser.id ? currentUser : adminUser;
+        const currentOrder = orders.find(order => order.id.toString() === orderId.toString());
+        
+        const activityLog = {
+          id: Date.now().toString(),
+          staffId: activeUser.id || 'unknown',
+          staffName: activeUser.name || activeUser.firstName || 'مستخدم غير معروف',
+          action: 'order_note_add',
+          orderId: orderIdStr,
+          timestamp: new Date().toISOString(),
+          details: {
+            note: note,
+            customerName: currentOrder?.customerName || '',
+            orderTotal: currentOrder?.total || 0,
+            firstName: activeUser.firstName || activeUser.name || '',
+            email: activeUser.email || ''
+          },
+          ipAddress: '127.0.0.1'
+        };
+        
+        const existingLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+        existingLogs.unshift(activityLog);
+        if (existingLogs.length > 100) existingLogs.splice(100);
+        localStorage.setItem('activityLogs', JSON.stringify(existingLogs));
+        
+        console.log('✅ Order note added successfully');
+        
+      } catch (error) {
+        console.error('❌ Error adding order note on server:', error);
+        toast.error('تم إضافة الملاحظة محلياً، لكن فشل في الحفظ على الخادم');
+      }
+    } catch (error) {
+      console.error('Error adding order note:', error);
+      toast.error('فشل في إضافة الملاحظة');
     }
   };
 
@@ -974,12 +1288,12 @@ const Dashboard: React.FC = () => {
 
   const handleDeleteProduct = async (id: number) => {
     try {
-      await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(id), {
+      await apiCall(API_ENDPOINTS.SERVICE_BY_ID(id), {
         method: 'DELETE',
       });
       
-      // Convert id to string for comparison since Product.id is string
-      setProducts(products.filter(p => p.id !== id.toString()));
+      // Convert id to number for comparison since Service.id is number
+      setServices(services.filter(s => s.id !== Number(id)));
       setFilteredProducts(filteredProducts.filter(p => p.id !== id.toString()));
       toast.success('تم حذف المنتج بنجاح');
     } catch (error) {
@@ -1026,13 +1340,13 @@ const Dashboard: React.FC = () => {
     setProductSearchTerm(term);
     
     if (term) {
-      const filtered = products.filter(product =>
-        product.name.toLowerCase().includes(term.toLowerCase()) ||
-        product.description.toLowerCase().includes(term.toLowerCase())
+      const filtered = services.filter(service =>
+        service.name.toLowerCase().includes(term.toLowerCase()) ||
+        service.description.toLowerCase().includes(term.toLowerCase())
       );
-      setFilteredProducts(filtered);
+      setFilteredServices(filtered);
     } else {
-      setFilteredProducts(products);
+      setFilteredServices(services);
     }
   };
 
@@ -1048,6 +1362,23 @@ const Dashboard: React.FC = () => {
       setFilteredCategories(filtered);
     } else {
       setFilteredCategories(categories);
+    }
+  };
+
+  // دالة البحث للتبويب الجديد "خدماتي"
+  const handleMyServicesSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setMyServicesSearchTerm(term);
+
+    if (term) {
+      const filtered = myServices.filter(service =>
+        service.name.toLowerCase().includes(term.toLowerCase()) ||
+        service.description.toLowerCase().includes(term.toLowerCase()) ||
+        service.homeShortDescription.toLowerCase().includes(term.toLowerCase())
+      );
+      setFilteredMyServices(filtered);
+    } else {
+      setFilteredMyServices(myServices);
     }
   };
 
@@ -1088,6 +1419,94 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // وظائف إدارة الملاحظات للطلبات
+  const handleEditOrderNotes = (orderId: string | number) => {
+    const order = orders.find(o => o.id.toString() === orderId.toString());
+    if (order) {
+      setEditingOrderNotes(orderId.toString());
+      setTempNotes(order.notes || '');
+    }
+  };
+
+  const handleSaveOrderNotes = async (orderId: string | number) => {
+    try {
+      const orderIdStr = orderId.toString();
+      
+      // تحديث الواجهة فوراً
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id.toString() === orderIdStr 
+            ? { ...order, notes: tempNotes }
+            : order
+        )
+      );
+      setFilteredOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id.toString() === orderIdStr 
+            ? { ...order, notes: tempNotes }
+            : order
+        )
+      );
+      
+      setEditingOrderNotes(null);
+      setTempNotes('');
+      toast.success('تم حفظ الملاحظة بنجاح');
+      
+      // إرسال التحديث للخادم في الخلفية
+      try {
+        await apiCall(API_ENDPOINTS.ORDER_BY_ID(orderIdStr), {
+          method: 'PUT',
+          body: JSON.stringify({
+            notes: tempNotes,
+            updatedAt: new Date().toISOString()
+          }),
+        });
+        
+        // تسجيل النشاط
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        const activeUser = currentUser.id ? currentUser : adminUser;
+        const currentOrder = orders.find(order => order.id.toString() === orderIdStr);
+        
+        const activityLog = {
+          id: Date.now().toString(),
+          staffId: activeUser.id || 'unknown',
+          staffName: activeUser.name || activeUser.firstName || 'مستخدم غير معروف',
+          action: 'تحديث ملاحظة الطلب',
+          orderId: orderIdStr,
+          timestamp: new Date().toISOString(),
+          details: {
+            note: tempNotes,
+            customerName: currentOrder?.customerName || '',
+            orderTotal: currentOrder?.total || 0,
+            firstName: activeUser.firstName || activeUser.name || '',
+            email: activeUser.email || ''
+          },
+          ipAddress: '127.0.0.1'
+        };
+        
+        const existingLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+        existingLogs.unshift(activityLog);
+        if (existingLogs.length > 100) existingLogs.splice(100);
+        localStorage.setItem('activityLogs', JSON.stringify(existingLogs));
+        
+        console.log('✅ Order notes updated successfully on server');
+        
+      } catch (error) {
+        console.error('❌ Error updating order notes on server:', error);
+        toast.error('تم حفظ الملاحظة محلياً، لكن فشل في الحفظ على الخادم');
+      }
+    } catch (error) {
+      console.error('Error saving order notes:', error);
+      toast.error('فشل في حفظ الملاحظة');
+    }
+  };
+
+  const handleCancelEditOrderNotes = () => {
+    setEditingOrderNotes(null);
+    setTempNotes('');
+  };
+
   const handleLogout = () => {
     // Clear all authentication data
     localStorage.removeItem('isAuthenticated');
@@ -1105,19 +1524,53 @@ const Dashboard: React.FC = () => {
     setIsMobileMenuOpen(false); // Close mobile menu when switching tabs
   };
 
-  // إحصائيات المتجر - with fallback data
+  // إحصائيات المتجر - محسنة باستخدام بيانات API الداشبورد
   const getStoreStats = () => {
-    // Calculate stats from actual data if available, otherwise use default values
-    const totalProducts = products.length || 3; // Default to 3 from our mock data
-    const totalCategories = categories.length || 5; // Default to 5 from our mock data
-    const outOfStockProducts = products.filter(p => (p.stock || 0) <= 0).length;
-    const lowStockProducts = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length;
-    const totalValue = products.reduce((sum, p) => sum + ((p.price || 0) * (p.stock || 0)), 0) || 15000; // Default value
-    const totalCoupons = coupons.length || 4; // Default to 4 from our mock data
+    // محاولة الحصول على البيانات من sessionStorage أولاً
+    const cachedDashboardData = sessionStorage.getItem('dashboardData');
+    let dashboardStats = null;
+    
+    if (cachedDashboardData) {
+      try {
+        const parsedData = JSON.parse(cachedDashboardData);
+        dashboardStats = parsedData.stats;
+      } catch (error) {
+        console.error('❌ Error parsing cached dashboard data:', error);
+      }
+    }
+    
+    // استخدام بيانات API الداشبورد إذا كانت متوفرة، وإلا استخدام الحسابات المحلية
+    if (dashboardStats) {
+      console.log('✅ Using optimized dashboard stats from API');
+      return {
+        totalServices: dashboardStats.totalServices || 0,
+        totalCategories: dashboardStats.totalCategories || 0,
+        unavailableServices: dashboardStats.unavailableServices || 0,
+        availableServices: dashboardStats.availableServices || 0,
+        totalValue: dashboardStats.totalValue || 0,
+        totalCoupons: dashboardStats.totalCoupons || 0,
+        activeCoupons: dashboardStats.activeCoupons || 0,
+        wishlistItemsCount: wishlistItems.length || 0, // هذا لا يزال محلياً
+        totalOrders: dashboardStats.totalOrders || 0,
+        pendingOrders: dashboardStats.pendingOrders || 0,
+        completedOrders: dashboardStats.completedOrders || 0,
+        totalRevenue: dashboardStats.totalRevenue || 0,
+        averageOrderValue: dashboardStats.averageOrderValue || 0
+      };
+    }
+    
+    // Fallback للحسابات المحلية إذا لم تكن بيانات API متوفرة
+    console.log('⚠️ Using local calculations as fallback');
+    const totalServices = services.length || 3;
+    const totalCategories = categories.length || 5;
+    const unavailableServices = services.filter(s => s.status === 'inactive').length;
+    const availableServices = services.filter(s => s.status === 'active').length;
+    const totalValue = services.reduce((sum, s) => sum + (s.basePrice || s.originalPrice || 0), 0) || 15000;
+    const totalCoupons = coupons.length || 4;
     const activeCoupons = coupons.filter(coupon => coupon.isActive).length || 3;
     const wishlistItemsCount = wishlistItems.length || 0;
     
-    const totalOrders = orders.length || 3; // Default to 3 from our mock data
+    const totalOrders = orders.length || 3;
     const pendingOrders = orders.filter(order => 
       order.status === 'pending' || 
       (order.status as any) === 'معلق'
@@ -1126,14 +1579,14 @@ const Dashboard: React.FC = () => {
       order.status === 'delivered' || 
       (order.status as any) === 'مُستلم'
     ).length || 1;
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0) || 614; // Default from mock data
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : (614 / 3); // Default calculation
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0) || 614;
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : (614 / 3);
 
     return {
-      totalProducts,
+      totalServices,
       totalCategories,
-      outOfStockProducts,
-      lowStockProducts,
+      unavailableServices,
+      availableServices,
       totalValue,
       totalCoupons,
       activeCoupons,
@@ -1210,6 +1663,22 @@ const Dashboard: React.FC = () => {
       .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
       .trim();
   };
+
+  // تحميل البيانات عند تحميل الصفحة لأول مرة
+  useEffect(() => {
+    // تحميل البيانات الأساسية
+    loadAnalyticsData();
+    fetchOrders();
+    fetchCoupons();
+    fetchWishlistItems();
+    
+    // تحميل الخدمات والتصنيفات
+    fetchServices();
+    fetchCategories();
+    
+    // تحديث الإحصائيات
+    updateAnalyticsStats();
+  }, []);
 
   const openPageModal = (page?: StaticPage) => {
     if (page) {
@@ -1456,8 +1925,8 @@ const Dashboard: React.FC = () => {
       
       switch (deleteModal.type) {
         case 'product':
-          endpoint = API_ENDPOINTS.PRODUCTS + '/' + deleteModal.id;
-          successMessage = 'تم حذف المنتج بنجاح!';
+          endpoint = API_ENDPOINTS.SERVICES + '/' + deleteModal.id;
+          successMessage = 'تم حذف الخدمة بنجاح!';
           break;
         case 'category':
           endpoint = API_ENDPOINTS.CATEGORIES + '/' + deleteModal.id;
@@ -1501,13 +1970,11 @@ const Dashboard: React.FC = () => {
           setCategories(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
           setFilteredCategories(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
           // Update products that had this category
-          const updatedProducts = products.map(product => 
+          const updatedProducts = products.map((product: Product) => 
             product.categoryId?.toString() === deleteModal.id.toString() ? { ...product, categoryId: null } : product
           );
           setProducts(updatedProducts);
-          setFilteredProducts(filteredProducts.map(product => 
-            product.categoryId?.toString() === deleteModal.id.toString() ? { ...product, categoryId: null } : product
-          ));
+          setFilteredProducts(updatedProducts);
           window.dispatchEvent(new Event('categoriesUpdated'));
           break;
         case 'order':
@@ -1535,8 +2002,15 @@ const Dashboard: React.FC = () => {
   };
 
   // Delete Modal Functions
-  const openDeleteModal = (type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone', id: string | number, name: string) => {
-    handleDeleteClick(type, typeof id === 'string' ? parseInt(id) : id, name);
+  const openDeleteModal = (type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone' | 'service', id: string | number, name: string) => {
+    // Ensure id is a valid number for services
+    const numericId = typeof id === 'string' ? parseInt(id) : id;
+    if (isNaN(numericId)) {
+      console.error('Invalid ID provided for deletion:', id);
+      toast.error('معرف غير صالح للحذف');
+      return;
+    }
+    handleDeleteClick(type, numericId, name);
   };
 
   const closeDeleteModal = () => {
@@ -1989,39 +2463,58 @@ const Dashboard: React.FC = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex space-x-8 space-x-reverse">
-              <button
-                onClick={() => switchTab('overview')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'overview'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Home className="w-4 h-4 inline-block ml-2" />
-                الرئيسية
-              </button>
-              <button
-                onClick={() => switchTab('products')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'products'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Package className="w-4 h-4 inline-block ml-2" />
-                الخدمات
-              </button>
-              <button
-                onClick={() => switchTab('categories')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'categories'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Grid className="w-4 h-4 inline-block ml-2" />
-                التصنيفات
-              </button>
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('overview')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'overview'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Home className="w-4 h-4 inline-block ml-2" />
+                  الرئيسية
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('products')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'products'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Package className="w-4 h-4 inline-block ml-2" />
+                  المنتجات والخدمات
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('myservices')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'myservices'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Package className="w-4 h-4 inline-block ml-2" />
+                  خدماتي
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('categories')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'categories'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Grid className="w-4 h-4 inline-block ml-2" />
+                  التصنيفات
+                </button>
+              )}
               <button
                 onClick={() => switchTab('orders')}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -2033,72 +2526,110 @@ const Dashboard: React.FC = () => {
                 <ShoppingCart className="w-4 h-4 inline-block ml-2" />
                 الطلبات
               </button>
-              <button
-                onClick={() => switchTab('customers')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'customers'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Users className="w-4 h-4 inline-block ml-2" />
-                العملاء
-              </button>
-              <button
-                onClick={() => switchTab('coupons')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'coupons'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Gift className="w-4 h-4 inline-block ml-2" />
-                الكوبونات
-              </button>
-              <button
-                onClick={() => switchTab('shipping')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'shipping'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Truck className="w-4 h-4 inline-block ml-2" />
-                الشحن
-              </button>
-              <button
-                onClick={() => switchTab('analytics')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'analytics'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4 inline-block ml-2" />
-                التحليلات
-              </button>
-              <button
-                onClick={() => switchTab('invoices')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'invoices'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <FileText className="w-4 h-4 inline-block ml-2" />
-                الفواتير
-              </button>
-              <button
-                onClick={() => switchTab('pages')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentTab === 'pages'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Globe className="w-4 h-4 inline-block ml-2" />
-                اضافة صفحة
-              </button>
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('customers')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'customers'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4 inline-block ml-2" />
+                  العملاء
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('coupons')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'coupons'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Gift className="w-4 h-4 inline-block ml-2" />
+                  الكوبونات
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('shipping')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'shipping'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Truck className="w-4 h-4 inline-block ml-2" />
+                  الشحن
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('analytics')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'analytics'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 inline-block ml-2" />
+                  التحليلات
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('invoices')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'invoices'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 inline-block ml-2" />
+                  الفواتير
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('pages')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'pages'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Globe className="w-4 h-4 inline-block ml-2" />
+                  اضافة صفحة
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('blog')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'blog'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 inline-block ml-2" />
+                  المدونة
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('staff')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentTab === 'staff'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Shield className="w-4 h-4 inline-block ml-2" />
+                  إدارة الموظفين
+                </button>
+              )}
             </nav>
 
             {/* User Menu */}
@@ -2118,39 +2649,58 @@ const Dashboard: React.FC = () => {
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 bg-white">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <button
-                onClick={() => switchTab('overview')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'overview'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Home className="w-4 h-4 inline-block ml-2" />
-                الرئيسية
-              </button>
-              <button
-                onClick={() => switchTab('products')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'products'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Package className="w-4 h-4 inline-block ml-2" />
-                الخدمات
-              </button>
-              <button
-                onClick={() => switchTab('categories')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'categories'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Grid className="w-4 h-4 inline-block ml-2" />
-                التصنيفات
-              </button>
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('overview')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'overview'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Home className="w-4 h-4 inline-block ml-2" />
+                  الرئيسية
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('products')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'products'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Package className="w-4 h-4 inline-block ml-2" />
+                  المنتجات والخدمات
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('myservices')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'myservices'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Package className="w-4 h-4 inline-block ml-2" />
+                  خدماتي
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('categories')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'categories'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Grid className="w-4 h-4 inline-block ml-2" />
+                  التصنيفات
+                </button>
+              )}
               <button
                 onClick={() => switchTab('orders')}
                 className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
@@ -2162,82 +2712,110 @@ const Dashboard: React.FC = () => {
                 <ShoppingCart className="w-4 h-4 inline-block ml-2" />
                 الطلبات
               </button>
-              <button
-                onClick={() => switchTab('customers')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'customers'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Users className="w-4 h-4 inline-block ml-2" />
-                العملاء
-              </button>
-              <button
-                onClick={() => switchTab('coupons')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'coupons'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Gift className="w-4 h-4 inline-block ml-2" />
-                الكوبونات
-              </button>
-              <button
-                onClick={() => switchTab('shipping')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'shipping'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Truck className="w-4 h-4 inline-block ml-2" />
-                الشحن
-              </button>
-              <button
-                onClick={() => switchTab('analytics')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'analytics'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4 inline-block ml-2" />
-                التحليلات
-              </button>
-              <button
-                onClick={() => switchTab('invoices')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'invoices'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <FileText className="w-4 h-4 inline-block ml-2" />
-                الفواتير
-              </button>
-              <button
-                onClick={() => switchTab('pages')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'pages'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <Globe className="w-4 h-4 inline-block ml-2" />
-                اضافة صفحة
-              </button>
-              <button
-                onClick={() => switchTab('blog')}
-                className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                  currentTab === 'blog'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                المدونة
-              </button>
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('customers')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'customers'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4 inline-block ml-2" />
+                  العملاء
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('coupons')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'coupons'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Gift className="w-4 h-4 inline-block ml-2" />
+                  الكوبونات
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('shipping')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'shipping'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Truck className="w-4 h-4 inline-block ml-2" />
+                  الشحن
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('analytics')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'analytics'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 inline-block ml-2" />
+                  التحليلات
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('invoices')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'invoices'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 inline-block ml-2" />
+                  الفواتير
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('pages')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'pages'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Globe className="w-4 h-4 inline-block ml-2" />
+                  اضافة صفحة
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('blog')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'blog'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 inline-block ml-2" />
+                  المدونة
+                </button>
+              )}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={() => switchTab('staff')}
+                  className={`block w-full text-right px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                    currentTab === 'staff'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Shield className="w-4 h-4 inline-block ml-2" />
+                  إدارة الموظفين
+                </button>
+              )}
               <div className="border-t border-gray-200 pt-4">
                 <button
                   onClick={handleLogout}
@@ -2267,10 +2845,12 @@ const Dashboard: React.FC = () => {
                   <Menu className="w-6 h-6" />
                 </button>
                 
-                <div>
+                <div>  
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                     {currentTab === 'overview' && 'نظرة عامة'}
                     {currentTab === 'products' && 'إدارة المنتجات'}
+                    {currentTab === 'products' && 'إدارة المنتجات والخدمات'}
+                    {currentTab === 'myservices' && 'خدماتي'}
                     {currentTab === 'categories' && 'إدارة التصنيفات'}
                     {currentTab === 'orders' && 'إدارة الطلبات'}
                     {currentTab === 'customers' && 'إدارة العملاء'}
@@ -2278,6 +2858,8 @@ const Dashboard: React.FC = () => {
                     {currentTab === 'shipping' && 'إدارة الشحن والتوصيل'}
                     {currentTab === 'analytics' && 'التحليلات والإحصائيات'}
                     {currentTab === 'pages' && 'إدارة الصفحات الثابتة'}
+                    {currentTab === 'blog' && 'إدارة المدونة'}
+                    {currentTab === 'staff' && 'إدارة الموظفين'}
                   </h1>
                   <p className="text-gray-600 text-sm">
                     آخر تحديث: {new Date().toLocaleDateString('ar-SA')} - {new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
@@ -2303,10 +2885,10 @@ const Dashboard: React.FC = () => {
                     </div>
                   )}
                   
-                  {currentTab === 'products' && (
+                  {(currentTab === 'products' || currentTab === 'services') && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
                       <div className="flex items-center text-orange-700">
-                        <span className="text-xs font-medium">{stats.outOfStockProducts} نفد المخزون</span>
+                        <span className="text-xs font-medium">{stats.unavailableServices} غير متاح</span>
                       </div>
                     </div>
                   )}
@@ -2324,14 +2906,14 @@ const Dashboard: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 lg:p-8">
-          {/* Products Tab */}
-          {currentTab === 'products' && (
+          {/* Services Tab */}
+          {currentTab === 'services' && (
             <div className="space-y-6">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">الخدمات</h2>
-                  <p className="text-gray-600">إدارة وتنظيم خدمات المتجر</p>
+                  <h2 className="text-2xl font-bold text-gray-900">المنتجات والخدمات</h2>
+                  <p className="text-gray-600">إدارة وتنظيم منتجات وخدمات المتجر</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                   <Link
@@ -2342,12 +2924,13 @@ const Dashboard: React.FC = () => {
                     إضافة خدمة جديدة
                   </Link>
                   <button 
-                    onClick={fetchProducts}
+                    onClick={fetchServices}
                     className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <RefreshCw className="w-4 h-4 ml-2" />
                     تحديث
                   </button>
+
                 </div>
               </div>
 
@@ -2359,8 +2942,8 @@ const Dashboard: React.FC = () => {
                       <Package className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">{stats.totalProducts}</div>
-                      <div className="text-sm text-gray-500">إجمالي الخدمات</div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.totalServices}</div>
+                      <div className="text-sm text-gray-500">إجمالي المنتجات/الخدمات</div>
                     </div>
                   </div>
                 </div>
@@ -2371,8 +2954,8 @@ const Dashboard: React.FC = () => {
                       <AlertTriangle className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-red-600">{stats.outOfStockProducts}</div>
-                      <div className="text-sm text-gray-500">خدمات غير متاحة</div>
+                      <div className="text-2xl font-bold text-red-600">{stats.unavailableServices}</div>
+                      <div className="text-sm text-gray-500">منتجات/خدمات غير متاحة</div>
                     </div>
                   </div>
                 </div>
@@ -2383,8 +2966,8 @@ const Dashboard: React.FC = () => {
                       <Circle className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-yellow-600">{stats.lowStockProducts}</div>
-                      <div className="text-sm text-gray-500">خدمات محدودة</div>
+                      <div className="text-2xl font-bold text-yellow-600">{stats.availableServices}</div>
+                      <div className="text-sm text-gray-500">منتجات/خدمات محدودة</div>
                     </div>
                   </div>
                 </div>
@@ -2396,7 +2979,7 @@ const Dashboard: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold text-green-600">{(stats.totalValue || 0).toFixed(0)}</div>
-                      <div className="text-sm text-gray-500">قيمة الخدمات (ر.س)</div>
+                      <div className="text-sm text-gray-500">قيمة المنتجات/الخدمات (ر.س)</div>
                     </div>
                   </div>
                 </div>
@@ -2416,8 +2999,8 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Products List - Mobile First Design */}
-              {filteredProducts.length === 0 ? (
+              {/* Services List - Mobile First Design */}
+              {filteredServices.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
                   <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد خدمات</h3>
@@ -2434,20 +3017,22 @@ const Dashboard: React.FC = () => {
                 <div className="space-y-4">
                   {/* Mobile Cards */}
                   <div className="grid grid-cols-1 gap-4 lg:hidden">
-                    {filteredProducts.map((product) => {
-                      const categoryName = categories.find(cat => cat.id === product.categoryId)?.name || 'غير محدد';
-                      const stockStatus = product.stock <= 0 ? 'نفد المخزون' : product.stock <= 5 ? 'مخزون منخفض' : 'متوفر';
-                      const stockColor = product.stock <= 0 ? 'text-red-600' : product.stock <= 5 ? 'text-yellow-600' : 'text-green-600';
-                      const stockBg = product.stock <= 0 ? 'bg-red-50' : product.stock <= 5 ? 'bg-yellow-50' : 'bg-green-50';
+                    {filteredServices.map((service) => {
+                      const categoryName = service.categories && service.categories.length > 0 
+                        ? service.categories.map(catId => categories.find(cat => cat.id === catId)?.name).filter(Boolean).join(', ') || 'غير محدد'
+                        : 'غير محدد';
+                      const stockStatus = service.status === 'inactive' ? 'غير متاح' : 'متاح';
+                const stockColor = service.status === 'inactive' ? 'text-red-600' : 'text-green-600';
+                const stockBg = service.status === 'inactive' ? 'bg-red-50' : 'bg-green-50';
                       
                       return (
-                        <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div key={service.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                           <div className="flex items-start gap-4 mb-4">
                             <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                              {product.mainImage ? (
+                              {service.mainImage ? (
                                 <img 
-                                  src={buildImageUrl(product.mainImage)}
-                                  alt={product.name}
+                                  src={buildImageUrl(service.mainImage)}
+                                  alt={service.name}
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
@@ -2457,8 +3042,8 @@ const Dashboard: React.FC = () => {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-lg text-gray-900 mb-1">{product.name}</h3>
-                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
+                              <h3 className="font-bold text-lg text-gray-900 mb-1">{service.name}</h3>
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{service.homeShortDescription || service.description}</p>
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
                                   {categoryName}
@@ -2473,27 +3058,27 @@ const Dashboard: React.FC = () => {
                           <div className="grid grid-cols-3 gap-4 mb-4">
                             <div>
                               <span className="text-gray-500 text-sm">السعر</span>
-                              <div className="font-bold text-lg text-black">{(product.price || 0).toFixed(2)} ر.س</div>
+                              <div className="font-bold text-lg text-black">{(service.basePrice || service.originalPrice || 0).toFixed(2)} ر.س</div>
                             </div>
                             <div>
                               <span className="text-gray-500 text-sm">الحالة</span>
-                              <div className="font-bold text-lg">{product.stock > 0 ? 'متاح' : 'غير متاح'}</div>
+                              <div className="font-bold text-lg">{service.status === 'active' ? 'متاح' : 'غير متاح'}</div>
                             </div>
                             <div>
                               <span className="text-gray-500 text-sm">النوع</span>
-                              <div className="font-medium text-sm">{product.productType || 'عادي'}</div>
+                              <div className="font-medium text-sm">خدمة</div>
                             </div>
                           </div>
 
                           <div className="flex gap-2">
                             <Link
-                              to={`/admin/service/edit/${product.id}`}
+                              to={`/admin/service/edit/${service.id}`}
                               className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors text-center"
                             >
                               تعديل
                             </Link>
                             <button
-                              onClick={() => openDeleteModal('product', product.id, product.name)}
+                              onClick={() => openDeleteModal('product', service.id, service.name)}
                               className="flex-1 bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
                             >
                               حذف
@@ -2510,28 +3095,31 @@ const Dashboard: React.FC = () => {
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الخدمة</th>
+                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">المنتج/الخدمة</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">التصنيف</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">السعر</th>
+
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الحالة</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الإجراءات</th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredProducts.map((product) => {
-                            const categoryName = categories.find(cat => cat.id === product.categoryId)?.name || 'غير محدد';
-                            const stockStatus = product.stock <= 0 ? 'غير متاح' : 'متاح';
-                            const stockColor = product.stock <= 0 ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50';
+                          {filteredServices.map((service) => {
+                            const categoryName = service.categories && service.categories.length > 0 
+                              ? service.categories.map(catId => categories.find(cat => cat.id === catId)?.name).filter(Boolean).join(', ') || 'غير محدد'
+                              : 'غير محدد';
+                            const stockStatus = service.status === 'inactive' ? 'غير متاح' : 'متاح';
+                const stockColor = service.status === 'inactive' ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50';
                             
                             return (
-                              <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                              <tr key={service.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center">
                                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 ml-4 flex-shrink-0">
-                                      {product.mainImage ? (
+                                      {service.mainImage ? (
                                         <img 
-                                          src={buildImageUrl(product.mainImage)}
-                                          alt={product.name}
+                                          src={buildImageUrl(service.mainImage)}
+                                          alt={service.name}
                                           className="w-full h-full object-cover"
                                         />
                                       ) : (
@@ -2541,8 +3129,8 @@ const Dashboard: React.FC = () => {
                                       )}
                                     </div>
                                     <div>
-                                      <div className="font-semibold text-gray-900">{product.name}</div>
-                                      <div className="text-sm text-gray-500 max-w-xs truncate">{product.description}</div>
+                                      <div className="font-semibold text-gray-900">{service.name}</div>
+                                      <div className="text-sm text-gray-500 max-w-xs truncate">{service.homeShortDescription || service.description}</div>
                                     </div>
                                   </div>
                                 </td>
@@ -2552,9 +3140,9 @@ const Dashboard: React.FC = () => {
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="font-bold text-black">{(product.price || 0).toFixed(2)} ر.س</div>
-                                  {product.originalPrice && (
-                                    <div className="text-sm text-gray-500 line-through">{(product.originalPrice || 0).toFixed(2)} ر.س</div>
+                                  <div className="font-bold text-black">{(service.basePrice || service.originalPrice || 0).toFixed(2)} ر.س</div>
+                                  {service.originalPrice && (
+                                    <div className="text-sm text-gray-500 line-through">{(service.originalPrice || 0).toFixed(2)} ر.س</div>
                                   )}
                                 </td>
 
@@ -2566,13 +3154,13 @@ const Dashboard: React.FC = () => {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <Link
-                                      to={`/admin/service/edit/${product.id}`}
+                                      to={`/admin/service/edit/${service.id}`}
                                       className="p-2 text-gray-600 hover:text-black hover:bg-gray-100 rounded-lg transition-colors"
                                     >
                                       <Edit className="w-4 h-4" />
                                     </Link>
                                     <button
-                                      onClick={() => openDeleteModal('product', product.id, product.name)}
+                                      onClick={() => openDeleteModal('product', service.id, service.name)}
                                       className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                                     >
                                       <Trash2 className="w-4 h-4" />
@@ -2592,7 +3180,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Customers Tab */}
-          {currentTab === 'customers' && (
+          {currentTab === 'customers' && currentUser?.role === 'admin' && (
             <div>
               {/* Header Actions */}
               <div className="flex items-center justify-between mb-8">
@@ -2859,8 +3447,177 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
+          {/* My Services Tab */}
+          {currentTab === 'myservices' && (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">خدماتي</h2>
+                  <p className="text-gray-600">إدارة وتنظيم خدماتي الشخصية</p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                  <Link
+                    to="/admin/service/add"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    إضافة خدمة جديدة
+                  </Link>
+                  <button 
+                    onClick={fetchMyServices}
+                    className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={myServicesLoading}
+                  >
+                    <RefreshCw className={`w-4 h-4 ml-2 ${myServicesLoading ? 'animate-spin' : ''}`} />
+                    {myServicesLoading ? 'جاري التحديث...' : 'تحديث'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="البحث في الخدمات..."
+                        value={myServicesSearchTerm}
+                        onChange={handleMyServicesSearch}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm"
+                      />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm">
+                      <option value="">جميع الحالات</option>
+                      <option value="available">متاح</option>
+                      <option value="inactive">غير متاح</option>
+                    </select>
+                    <select className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm shadow-sm">
+                      <option value="">جميع التصنيفات</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading State */}
+              {myServicesLoading && (
+                <div className="text-center py-16">
+                  <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
+                  <p className="text-gray-600">جاري تحميل الخدمات...</p>
+                </div>
+              )}
+
+              {/* Error State */}
+              {myServicesError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                  <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-red-900 mb-2">خطأ في تحميل البيانات</h3>
+                  <p className="text-red-700 mb-4">{myServicesError}</p>
+                  <button
+                    onClick={fetchMyServices}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    إعادة المحاولة
+                  </button>
+                </div>
+              )}
+
+              {/* Services Grid */}
+              {!myServicesLoading && !myServicesError && filteredMyServices.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredMyServices.map((service) => (
+                    <div key={service.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow">
+                      <div className="aspect-video bg-gray-200 relative">
+                        <img 
+                          src={buildImageUrl(service.mainImage) || 'https://via.placeholder.com/400x225'} 
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-3 right-3">
+                          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                            service.status === 'active' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {service.status === 'active' ? 'متاح' : 'غير متاح'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">{service.name}</h3>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                          {service.homeShortDescription || service.description}
+                        </p>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="text-lg font-bold text-gray-900">
+                             {service.basePrice ? `${service.basePrice} ج.م` : 'السعر غير محدد'}
+                           </div>
+                          <div className="text-sm text-gray-500">
+                            تصنيف: {service.categories && service.categories.length > 0 
+                              ? service.categories.map(catId => categories.find(cat => cat.id === catId || cat.id?.toString() === catId?.toString())?.name).filter(Boolean).join(', ') || 'عام'
+                              : 'عام'} 
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Link
+                            to={`/service/${service.id}`}
+                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium text-center"
+                          >
+                            <Eye className="w-4 h-4 inline-block ml-1" />
+                            عرض
+                          </Link>
+                          <Link
+                            to={`/admin/service/edit/${service.id}`}
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium text-center"
+                          >
+                            <Edit className="w-4 h-4 inline-block ml-1" />
+                            تعديل
+                          </Link>
+                          <button 
+                            onClick={() => openDeleteModal('service', service.id, service.name)}
+                            className="bg-red-100 text-red-700 py-2 px-4 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!myServicesLoading && !myServicesError && filteredMyServices.length === 0 && (
+                <div className="text-center py-16">
+                  <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {myServicesSearchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد خدمات'}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {myServicesSearchTerm ? 'جرب البحث بكلمات مختلفة' : 'ابدأ بإضافة خدمتك الأولى'}
+                  </p>
+                  {!myServicesSearchTerm && (
+                     <Link
+                       to="/admin/service/add"
+                       className="inline-flex items-center px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                     >
+                       <Plus className="w-4 h-4 ml-2" />
+                       إضافة خدمة جديدة
+                     </Link>
+                   )}
+                 </div>
+               )}
+            </div>
+          )}
+
           {/* Categories Tab */}
-          {currentTab === 'categories' && (
+          {currentTab === 'categories' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -2910,7 +3667,8 @@ const Dashboard: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredCategories.map(category => {
-                    const categoryProductsCount = products.filter(p => p.categoryId?.toString() === category.id?.toString()).length;
+                    const categoryProductsCount = products.filter((p: Product) => p.categoryId?.toString() === category.id?.toString()).length;
+                    const categoryServicesCount = 0; // Services count placeholder
                     
                     return (
                       <div key={category.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
@@ -3059,6 +3817,43 @@ const Dashboard: React.FC = () => {
                           </div>
                         </div>
 
+                        {/* Order Notes Section */}
+                        <div className="mb-4">
+                          <span className="text-gray-600 text-sm">الملاحظات</span>
+                          {editingOrderNotes === order.id.toString() ? (
+                            <div className="mt-2">
+                              <textarea
+                                value={tempNotes}
+                                onChange={(e) => setTempNotes(e.target.value)}
+                                placeholder="أضف ملاحظة..."
+                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black text-sm"
+                                rows={3}
+                              />
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  onClick={() => handleSaveOrderNotes(order.id)}
+                                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                                >
+                                  حفظ
+                                </button>
+                                <button
+                                  onClick={handleCancelEditOrderNotes}
+                                  className="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                                >
+                                  إلغاء
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-1">
+                              <div className="text-sm text-gray-800 bg-gray-50 p-2 rounded border min-h-[40px] cursor-pointer hover:bg-gray-100" 
+                                   onClick={() => handleEditOrderNotes(order.id)}>
+                                {order.notes || 'اضغط لإضافة ملاحظة...'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="flex gap-3">
                           <button
                             onClick={() => openOrderModal(order)}
@@ -3087,6 +3882,7 @@ const Dashboard: React.FC = () => {
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">العميل</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">المبلغ</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الحالة</th>
+                            <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الملاحظات</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">التاريخ</th>
                             <th className="px-6 py-4 text-right text-xs font-semibold text-gray-900 uppercase tracking-wider">الإجراءات</th>
                           </tr>
@@ -3120,6 +3916,40 @@ const Dashboard: React.FC = () => {
                                   <option value="cancelled">ملغي</option>
                                 </select>
                               </td>
+                              <td className="px-6 py-4">
+                                {editingOrderNotes === order.id.toString() ? (
+                                  <div className="w-48">
+                                    <textarea
+                                      value={tempNotes}
+                                      onChange={(e) => setTempNotes(e.target.value)}
+                                      placeholder="أضف ملاحظة..."
+                                      className="w-full p-2 border border-gray-300 rounded text-xs"
+                                      rows={2}
+                                    />
+                                    <div className="flex gap-1 mt-1">
+                                      <button
+                                        onClick={() => handleSaveOrderNotes(order.id)}
+                                        className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                                      >
+                                        حفظ
+                                      </button>
+                                      <button
+                                        onClick={handleCancelEditOrderNotes}
+                                        className="bg-gray-500 text-white px-2 py-1 rounded text-xs hover:bg-gray-600"
+                                      >
+                                        إلغاء
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="w-48 text-xs text-gray-700 bg-gray-50 p-2 rounded border cursor-pointer hover:bg-gray-100 min-h-[32px] flex items-center"
+                                    onClick={() => handleEditOrderNotes(order.id)}
+                                  >
+                                    {order.notes || 'اضغط لإضافة ملاحظة...'}
+                                  </div>
+                                )}
+                              </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {order.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}
                               </td>
@@ -3151,7 +3981,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Coupons Tab */}
-          {currentTab === 'coupons' && (
+          {currentTab === 'coupons' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -3269,7 +4099,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Overview Tab */}
-          {currentTab === 'overview' && (
+          {currentTab === 'overview' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               {/* Welcome Header */}
               <div className="bg-black rounded-xl p-8 text-white">
@@ -3302,13 +4132,13 @@ const Dashboard: React.FC = () => {
                       <Package className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">{stats.totalProducts}</div>
+                      <div className="text-2xl font-bold text-gray-900">{stats.totalServices}</div>
                       <div className="text-sm text-gray-500">إجمالي الخدمات</div>
                     </div>
                   </div>
-                  <div className={`text-sm font-medium ${stats.outOfStockProducts > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                    <span className="mr-1">{stats.outOfStockProducts > 0 ? '⚠️' : '✅'}</span>
-                    {stats.outOfStockProducts} خدمات غير متاحة
+                  <div className={`text-sm font-medium ${stats.unavailableServices > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    <span className="mr-1">{stats.unavailableServices > 0 ? '⚠️' : '✅'}</span>
+                    {stats.unavailableServices} خدمات غير متاحة
                   </div>
                 </div>
 
@@ -3421,7 +4251,7 @@ const Dashboard: React.FC = () => {
                         الخدمات الأكثر مبيعاً
                       </h3>
                       <button 
-                        onClick={() => switchTab('products')}
+                        onClick={() => switchTab('services')}
                         className="text-black hover:text-gray-700 text-sm font-medium bg-gray-100 px-3 py-1 rounded-lg hover:bg-gray-200 transition-colors"
                       >
                         عرض الكل
@@ -3444,12 +4274,12 @@ const Dashboard: React.FC = () => {
                               </div>
                               <div className="mr-4">
                                 <p className="font-medium text-gray-900">{product.name}</p>
-                                <p className="text-sm text-gray-500">المخزون: {product.stock}</p>
+                                <p className="text-sm text-gray-500">الحالة: {product.status === 'active' ? 'متاح' : 'غير متاح'}</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-bold text-gray-900">{(product.price || 0).toFixed(2)} ر.س</p>
-                              <p className="text-sm text-gray-500">{product.productType}</p>
+                              <p className="font-bold text-gray-900">{(product.basePrice || product.originalPrice || 0).toFixed(2)} ر.س</p>
+                              <p className="text-sm text-gray-500">خدمة</p>
                             </div>
                           </div>
                         ))
@@ -3500,29 +4330,29 @@ const Dashboard: React.FC = () => {
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4">تنبيهات المخزون</h3>
                     <div className="space-y-3">
-                      {stats.outOfStockProducts > 0 && (
+                      {stats.unavailableServices > 0 && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                           <div className="flex items-center">
                             <AlertTriangle className="w-5 h-5 text-red-500 ml-2" />
                             <div>
                               <p className="text-sm font-medium text-red-800">خدمات غير متاحة</p>
-                              <p className="text-xs text-red-600">{stats.outOfStockProducts} خدمة غير متاحة</p>
+                              <p className="text-xs text-red-600">{stats.unavailableServices} خدمة غير متاحة</p>
                             </div>
                           </div>
                         </div>
                       )}
-                      {stats.lowStockProducts > 0 && (
+                      {stats.availableServices > 0 && (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                           <div className="flex items-center">
                             <Circle className="w-5 h-5 text-yellow-500 ml-2" />
                             <div>
-                              <p className="text-sm font-medium text-yellow-800">خدمات محدودة</p>
-                              <p className="text-xs text-yellow-600">{stats.lowStockProducts} خدمة محدودة</p>
+                              <p className="text-sm font-medium text-yellow-800">خدمات متاحة</p>
+                              <p className="text-xs text-yellow-600">{stats.availableServices} خدمة متاحة</p>
                             </div>
                           </div>
                         </div>
                       )}
-                      {stats.outOfStockProducts === 0 && stats.lowStockProducts === 0 && (
+                      {stats.unavailableServices === 0 && stats.availableServices === 0 && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                           <div className="flex items-center">
                             <CheckCircle className="w-5 h-5 text-green-500 ml-2" />
@@ -3575,7 +4405,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Shipping Tab */}
-          {currentTab === 'shipping' && (
+          {currentTab === 'shipping' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -3739,7 +4569,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Analytics Tab */}
-          {currentTab === 'analytics' && (
+          {currentTab === 'analytics' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -3884,7 +4714,7 @@ const Dashboard: React.FC = () => {
                             </div>
                             <div>
                               <div className="font-medium text-gray-900">{product.name}</div>
-                              <div className="text-sm text-gray-500">{product.price} ر.س</div>
+                              <div className="text-sm text-gray-500">{product.basePrice || product.originalPrice || 0} ر.س</div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -4229,17 +5059,22 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Invoices Tab */}
-          {currentTab === 'invoices' && (
+          {currentTab === 'invoices' && currentUser?.role === 'admin' && (
             <InvoiceManagement orders={orders} />
           )}
 
           {/* Blog Tab */}
-          {currentTab === 'blog' && (
+          {currentTab === 'blog' && currentUser?.role === 'admin' && (
             <BlogManagement />
           )}
 
+          {/* Staff Tab */}
+          {currentTab === 'staff' && currentUser?.role === 'admin' && (
+            <StaffManagement currentUser={currentUser} />
+          )}
+
           {/* Pages Tab */}
-          {currentTab === 'pages' && (
+          {currentTab === 'pages' && currentUser?.role === 'admin' && (
             <div className="space-y-6">
               {/* Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -4384,6 +5219,7 @@ const Dashboard: React.FC = () => {
           isOpen={isOrderModalOpen}
           onClose={closeOrderModal}
           onStatusUpdate={handleOrderStatusUpdate}
+          onAddNote={handleAddOrderNote}
         />
       )}
 

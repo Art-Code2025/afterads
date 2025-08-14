@@ -1,5 +1,5 @@
-import { db } from './config/firebase.js';
-import { 
+const { db } = require('./config/firebase.js');
+const { 
   collection, 
   doc, 
   getDocs, 
@@ -10,9 +10,9 @@ import {
   query, 
   where, 
   orderBy 
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   console.log('🛒 Cart API Called:', {
     method: event.httpMethod,
     path: event.path,
@@ -308,4 +308,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};

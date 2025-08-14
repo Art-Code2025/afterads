@@ -49,7 +49,7 @@ const App: React.FC = () => {
       setCategories(categoriesData);
       
       // جلب المنتجات
-      const productsData = await apiCall(API_ENDPOINTS.PRODUCTS);
+      const productsData = await apiCall(API_ENDPOINTS.SERVICES);
       console.log('✅ Products fetched:', productsData.length);
       setProducts(productsData);
       

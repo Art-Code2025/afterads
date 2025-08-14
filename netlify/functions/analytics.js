@@ -1,5 +1,5 @@
-import { db } from './config/firebase.js';
-import { 
+const { db } = require('./config/firebase.js');
+const { 
   collection, 
   getDocs, 
   query, 
@@ -7,9 +7,9 @@ import {
   where,
   limit,
   Timestamp
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {

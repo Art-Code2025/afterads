@@ -23,6 +23,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { ordersAPI } from '../utils/api';
+import api from '../utils/api';
 
 interface OrderItem {
   id: number;
@@ -189,6 +190,9 @@ const OrderManagement: React.FC = () => {
   const updateOrderStatus = async (orderId: number, newStatus: Order['status']) => {
     setUpdatingStatus(orderId);
     try {
+      const currentOrder = orders.find(order => order.id === orderId);
+      const oldStatus = currentOrder?.status;
+      
       const response = await ordersAPI.update(orderId, { status: newStatus });
       if (response.success) {
         setOrders(orders.map(order => 
@@ -196,6 +200,37 @@ const OrderManagement: React.FC = () => {
             ? { ...order, status: newStatus, updatedAt: new Date().toISOString() }
             : order
         ));
+        
+        // Log activity to localStorage
+        try {
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const activeUser = currentUser.id ? currentUser : adminUser;
+          
+          const activityLog = {
+            id: Date.now().toString(),
+            staffId: activeUser.id || 'unknown',
+            staffName: activeUser.name || activeUser.firstName || 'مستخدم غير معروف',
+            action: 'order_status_change',
+            orderId: orderId.toString(),
+            timestamp: new Date().toISOString(),
+            details: {
+              oldStatus: getStatusText(oldStatus || 'pending'),
+              newStatus: getStatusText(newStatus),
+              customerName: currentOrder?.customerName || '',
+              orderTotal: currentOrder?.total || 0
+            },
+            ipAddress: '127.0.0.1'
+          };
+          
+          const existingLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+          existingLogs.unshift(activityLog);
+          if (existingLogs.length > 100) existingLogs.splice(100);
+          localStorage.setItem('activityLogs', JSON.stringify(existingLogs));
+        } catch (logError) {
+          console.error('Error logging activity:', logError);
+        }
+        
         toast.success('تم تحديث حالة الطلب بنجاح');
       } else {
         toast.error(response.message || 'فشل في تحديث حالة الطلب');
@@ -208,13 +243,46 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+
+
   const deleteOrder = async (orderId: number) => {
     if (!window.confirm('هل أنت متأكد من حذف هذا الطلب؟')) return;
 
     try {
+      const currentOrder = orders.find(order => order.id === orderId);
+      
       const response = await ordersAPI.delete(orderId);
       if (response.success) {
         setOrders(orders.filter(order => order.id !== orderId));
+        
+        // Log activity to localStorage
+        try {
+          const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+          const activeUser = currentUser.id ? currentUser : adminUser;
+          
+          const activityLog = {
+            id: Date.now().toString(),
+            staffId: activeUser.id || 'unknown',
+            staffName: activeUser.name || activeUser.firstName || 'مستخدم غير معروف',
+            action: 'order_cancel',
+            orderId: orderId.toString(),
+            timestamp: new Date().toISOString(),
+            details: {
+              customerName: currentOrder?.customerName || '',
+              orderTotal: currentOrder?.total || 0
+            },
+            ipAddress: '127.0.0.1'
+          };
+          
+          const existingLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+          existingLogs.unshift(activityLog);
+          if (existingLogs.length > 100) existingLogs.splice(100);
+          localStorage.setItem('activityLogs', JSON.stringify(existingLogs));
+        } catch (logError) {
+          console.error('Error logging activity:', logError);
+        }
+        
         toast.success('تم حذف الطلب بنجاح');
       } else {
         toast.error(response.message || 'فشل في حذف الطلب');

@@ -287,10 +287,13 @@ function Home() {
 
   const fetchServices = async () => {
     try {
-      // For now, we'll use empty array since SERVICES endpoint doesn't exist
-      // You can add services data later or create a services endpoint
-      console.log('📝 Services endpoint not implemented yet');
-      setServices([]);
+      const response = await apiCall(API_ENDPOINTS.SERVICES);
+      if (response.success && Array.isArray(response.data)) {
+        setServices(response.data);
+      } else {
+        console.error('Invalid services data format:', response);
+        setServices([]);
+      }
     } catch (error) {
       console.error('Error fetching services:', error);
       setServices([]);
@@ -300,7 +303,7 @@ function Home() {
   const fetchProducts = async () => {
     try {
       console.log('🔄 Fetching products for home page...');
-      const data = await apiCall(API_ENDPOINTS.PRODUCTS);
+      const data = await apiCall(API_ENDPOINTS.SERVICES);
       console.log('✅ Products loaded for home:', data.length);
       setProducts(data.slice(0, 8)); // أخذ أول 8 منتجات فقط
     } catch (error) {
@@ -691,6 +694,88 @@ function Home() {
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section ref={sectionsRef.services} className="py-16 lg:py-24 bg-gradient-to-br from-dark-700 to-dark-800">
+        <div className="container-responsive">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-5xl font-bold luxury-heading mb-6">
+              خدماتنا المميزة
+            </h2>
+            <p className="text-lg text-dark-200 max-w-2xl mx-auto">
+              نقدم مجموعة شاملة من الخدمات المتخصصة لتلبية جميع احتياجاتكم
+            </p>
+          </div>
+          
+          {services.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {services.slice(0, 6).map((service) => (
+                <div
+                  key={service.id}
+                  className="group bg-dark-800 rounded-3xl overflow-hidden shadow-dark-lg hover:shadow-dark-xl transition-all duration-500 transform hover:-translate-y-2"
+                >
+                  <div className="aspect-[4/3] relative overflow-hidden">
+                    <img
+                      src={buildImageUrl(service.mainImage)}
+                      alt={service.name}
+                      className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/api/placeholder/400/300';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 to-transparent"></div>
+                    
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
+                      <p className="text-white/90 text-sm line-clamp-2">{service.homeShortDescription}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm text-zico-primary font-medium">{service.deliveryTime}</span>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4 text-dark-400" />
+                        <span className="text-sm text-dark-400">مدة التنفيذ</span>
+                      </div>
+                    </div>
+                    
+                    <Link
+                      to={`/service/${service.id}`}
+                      className="btn-zico w-full justify-center"
+                      onClick={() => trackVisit(service.id)}
+                    >
+                      <span>عرض التفاصيل</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-24 h-24 mx-auto mb-6 bg-dark-700 rounded-full flex items-center justify-center">
+                <Package className="w-12 h-12 text-dark-400" />
+              </div>
+              <h3 className="text-xl font-bold text-dark-200 mb-2">لا توجد خدمات متاحة حالياً</h3>
+              <p className="text-dark-400">سيتم إضافة خدمات جديدة قريباً</p>
+            </div>
+          )}
+          
+          {services.length > 6 && (
+            <div className="text-center mt-12">
+              <Link
+                to="/services"
+                className="btn-zico inline-flex items-center gap-3"
+              >
+                <span>عرض جميع الخدمات</span>
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

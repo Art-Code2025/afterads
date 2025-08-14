@@ -164,7 +164,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ isEdit: propIsEdit = false })
       setLoading(true);
       console.log('🔄 [ProductForm] Fetching product:', productId);
       
-      const products = await apiCall(API_ENDPOINTS.PRODUCTS);
+      const products = await apiCall(API_ENDPOINTS.SERVICES);
       
       console.log('📦 [ProductForm] All products loaded:', products.length);
       console.log('🔍 [ProductForm] Looking for product ID:', productId);
@@ -219,14 +219,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ isEdit: propIsEdit = false })
 
       if (isEdit && id) {
         // Update existing product using PUT
-        await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(id), {
+        await apiCall(API_ENDPOINTS.SERVICE_BY_ID(id), {
           method: 'PUT',
           body: JSON.stringify(productData)
         });
         toast.success('تم تحديث المنتج بنجاح');
       } else {
         // Create new product using POST
-        await apiCall(API_ENDPOINTS.PRODUCTS, {
+        await apiCall(API_ENDPOINTS.SERVICES, {
           method: 'POST',
           body: JSON.stringify(productData)
         });

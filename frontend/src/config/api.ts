@@ -116,7 +116,11 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   try {
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    // Shorter timeout for activity-logs to prevent UI blocking
+    const isActivityLog = endpoint.includes('activity-logs');
+    const isCustomers = endpoint.includes('customers');
+    const timeoutDuration = isActivityLog ? 5000 : (isCustomers ? 25000 : 15000); // 5s for activity logs, 25s for customers, 15s for others
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
     console.log('📡 Making fetch request...');
     const response = await fetch(url, {
@@ -193,9 +197,11 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 export const API_ENDPOINTS = {
   // Products
   PRODUCTS: 'products',
-  SERVICES: 'services',
+  SERVICES: 'services', // الخدمات لها endpoint منفصل
   PRODUCT_BY_ID: (id: string | number) => `products/${id}`,
+  SERVICE_BY_ID: (id: string | number) => `services/${id}`,
   PRODUCTS_BY_CATEGORY: (categoryId: string | number) => `products/category/${categoryId}`,
+  SERVICES_BY_CATEGORY: (categoryId: string | number) => `services/category/${categoryId}`,
   
   // Categories
   CATEGORIES: 'categories',
@@ -249,6 +255,11 @@ export const API_ENDPOINTS = {
   AUTH_RESET_PASSWORD: 'customers/reset-password',
   AUTH_VERIFY: 'auth/verify',
   AUTH_ME: 'auth/me',
+  
+  // Activity Logs - NEW
+  ACTIVITY_LOGS: 'activity-logs',
+  ACTIVITY_LOGS_BY_STAFF: (staffId: string | number) => `activity-logs/staff/${staffId}`,
+  ACTIVITY_LOGS_BY_ORDER: (orderId: string | number) => `activity-logs/order/${orderId}`,
   
   // Static Pages - NEW
   STATIC_PAGES: {

@@ -1,6 +1,6 @@
-import fetch from 'node-fetch';
-import { db } from './config/firebase.js';
-import { doc, updateDoc } from 'firebase/firestore';
+const fetch = require('node-fetch');
+const { db } = require('./config/firebase.js');
+const { doc, updateDoc } = require('firebase/firestore');
 
 // معلومات Paymob - ستحتاج لتحديثها بمعلوماتك الحقيقية
 const PAYMOB_CONFIG = {
@@ -64,7 +64,7 @@ function validatePaymobConfig() {
 
 const PAYMOB_BASE_URL = 'https://accept.paymob.com/api';
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   console.log('🚀 Payment API Handler Started:', {
     method: event.httpMethod,
     path: event.path,

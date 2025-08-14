@@ -1,7 +1,7 @@
-import { db } from './config/firebase.js';
-import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
+const { db } = require('./config/firebase.js');
+const { collection, addDoc, getDocs, deleteDoc, doc } = require('firebase/firestore');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   console.log('🧪 Firebase Test Function Called');
 
   const headers = {
@@ -104,4 +104,4 @@ export const handler = async (event, context) => {
       })
     };
   }
-}; 
+};

@@ -70,7 +70,7 @@ const ProductManagement: React.FC = () => {
       console.log('🔄 Fetching products and categories...');
       
       const [products, categories] = await Promise.all([
-        apiCall(API_ENDPOINTS.PRODUCTS),
+        apiCall(API_ENDPOINTS.SERVICES),
         apiCall(API_ENDPOINTS.CATEGORIES)
       ]);
 
@@ -132,7 +132,7 @@ const ProductManagement: React.FC = () => {
     try {
       console.log('🗑️ Deleting product:', id);
       
-      await apiCall(API_ENDPOINTS.PRODUCT_BY_ID(id), {
+      await apiCall(API_ENDPOINTS.SERVICE_BY_ID(id), {
         method: 'DELETE'
       });
       
@@ -607,4 +607,4 @@ const ProductManagement: React.FC = () => {
   );
 };
 
-export default ProductManagement; 
+export default ProductManagement;

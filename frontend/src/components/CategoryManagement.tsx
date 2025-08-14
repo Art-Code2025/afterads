@@ -53,7 +53,7 @@ const CategoryManagement: React.FC = () => {
       setLoading(true);
       const [categoriesData, productsData] = await Promise.all([
         apiCall(API_ENDPOINTS.CATEGORIES),
-        apiCall(API_ENDPOINTS.PRODUCTS)
+        apiCall(API_ENDPOINTS.SERVICES)
       ]);
 
       // Count products for each category
@@ -519,4 +519,4 @@ const CategoryManagement: React.FC = () => {
   );
 };
 
-export default CategoryManagement; 
+export default CategoryManagement;

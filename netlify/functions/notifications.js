@@ -1,7 +1,7 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getMessaging } from 'firebase-admin/messaging';
-import admin from 'firebase-admin';
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
+const admin = require('firebase-admin');
 
 // Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
@@ -24,7 +24,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -476,4 +476,4 @@ async function getNotificationStats(event) {
       body: JSON.stringify({ error: error.message }),
     };
   }
-} 
+}

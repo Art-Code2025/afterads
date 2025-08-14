@@ -77,7 +77,7 @@ const AllProducts: React.FC = () => {
       setLoading(true);
       console.log('🔄 Fetching products...');
       
-      const products = await apiCall(API_ENDPOINTS.PRODUCTS);
+      const products = await apiCall(API_ENDPOINTS.SERVICES);
       
       console.log('✅ Products loaded:', products.length);
       setProducts(products);

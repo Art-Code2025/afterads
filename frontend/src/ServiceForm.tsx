@@ -77,7 +77,7 @@ const ServiceForm: React.FC = () => {
 
     if (id) {
       setFetchLoading(true);
-      apiCall(API_ENDPOINTS.PRODUCT_BY_ID(id))
+      apiCall(API_ENDPOINTS.SERVICE_BY_ID(id))
         .then(service => {
           if (service) {
             setFormData({
@@ -267,6 +267,10 @@ const ServiceForm: React.FC = () => {
 
       setLoading(false);
       setSuccess(id ? 'تم تعديل الخدمة بنجاح!' : 'تم إضافة الخدمة بنجاح!');
+      
+      // إشعار Dashboard بتحديث البيانات
+      window.dispatchEvent(new CustomEvent('productsUpdated'));
+      
       setTimeout(() => navigate('/admin'), 1500);
     } catch (error: any) {
       console.error('Error saving service:', error);

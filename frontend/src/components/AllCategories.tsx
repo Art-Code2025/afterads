@@ -72,7 +72,7 @@ const AllCategories: React.FC = () => {
     try {
       console.log('🔄 Fetching products for count...');
       
-      const productsData = await apiCall(API_ENDPOINTS.PRODUCTS);
+      const productsData = await apiCall(API_ENDPOINTS.SERVICES);
       
       console.log('✅ Products loaded for count:', productsData.length);
       setProducts(productsData);

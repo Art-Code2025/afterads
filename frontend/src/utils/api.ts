@@ -720,6 +720,128 @@ export const authAPI = {
   getCurrentUser: async () => {
     return apiRequest('/auth/me');
   },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    return apiRequest('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+};
+
+// Staff Management API
+export const staffAPI = {
+  getAll: async () => {
+    return apiRequest('/staff', {
+      method: 'GET',
+    });
+  },
+
+  create: async (staffData: any) => {
+    return apiRequest('/staff', {
+      method: 'POST',
+      body: JSON.stringify(staffData),
+    });
+  },
+
+  update: async (id: string, staffData: any) => {
+    return apiRequest(`/staff/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(staffData),
+    });
+  },
+
+  delete: async (id: string) => {
+    return apiRequest(`/staff/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getLoginLogs: async () => {
+    return apiRequest('/staff/logs', {
+      method: 'GET',
+    });
+  },
+
+  getStaffLoginLogs: async (staffId: string) => {
+    return apiRequest(`/staff/${staffId}/logs`, {
+      method: 'GET',
+    });
+  },
+};
+
+// Activity Logs API
+export const activityLogsAPI = {
+  getAll: async (filters?: {
+    staffId?: string;
+    action?: string;
+    orderId?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = `/activity-logs${params.toString() ? `?${params.toString()}` : ''}`;
+    return apiRequest(url, {
+      method: 'GET',
+    });
+  },
+
+  create: async (activityData: {
+    staffId: string;
+    staffName: string;
+    staffUsername?: string;
+    action: string;
+    orderId?: string;
+    customerId?: string;
+    details?: any;
+    ipAddress?: string;
+    userAgent?: string;
+  }) => {
+    return apiRequest('/activity-logs', {
+      method: 'POST',
+      body: JSON.stringify(activityData),
+    });
+  },
+
+  getStats: async (filters?: {
+    startDate?: string;
+    endDate?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString());
+        }
+      });
+    }
+    
+    const url = `/activity-logs/stats${params.toString() ? `?${params.toString()}` : ''}`;
+    return apiRequest(url, {
+      method: 'GET',
+    });
+  },
+
+  getByStaff: async (staffId: string) => {
+    return apiRequest(`/activity-logs/staff/${staffId}`, {
+      method: 'GET',
+    });
+  },
+
+  getByOrder: async (orderId: string) => {
+    return apiRequest(`/activity-logs/order/${orderId}`, {
+      method: 'GET',
+    });
+  },
 };
 
 export default {
@@ -733,6 +855,8 @@ export default {
   getAuthToken,
   isAuthenticated,
   auth: authAPI,
+  staff: staffAPI,
   staticPages: staticPagesAPI,
   blog: blogAPI,
+  activityLogs: activityLogsAPI,
 };

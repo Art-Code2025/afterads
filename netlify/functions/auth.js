@@ -1,16 +1,18 @@
-import { db } from './config/firebase.js';
-import { 
+const { db } = require('./config/firebase.js');
+const { 
   collection, 
   doc, 
   getDocs, 
   getDoc, 
   addDoc, 
+  updateDoc,
   query, 
   where 
-} from 'firebase/firestore';
+} = require('firebase/firestore');
+const bcrypt = require('bcryptjs');
 
 // Auth Function for Admin and Customer Login
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -38,60 +40,222 @@ export const handler = async (event, context) => {
 
     console.log('🔐 Auth API - Method:', method, 'Path:', path);
 
-    // Admin login endpoint
+    // Admin/Staff login endpoint
     if (method === 'POST' && pathSegments.includes('admin')) {
       const body = event.body ? JSON.parse(event.body) : {};
       const { username, password } = body;
 
-      console.log('🔐 Admin login attempt:', { username });
+      console.log('🔐 Admin/Staff login attempt:', { username });
 
-      // Check credentials - hardcoded for demo
-      const validCredentials = [
-        { username: 'admin', password: '123123' },
-        { username: 'administrator', password: '123123' },
-        { username: 'مدير', password: '123123' }
-      ];
-
-      const isValid = validCredentials.some(cred => 
-        cred.username === username && cred.password === password
-      );
-
-      if (!isValid) {
+      if (!username || !password) {
         return {
-          statusCode: 401,
+          statusCode: 400,
           headers,
           body: JSON.stringify({
             success: false,
-            message: 'بيانات الدخول غير صحيحة'
+            message: 'اسم المستخدم وكلمة المرور مطلوبان'
           }),
         };
       }
 
-      // Create a simple token (not JWT for simplicity)
-      const token = Buffer.from(JSON.stringify({
-        username,
-        role: 'admin',
-        exp: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
-        loginTime: Date.now()
-      })).toString('base64');
+      try {
+        // First check hardcoded admin credentials for backward compatibility
+        const validCredentials = [
+          { username: 'admin', password: '123123', role: 'admin', name: 'المدير العام' },
+          { username: 'administrator', password: '123123', role: 'admin', name: 'مدير النظام' },
+          { username: 'مدير', password: '123123', role: 'admin', name: 'المدير العام' }
+        ];
 
-      const user = {
-        username,
-        role: 'admin',
-        name: username === 'admin' ? 'المدير العام' : 'مدير النظام',
-        permissions: ['all']
-      };
+        const hardcodedAdmin = validCredentials.find(cred => 
+          cred.username === username && cred.password === password
+        );
 
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-          success: true,
-          message: 'تم تسجيل الدخول بنجاح',
-          token: token,
-          user: user
-        }),
-      };
+        if (hardcodedAdmin) {
+          // Log the successful login for hardcoded admin
+          const now = new Date().toISOString();
+          const loginLogsCollection = collection(db, 'loginLogs');
+          await addDoc(loginLogsCollection, {
+            staffId: 'hardcoded_admin',
+            username: hardcodedAdmin.username,
+            name: hardcodedAdmin.name,
+            role: 'admin',
+            loginTime: now,
+            ipAddress: event.headers['x-forwarded-for'] || event.headers['x-real-ip'] || 'unknown',
+            userAgent: event.headers['user-agent'] || 'unknown',
+            sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            status: 'success'
+          });
+
+          console.log('📝 Login logged for hardcoded admin:', hardcodedAdmin.username);
+
+          // Create token for hardcoded admin
+          const token = Buffer.from(JSON.stringify({
+            username: hardcodedAdmin.username,
+            role: 'admin',
+            exp: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+            loginTime: Date.now()
+          })).toString('base64');
+
+          const user = {
+            username: hardcodedAdmin.username,
+            role: 'admin',
+            name: hardcodedAdmin.name,
+            permissions: ['all']
+          };
+
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              success: true,
+              message: 'تم تسجيل الدخول بنجاح',
+              token: token,
+              user: user
+            }),
+          };
+        }
+
+        // Check staff collection in Firebase
+        const staffCollection = collection(db, 'staff');
+        const q = query(staffCollection, where('username', '==', username));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          // Log failed login attempt for non-existent user
+          const loginLogsCollection = collection(db, 'loginLogs');
+          await addDoc(loginLogsCollection, {
+            staffId: null,
+            username: username,
+            name: 'غير معروف',
+            role: 'غير معروف',
+            loginTime: new Date().toISOString(),
+            ipAddress: event.headers['x-forwarded-for'] || event.headers['x-real-ip'] || 'unknown',
+            userAgent: event.headers['user-agent'] || 'unknown',
+            sessionId: `failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            status: 'failed',
+            reason: 'user_not_found'
+          });
+
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'بيانات الدخول غير صحيحة'
+            }),
+          };
+        }
+
+        let staffData = null;
+        querySnapshot.forEach((doc) => {
+          staffData = { id: doc.id, ...doc.data() };
+        });
+
+        // Check if staff is active
+        if (staffData.status !== 'active') {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'الحساب غير مفعل'
+            }),
+          };
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, staffData.password);
+        if (!isPasswordValid) {
+          // Log failed login attempt
+          const loginLogsCollection = collection(db, 'loginLogs');
+          await addDoc(loginLogsCollection, {
+            staffId: staffData.id,
+            username: staffData.username,
+            name: staffData.name,
+            role: staffData.role,
+            loginTime: new Date().toISOString(),
+            ipAddress: event.headers['x-forwarded-for'] || event.headers['x-real-ip'] || 'unknown',
+            userAgent: event.headers['user-agent'] || 'unknown',
+            sessionId: `failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            status: 'failed',
+            reason: 'invalid_password'
+          });
+
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'بيانات الدخول غير صحيحة'
+            }),
+          };
+        }
+
+        // Update last login and log the session
+        const now = new Date().toISOString();
+        const staffDoc = doc(db, 'staff', staffData.id);
+        await updateDoc(staffDoc, {
+          lastLogin: now
+        });
+
+        // Log the login session
+        const loginLogsCollection = collection(db, 'loginLogs');
+        await addDoc(loginLogsCollection, {
+          staffId: staffData.id,
+          username: staffData.username,
+          name: staffData.name,
+          role: staffData.role,
+          loginTime: now,
+          ipAddress: event.headers['x-forwarded-for'] || event.headers['x-real-ip'] || 'unknown',
+          userAgent: event.headers['user-agent'] || 'unknown',
+          sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          status: 'success'
+        });
+
+        console.log('📝 Login logged for staff:', staffData.username);
+
+        // Create token
+        const token = Buffer.from(JSON.stringify({
+          id: staffData.id,
+          username: staffData.username,
+          role: staffData.role,
+          exp: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+          loginTime: Date.now()
+        })).toString('base64');
+
+        const user = {
+          id: staffData.id,
+          username: staffData.username,
+          role: staffData.role,
+          name: staffData.name,
+          email: staffData.email,
+          permissions: staffData.role === 'admin' ? ['all'] : ['orders']
+        };
+
+        console.log('✅ Staff login successful:', user.username);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'تم تسجيل الدخول بنجاح',
+            token: token,
+            user: user
+          }),
+        };
+
+      } catch (error) {
+        console.error('❌ Admin/Staff login error:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'خطأ في الخادم'
+          }),
+        };
+      }
     }
 
     // Customer login endpoint
@@ -396,6 +560,170 @@ export const handler = async (event, context) => {
       }
     }
 
+    // Change password endpoint
+    if (method === 'POST' && pathSegments.includes('change-password')) {
+      const authHeader = event.headers.authorization || event.headers.Authorization;
+      
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'Token مطلوب'
+          }),
+        };
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const body = event.body ? JSON.parse(event.body) : {};
+      const { currentPassword, newPassword } = body;
+
+      if (!currentPassword || !newPassword) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'كلمة المرور الحالية والجديدة مطلوبتان'
+          }),
+        };
+      }
+
+      if (newPassword.length < 6) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل'
+          }),
+        };
+      }
+
+      try {
+        const decoded = JSON.parse(atob(token));
+        
+        if (decoded.exp && decoded.exp < Date.now()) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'انتهت صلاحية الجلسة'
+            }),
+          };
+        }
+
+        // Check if it's hardcoded admin
+        const validCredentials = [
+          { username: 'admin', password: '123123' },
+          { username: 'administrator', password: '123123' },
+          { username: 'مدير', password: '123123' }
+        ];
+
+        const hardcodedAdmin = validCredentials.find(cred => 
+          cred.username === decoded.username
+        );
+
+        if (hardcodedAdmin) {
+          // For hardcoded admin, just check current password
+          if (currentPassword !== hardcodedAdmin.password) {
+            return {
+              statusCode: 401,
+              headers,
+              body: JSON.stringify({
+                success: false,
+                message: 'كلمة المرور الحالية غير صحيحة'
+              }),
+            };
+          }
+
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'لا يمكن تغيير كلمة مرور المدير الافتراضي. يرجى إنشاء حساب مدير جديد.'
+            }),
+          };
+        }
+
+        // For staff members in Firebase
+        if (!decoded.id) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'معرف المستخدم غير صالح'
+            }),
+          };
+        }
+
+        const staffDoc = doc(db, 'staff', decoded.id);
+        const staffSnapshot = await getDoc(staffDoc);
+
+        if (!staffSnapshot.exists()) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'المستخدم غير موجود'
+            }),
+          };
+        }
+
+        const staffData = staffSnapshot.data();
+
+        // Verify current password
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, staffData.password);
+        if (!isCurrentPasswordValid) {
+          return {
+            statusCode: 401,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              message: 'كلمة المرور الحالية غير صحيحة'
+            }),
+          };
+        }
+
+        // Hash new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        await updateDoc(staffDoc, {
+          password: hashedNewPassword,
+          passwordChangedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+
+        console.log('✅ Password changed successfully for:', decoded.username);
+
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            message: 'تم تغيير كلمة المرور بنجاح'
+          }),
+        };
+
+      } catch (error) {
+        console.error('❌ Change password error:', error);
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: 'خطأ في تغيير كلمة المرور'
+          }),
+        };
+      }
+    }
+
     // Method not allowed
     return {
       statusCode: 405,
@@ -417,4 +745,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};

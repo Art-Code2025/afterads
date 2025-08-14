@@ -1,14 +1,14 @@
-import { db } from './config/firebase.js';
-import { 
+const { db } = require('./config/firebase.js');
+const { 
   collection, 
   getDocs, 
   query, 
   orderBy,
   where,
   limit 
-} from 'firebase/firestore';
+} = require('firebase/firestore');
 
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -36,76 +36,131 @@ export const handler = async (event, context) => {
     console.log('📊 Dashboard API - Method:', method, 'Path:', path);
 
     if (method === 'GET') {
-      console.log('📊 Fetching dashboard data from Firestore');
+      console.log('⚡ Fast dashboard data fetch started');
+      const startTime = Date.now();
       
       try {
-        // Fetch all collections in parallel
-        const [productsSnapshot, categoriesSnapshot, ordersSnapshot, customersSnapshot, couponsSnapshot] = await Promise.all([
+        // Fetch all collections in parallel with timeout
+        const fetchPromises = [
           getDocs(collection(db, 'products')),
           getDocs(collection(db, 'categories')),
           getDocs(collection(db, 'orders')),
           getDocs(collection(db, 'customers')),
           getDocs(collection(db, 'coupons'))
+        ];
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database timeout')), 8000)
+        );
+        
+        const [productsSnapshot, categoriesSnapshot, ordersSnapshot, customersSnapshot, couponsSnapshot] = await Promise.race([
+          Promise.all(fetchPromises),
+          timeoutPromise
         ]);
 
-        // Process products
-        const products = [];
-        productsSnapshot.forEach((doc) => {
-          products.push({ id: doc.id, ...doc.data() });
-        });
+        // Process data efficiently
+        const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const categories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const customers = customersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const coupons = couponsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const fetchTime = Date.now() - startTime;
+        console.log(`⚡ Data fetched in ${fetchTime}ms - Products: ${products.length}, Orders: ${orders.length}, Customers: ${customers.length}`);
 
-        // Process categories
-        const categories = [];
-        categoriesSnapshot.forEach((doc) => {
-          categories.push({ id: doc.id, ...doc.data() });
+        // Calculate dashboard statistics efficiently
+        const calcStartTime = Date.now();
+        
+        // Product stats
+        let outOfStockProducts = 0;
+        let lowStockProducts = 0;
+        let totalValue = 0;
+        
+        products.forEach(p => {
+          const stock = p.stock || 0;
+          const price = p.price || 0;
+          
+          if (stock <= 0) outOfStockProducts++;
+          else if (stock <= 5) lowStockProducts++;
+          
+          totalValue += price * stock;
         });
-
-        // Process orders
-        const orders = [];
-        ordersSnapshot.forEach((doc) => {
-          orders.push({ id: doc.id, ...doc.data() });
+        
+        // Order stats
+        let pendingOrders = 0;
+        let confirmedOrders = 0;
+        let completedOrders = 0;
+        let cancelledOrders = 0;
+        let totalRevenue = 0;
+        let totalOrderValue = 0;
+        
+        orders.forEach(o => {
+          const total = o.total || 0;
+          totalOrderValue += total;
+          
+          switch(o.status) {
+            case 'pending': pendingOrders++; break;
+            case 'confirmed': confirmedOrders++; break;
+            case 'delivered': 
+              completedOrders++;
+              totalRevenue += total;
+              break;
+            case 'cancelled': cancelledOrders++; break;
+          }
         });
-
-        // Process customers
-        const customers = [];
-        customersSnapshot.forEach((doc) => {
-          customers.push({ id: doc.id, ...doc.data() });
+        
+        // Customer stats
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        let activeCustomers = 0;
+        let newCustomersThisMonth = 0;
+        
+        customers.forEach(c => {
+          if (c.status === 'active') activeCustomers++;
+          
+          if (c.createdAt) {
+            const created = new Date(c.createdAt);
+            if (created.getMonth() === currentMonth && created.getFullYear() === currentYear) {
+              newCustomersThisMonth++;
+            }
+          }
         });
-
-        // Process coupons
-        const coupons = [];
-        couponsSnapshot.forEach((doc) => {
-          coupons.push({ id: doc.id, ...doc.data() });
+        
+        // Coupon stats
+        let activeCoupons = 0;
+        coupons.forEach(c => {
+          if (c.isActive) activeCoupons++;
         });
-
-        // Calculate dashboard statistics
+        
         const stats = {
           totalProducts: products.length,
           totalCategories: categories.length,
-          outOfStockProducts: products.filter(p => (p.stock || 0) <= 0).length,
-          lowStockProducts: products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length,
-          totalValue: products.reduce((sum, p) => sum + ((p.price || 0) * (p.stock || 0)), 0),
+          outOfStockProducts,
+          lowStockProducts,
+          totalValue,
           
           totalOrders: orders.length,
-          pendingOrders: orders.filter(o => o.status === 'pending').length,
-          confirmedOrders: orders.filter(o => o.status === 'confirmed').length,
-          completedOrders: orders.filter(o => o.status === 'delivered').length,
-          cancelledOrders: orders.filter(o => o.status === 'cancelled').length,
-          totalRevenue: orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + (o.total || 0), 0),
-          averageOrderValue: orders.length > 0 ? orders.reduce((sum, o) => sum + (o.total || 0), 0) / orders.length : 0,
+          pendingOrders,
+          confirmedOrders,
+          completedOrders,
+          cancelledOrders,
+          totalRevenue,
+          averageOrderValue: orders.length > 0 ? totalOrderValue / orders.length : 0,
           
           totalCustomers: customers.length,
-          activeCustomers: customers.filter(c => c.status === 'active').length,
-          newCustomersThisMonth: customers.filter(c => {
-            const created = new Date(c.createdAt);
-            const now = new Date();
-            return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-          }).length,
+          activeCustomers,
+          newCustomersThisMonth,
           
           totalCoupons: coupons.length,
-          activeCoupons: coupons.filter(c => c.isActive).length,
-          expiredCoupons: coupons.filter(c => !c.isActive).length
+          activeCoupons,
+          expiredCoupons: coupons.length - activeCoupons
         };
+        
+        const calcTime = Date.now() - calcStartTime;
+        console.log(`⚡ Stats calculated in ${calcTime}ms`);
 
         // Generate sales data for the last 6 months
         const salesData = [];
@@ -132,17 +187,66 @@ export const handler = async (event, context) => {
           });
         }
 
-        // Get top products (by assumed sales)
-        const topProducts = products.slice(0, 5).map((product, index) => ({
-          name: product.name,
-          sales: Math.max(20 - index * 3, 1), // Mock sales data
-          revenue: (Math.max(20 - index * 3, 1)) * (product.price || 0)
-        }));
+        // Top products - improved calculation
+        const topProductsStartTime = Date.now();
+        
+        // Calculate actual sales from orders for each product
+        const productSales = new Map();
+        
+        orders.forEach(order => {
+          if (order.status === 'delivered' && order.items) {
+            order.items.forEach(item => {
+              const productId = item.productId || item.id;
+              if (productId) {
+                const current = productSales.get(productId) || { sales: 0, revenue: 0 };
+                current.sales += item.quantity || 1;
+                current.revenue += (item.price || 0) * (item.quantity || 1);
+                productSales.set(productId, current);
+              }
+            });
+          }
+        });
+        
+        // Get top 5 products by sales
+        const topProducts = products
+          .map(product => {
+            const sales = productSales.get(product.id) || { sales: 0, revenue: 0 };
+            return {
+              id: product.id,
+              name: product.name || 'منتج غير محدد',
+              sales: sales.sales,
+              revenue: sales.revenue,
+              image: product.images?.[0] || '/placeholder.jpg'
+            };
+          })
+          .sort((a, b) => b.sales - a.sales)
+          .slice(0, 5);
+        
+        const topProductsTime = Date.now() - topProductsStartTime;
+        console.log(`⚡ Top products calculated in ${topProductsTime}ms`);
 
-        // Recent orders (last 10)
-        const recentOrders = orders
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        // Get recent orders (last 10) - optimized
+        const recentOrdersStartTime = Date.now();
+        
+        // Sort orders by creation date (newest first) and take top 10
+        const sortedOrders = orders
+          .map(order => ({
+            id: order.id,
+            customerName: order.customerName || 'غير محدد',
+            total: order.total || 0,
+            status: order.status || 'pending',
+            createdAt: order.createdAt,
+            items: order.items || [],
+            timestamp: new Date(order.createdAt).getTime()
+          }))
+          .sort((a, b) => b.timestamp - a.timestamp)
           .slice(0, 10);
+        
+        // Remove timestamp field from final result
+        const recentOrders = sortedOrders.map(({ timestamp, ...order }) => order);
+        
+        const recentOrdersTime = Date.now() - recentOrdersStartTime;
+        console.log(`⚡ Recent orders processed in ${recentOrdersTime}ms - Found: ${recentOrders.length}`);
 
         const dashboardData = {
           statistics: stats,
@@ -152,8 +256,19 @@ export const handler = async (event, context) => {
           dataTimestamp: new Date().toISOString()
         };
 
-        console.log(`✅ Dashboard data compiled successfully`);
+        const totalTime = Date.now() - startTime;
+        console.log(`✅ Dashboard data compiled successfully in ${totalTime}ms`);
         console.log(`📊 Stats: ${stats.totalProducts} products, ${stats.totalOrders} orders, ${stats.totalCustomers} customers`);
+        console.log(`⚡ Performance: Fetch(${fetchTime}ms) + Calc(${calcTime}ms) + TopProducts(${topProductsTime}ms) + RecentOrders(${recentOrdersTime}ms) = Total(${totalTime}ms)`);
+        
+        // Add performance metrics to response
+        dashboardData.performance = {
+          totalTime,
+          fetchTime,
+          calcTime,
+          topProductsTime,
+          recentOrdersTime
+        };
         
         return {
           statusCode: 200,
@@ -253,4 +368,4 @@ export const handler = async (event, context) => {
       }),
     };
   }
-}; 
+};
