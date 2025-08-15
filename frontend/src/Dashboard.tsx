@@ -261,7 +261,7 @@ const Dashboard: React.FC = () => {
   // حالات المودال
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
-    type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone';
+    type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone' | 'service';
     id: string | number;
     name: string;
     loading: boolean;
@@ -410,12 +410,7 @@ const Dashboard: React.FC = () => {
       console.log('🚀 Fetching optimized dashboard data...');
       const startTime = Date.now();
       
-      const response = await fetch('/.netlify/functions/dashboard');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const data = await apiCall('/dashboard');
       const fetchTime = Date.now() - startTime;
       
       console.log(`✅ Dashboard data fetched in ${fetchTime}ms:`, {
@@ -675,62 +670,45 @@ const Dashboard: React.FC = () => {
     
     try {
       // تحميل البيانات الأساسية أولاً (الإحصائيات العامة)
-      const analyticsResponse = fetch('/.netlify/functions/analytics');
+      const analyticsResponse = apiCall('/analytics');
       
       // تحميل البيانات التفصيلية في الخلفية
       const loadDetailedData = async () => {
         try {
-          const [dailyResponse, monthlyResponse] = await Promise.all([
-            fetch('/.netlify/functions/analytics-stats?type=daily'),
-            fetch('/.netlify/functions/analytics-stats?type=monthly')
+          const [dailyData, monthlyData] = await Promise.all([
+            apiCall('/analytics-stats?type=daily'),
+            apiCall('/analytics-stats?type=monthly')
           ]);
 
-          if (dailyResponse.ok) {
-            const dailyData = await dailyResponse.json();
-            setDailyStats(dailyData.stats || []);
-            console.log('✅ Daily stats loaded');
-          }
-
-          if (monthlyResponse.ok) {
-            const monthlyData = await monthlyResponse.json();
-            setMonthlyStats(monthlyData.stats || []);
-            console.log('✅ Monthly stats loaded');
-          }
+          setDailyStats(dailyData.stats || []);
+          console.log('✅ Daily stats loaded');
+          
+          setMonthlyStats(monthlyData.stats || []);
+          console.log('✅ Monthly stats loaded');
         } catch (error) {
           console.warn('⚠️ Detailed analytics data failed:', error);
         }
       };
 
       // تحميل البيانات الأساسية
-      const analyticsResult = await analyticsResponse;
-      if (analyticsResult.ok) {
-        const analyticsData = await analyticsResult.json();
-        setAnalyticsData(analyticsData);
-        console.log('✅ Basic analytics loaded');
-        
-        // حفظ البيانات الأساسية في التخزين المؤقت
-        const basicResults = {
-          analytics: analyticsData,
-          daily: [],
-          monthly: []
-        };
-        sessionStorage.setItem('analyticsData', JSON.stringify(basicResults));
-        sessionStorage.setItem('analyticsDataTime', now.toString());
-      }
+      const analyticsData = await analyticsResponse;
+      setAnalyticsData(analyticsData);
+      console.log('✅ Basic analytics loaded');
+      
+      // حفظ البيانات الأساسية في التخزين المؤقت
+      const basicResults = {
+        analytics: analyticsData,
+        daily: [],
+        monthly: []
+      };
+      sessionStorage.setItem('analyticsData', JSON.stringify(basicResults));
+      sessionStorage.setItem('analyticsDataTime', now.toString());
       
       // إنهاء حالة التحميل للبيانات الأساسية
       setAnalyticsLoading(false);
       
       // تحميل البيانات التفصيلية في الخلفية
-      loadDetailedData().then(() => {
-        // تحديث التخزين المؤقت مع البيانات الكاملة
-        const completeResults = {
-          analytics: analyticsData || {},
-          daily: dailyStats,
-          monthly: monthlyStats
-        };
-        sessionStorage.setItem('analyticsData', JSON.stringify(completeResults));
-      });
+      loadDetailedData();
       
     } catch (error) {
       console.error('خطأ في تحميل بيانات الإحصائيات:', error);
@@ -742,19 +720,46 @@ const Dashboard: React.FC = () => {
   // تحديث الإحصائيات (background job)
   const updateAnalyticsStats = async () => {
     try {
-      const response = await fetch('/.netlify/functions/analytics-stats?action=calculate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      console.log('🔄 بدء تحديث الإحصائيات...');
+      
+      await apiCall('/analytics-stats?action=calculate', {
+        method: 'POST'
       });
-      if (response.ok) {
-        console.log('تم تحديث الإحصائيات بنجاح');
-        // إعادة تحميل البيانات بعد التحديث
-        await loadAnalyticsData();
+      
+      console.log('✅ تم تحديث الإحصائيات بنجاح');
+      toast.success('تم تحديث الإحصائيات بنجاح');
+      
+      // إعادة تحميل البيانات بعد التحديث
+      await loadAnalyticsData();
+      
+    } catch (error: any) {
+      console.error('❌ خطأ في تحديث الإحصائيات:', error);
+      
+      // معالجة مخصصة لأنواع الأخطاء المختلفة
+      if (error.message?.includes('انتهت مهلة الطلب')) {
+        toast.warning('تحديث الإحصائيات يستغرق وقتاً أطول من المعتاد. سيتم المحاولة مرة أخرى في الخلفية.');
+        
+        // محاولة مرة أخرى بعد 30 ثانية في الخلفية
+        setTimeout(async () => {
+          try {
+            await apiCall('/analytics-stats?action=calculate', {
+              method: 'POST'
+            });
+            console.log('✅ تم تحديث الإحصائيات في المحاولة الثانية');
+            await loadAnalyticsData();
+            toast.success('تم تحديث الإحصائيات بنجاح (محاولة ثانية)');
+          } catch (retryError) {
+            console.error('❌ فشل في المحاولة الثانية:', retryError);
+          }
+        }, 30000);
+        
+      } else if (error.message?.includes('خطأ في الاتصال')) {
+        toast.error('خطأ في الاتصال - تأكد من اتصالك بالإنترنت');
+      } else if (error.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في الشبكة - يرجى المحاولة مرة أخرى');
+      } else {
+        toast.error('حدث خطأ أثناء تحديث الإحصائيات');
       }
-    } catch (error) {
-      console.error('خطأ في تحديث الإحصائيات:', error);
     }
   };
 
@@ -829,15 +834,166 @@ const Dashboard: React.FC = () => {
       handleNewOrder();
     }
     
-    // تحميل بيانات الخدمات مسبقاً لتحسين الأداء (استخدام cache إذا متوفر)
+    // تحميل فوري للخدمات من localStorage عند التبديل إلى تبويب "خدماتي"
     if (currentTab === 'myservices') {
-      fetchMyServices(false); // Use cache if available
+      // تحميل فوري من localStorage أولاً
+      const { services: cachedServices, isValid } = getMyServicesFromCache();
+      if (cachedServices && cachedServices.length > 0) {
+        console.log('⚡ INSTANT LOAD: Setting services from localStorage immediately');
+        setMyServices(cachedServices);
+        setFilteredMyServices(cachedServices);
+        setMyServicesError(null);
+        setMyServicesLoading(false);
+        
+        // إذا كانت البيانات منتهية الصلاحية، حدثها في الخلفية
+        if (!isValid) {
+          console.log('🔄 Background refresh: Updating expired cache');
+          fetchMyServices(true); // تحديث في الخلفية
+        }
+      } else {
+        // لا توجد بيانات محفوظة، تحميل من API
+        fetchMyServices(false);
+      }
     }
     
     // الاستماع للإشعارات الجديدة
     window.addEventListener('newOrderAdded', handleNewOrder);
     return () => window.removeEventListener('newOrderAdded', handleNewOrder);
   }, [currentTab, fetchDashboardData, fetchOrders]);
+
+  // localStorage cache for my services - محسن للسرعة الفائقة
+  const MY_SERVICES_CACHE_KEY = 'myServices_cache';
+  const MY_SERVICES_CACHE_TIMESTAMP_KEY = 'myServices_cache_timestamp';
+  const MY_SERVICES_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for better persistence
+
+  // وظيفة حفظ الخدمات في localStorage
+  const saveMyServicesToCache = (services: Service[]) => {
+    try {
+      localStorage.setItem(MY_SERVICES_CACHE_KEY, JSON.stringify(services));
+      localStorage.setItem(MY_SERVICES_CACHE_TIMESTAMP_KEY, Date.now().toString());
+      console.log('💾 My services saved to localStorage cache');
+    } catch (error) {
+      console.warn('⚠️ Failed to save services to localStorage:', error);
+    }
+  };
+
+  // وظيفة استرجاع الخدمات من localStorage
+  const getMyServicesFromCache = (): { services: Service[] | null; isValid: boolean } => {
+    try {
+      const cachedServices = localStorage.getItem(MY_SERVICES_CACHE_KEY);
+      const cachedTimestamp = localStorage.getItem(MY_SERVICES_CACHE_TIMESTAMP_KEY);
+      
+      if (!cachedServices || !cachedTimestamp) {
+        return { services: null, isValid: false };
+      }
+
+      const timestamp = parseInt(cachedTimestamp);
+      const now = Date.now();
+      const isValid = (now - timestamp) < MY_SERVICES_CACHE_DURATION;
+      
+      const services = JSON.parse(cachedServices) as Service[];
+      return { services, isValid };
+    } catch (error) {
+      console.warn('⚠️ Failed to read services from localStorage:', error);
+      return { services: null, isValid: false };
+    }
+  };
+
+  // وظائف تبويب "خدماتي" الجديد - محسن بـ localStorage
+  const fetchMyServices = useCallback(async (forceRefresh = false) => {
+    // التحقق من وجود بيانات محفوظة في localStorage
+    if (!forceRefresh) {
+      const { services: cachedServices, isValid } = getMyServicesFromCache();
+      
+      if (isValid && cachedServices && cachedServices.length > 0) {
+        console.log('⚡ Using localStorage cached my services data - INSTANT LOAD!');
+        setMyServices(cachedServices);
+        setFilteredMyServices(cachedServices);
+        setMyServicesError(null);
+        setMyServicesLoading(false);
+        return;
+      }
+      
+      // إذا كانت البيانات منتهية الصلاحية ولكن موجودة، اعرضها أولاً ثم حدث في الخلفية
+      if (cachedServices && cachedServices.length > 0) {
+        console.log('📦 Using expired cached data while refreshing in background');
+        setMyServices(cachedServices);
+        setFilteredMyServices(cachedServices);
+        setMyServicesError(null);
+        // لا تضع setMyServicesLoading(false) هنا لأننا سنحدث في الخلفية
+      }
+    }
+
+    // جلب البيانات من API
+    try {
+      setMyServicesLoading(true);
+      setMyServicesError(null);
+      
+      const response = await apiCall(API_ENDPOINTS.SERVICES);
+      
+      if (!response) {
+        throw new Error('لم يتم استلام بيانات من الخادم');
+      }
+
+      let servicesData: Service[] = [];
+      
+      if (Array.isArray(response)) {
+        servicesData = response;
+      } else if (response.services && Array.isArray(response.services)) {
+        servicesData = response.services;
+      } else if (response.data && Array.isArray(response.data)) {
+        servicesData = response.data;
+      } else {
+        console.warn('⚠️ Unexpected API response format:', response);
+        servicesData = [];
+      }
+
+      // حفظ البيانات الجديدة في localStorage
+      saveMyServicesToCache(servicesData);
+      
+      setMyServices(servicesData);
+      setFilteredMyServices(servicesData);
+      setMyServicesError(null);
+      
+      // التحقق من وجود تغييرات مقارنة بالبيانات المخبأة
+      const { services: oldCachedServices } = getMyServicesFromCache();
+      if (oldCachedServices && JSON.stringify(oldCachedServices) !== JSON.stringify(servicesData)) {
+        console.log('🔄 Services data updated from server');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching my services:', error);
+      
+      // في حالة الخطأ، استخدم البيانات المخبأة إن وجدت
+      const { services: cachedServices } = getMyServicesFromCache();
+      if (cachedServices && cachedServices.length > 0) {
+        console.log('📦 Using cached data due to API error');
+        setMyServices(cachedServices);
+        setFilteredMyServices(cachedServices);
+        setMyServicesError(null);
+      } else {
+        setMyServicesError('حدث خطأ في تحميل الخدمات');
+        setMyServices([]);
+        setFilteredMyServices([]);
+      }
+      
+      toast.error('فشل في تحميل الخدمات');
+    } finally {
+      setMyServicesLoading(false);
+    }
+  }, []);
+
+  // استماع لأحداث تحديث الخدمات
+  useEffect(() => {
+    const handleServicesUpdate = () => {
+      console.log('🔄 Services updated event received, refreshing myServices');
+      if (currentTab === 'myservices') {
+        fetchMyServices(true); // تحديث قسري
+      }
+    };
+
+    window.addEventListener('servicesUpdated', handleServicesUpdate);
+    return () => window.removeEventListener('servicesUpdated', handleServicesUpdate);
+  }, [currentTab, fetchMyServices]);
 
   // وظائف الخدمات
   const fetchServices = async () => {
@@ -852,67 +1008,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Global cache for my services
-  let myServicesCache: Service[] | null = null;
-  let myServicesCacheTimestamp: number = 0;
-  const MY_SERVICES_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  // وظائف تبويب "خدماتي" الجديد
-  const fetchMyServices = async (forceRefresh = false) => {
-    // Check if we have valid cached data
-    const now = Date.now();
-    if (!forceRefresh && myServicesCache && (now - myServicesCacheTimestamp) < MY_SERVICES_CACHE_DURATION) {
-      console.log('✅ Using cached my services data');
-      setMyServices(myServicesCache);
-      setFilteredMyServices(myServicesCache);
-      setMyServicesError(null);
-      return;
-    }
 
-    setMyServicesLoading(true);
-    setMyServicesError(null);
-    try {
-      console.log('🔄 Fetching my services from API...');
-      
-      // Set a timeout for this specific request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000); // 12 seconds
-      
-      const data = await apiCall(API_ENDPOINTS.SERVICES, {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      console.log('✅ My services loaded:', data?.length || 0);
-      const servicesData = data || [];
-      
-      // Update cache
-      myServicesCache = servicesData;
-      myServicesCacheTimestamp = Date.now();
-      
-      setMyServices(servicesData);
-      setFilteredMyServices(servicesData);
-      setMyServicesError(null);
-    } catch (error: any) {
-      console.error('❌ Error fetching my services:', error);
-      
-      // If we have cached data, use it instead of showing error
-      if (myServicesCache && myServicesCache.length > 0) {
-        console.log('📦 Using cached my services due to fetch error');
-        setMyServices(myServicesCache);
-        setFilteredMyServices(myServicesCache);
-        setMyServicesError(null);
-        toast.info('تم تحميل البيانات من الذاكرة المؤقتة');
-      } else {
-        setMyServicesError('حدث خطأ في تحميل الخدمات');
-        setMyServices([]);
-        setFilteredMyServices([]);
-      }
-    } finally {
-      setMyServicesLoading(false);
-    }
-  };
 
   // وظائف التصنيفات
   const fetchCategories = async () => {
@@ -949,8 +1046,101 @@ const Dashboard: React.FC = () => {
 
   // تم نقل fetchOrders إلى أعلى الملف لتجنب مشكلة "used before declaration"
 
-  // وظائف العملاء - محسنة للسرعة
-  const fetchCustomers = async () => {
+  // localStorage cache for customers - محسن للسرعة الفائقة
+  const CUSTOMERS_CACHE_KEY = 'customers_cache';
+  const CUSTOMERS_CACHE_TIMESTAMP_KEY = 'customers_cache_timestamp';
+  const CUSTOMERS_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for better persistence
+
+  // وظيفة حفظ العملاء في localStorage
+  const saveCustomersToCache = (customers: Customer[]) => {
+    try {
+      localStorage.setItem(CUSTOMERS_CACHE_KEY, JSON.stringify(customers));
+      localStorage.setItem(CUSTOMERS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+      console.log('💾 Customers saved to localStorage cache');
+    } catch (error) {
+      console.warn('⚠️ Failed to save customers to localStorage:', error);
+    }
+  };
+
+  // وظيفة استرجاع العملاء من localStorage
+  const getCustomersFromCache = (): { customers: Customer[] | null; isValid: boolean } => {
+    try {
+      const cachedCustomers = localStorage.getItem(CUSTOMERS_CACHE_KEY);
+      const cachedTimestamp = localStorage.getItem(CUSTOMERS_CACHE_TIMESTAMP_KEY);
+      
+      if (!cachedCustomers || !cachedTimestamp) {
+        return { customers: null, isValid: false };
+      }
+
+      const timestamp = parseInt(cachedTimestamp);
+      const now = Date.now();
+      const isValid = (now - timestamp) < CUSTOMERS_CACHE_DURATION;
+      
+      const customers = JSON.parse(cachedCustomers) as Customer[];
+      return { customers, isValid };
+    } catch (error) {
+      console.warn('⚠️ Failed to read customers from localStorage:', error);
+      return { customers: null, isValid: false };
+    }
+  };
+
+  // وظائف العملاء - محسنة بـ localStorage للسرعة الفائقة
+  const fetchCustomers = useCallback(async (forceRefresh = false) => {
+    // التحقق من وجود بيانات محفوظة في localStorage
+    if (!forceRefresh) {
+      const { customers: cachedCustomers, isValid } = getCustomersFromCache();
+      
+      if (isValid && cachedCustomers && cachedCustomers.length > 0) {
+        console.log('⚡ Using localStorage cached customers data - INSTANT LOAD!');
+        setCustomers(cachedCustomers);
+        setFilteredCustomers(cachedCustomers);
+        return;
+      }
+      
+      // إذا كانت البيانات منتهية الصلاحية ولكن موجودة، اعرضها أولاً ثم حدث في الخلفية
+      if (cachedCustomers && cachedCustomers.length > 0) {
+        console.log('📦 Using expired cached customers data while refreshing in background');
+        setCustomers(cachedCustomers);
+        setFilteredCustomers(cachedCustomers);
+        // لا تضع loading هنا لأننا سنحدث في الخلفية
+      }
+    }
+
+    // جلب البيانات من API
+    try {
+      const data = await apiCall(API_ENDPOINTS.CUSTOMERS);
+      const customersData = data || [];
+      
+      // تحميل سريع للعملاء بدون إثراء البيانات أولاً
+      setCustomers(customersData);
+      setFilteredCustomers(customersData);
+      
+      // حفظ في localStorage للمرة القادمة
+      if (customersData.length > 0) {
+        saveCustomersToCache(customersData);
+      }
+      
+      // إثراء البيانات في الخلفية بدون انتظار
+      enrichCustomersData(customersData);
+      
+      console.log('✅ Customers loaded and cached successfully:', customersData.length);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      
+      // في حالة الخطأ، حاول استخدام البيانات المحفوظة
+      const { customers: cachedCustomers } = getCustomersFromCache();
+      if (cachedCustomers && cachedCustomers.length > 0) {
+        console.log('🔄 Using cached customers data due to API error');
+        setCustomers(cachedCustomers);
+        setFilteredCustomers(cachedCustomers);
+      } else {
+        setCustomers([]);
+        setFilteredCustomers([]);
+      }
+    }
+  }, []);
+
+  const fetchCustomersOld = async () => {
     try {
       const data = await apiCall(API_ENDPOINTS.CUSTOMERS);
       const customersData = data || [];
@@ -1043,12 +1233,27 @@ const Dashboard: React.FC = () => {
     };
   }, [currentTab]);
 
-  // تحميل العملاء عند فتح التبويب فقط
+  // تحميل العملاء عند فتح التبويب فقط - مع localStorage caching
   useEffect(() => {
     if (currentTab === 'customers') {
-      fetchCustomers();
+      // تحميل فوري من localStorage أولاً
+      const { customers: cachedCustomers, isValid } = getCustomersFromCache();
+      if (cachedCustomers && cachedCustomers.length > 0) {
+        console.log('⚡ INSTANT LOAD: Setting customers from localStorage immediately');
+        setCustomers(cachedCustomers);
+        setFilteredCustomers(cachedCustomers);
+        
+        // إذا كانت البيانات منتهية الصلاحية، حدثها في الخلفية
+        if (!isValid) {
+          console.log('🔄 Background refresh: Updating expired customers cache');
+          fetchCustomers(true); // تحديث في الخلفية
+        }
+      } else {
+        // لا توجد بيانات محفوظة، تحميل من API
+        fetchCustomers(false);
+      }
     }
-  }, [currentTab]);
+  }, [currentTab, fetchCustomers]);
 
   useEffect(() => {
     if (currentTab === 'customers' && customers.length > 0) {
@@ -1949,7 +2154,7 @@ const Dashboard: React.FC = () => {
     setIsOrderModalOpen(true);
   };
 
-  const handleDeleteClick = (type: string, id: number, name: string) => {
+  const handleDeleteClick = (type: string, id: string | number, name: string) => {
     setDeleteModal({
       isOpen: true,
       type: type as 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone',
@@ -1972,6 +2177,18 @@ const Dashboard: React.FC = () => {
         case 'product':
           endpoint = API_ENDPOINTS.SERVICES + '/' + deleteModal.id;
           successMessage = 'تم حذف الخدمة بنجاح!';
+          // مسح cache الخدمات عند الحذف
+          localStorage.removeItem('myServices_cache');
+          localStorage.removeItem('myServices_cache_timestamp');
+          console.log('🗑️ Cleared myServices cache after service deletion');
+          break;
+        case 'service':
+          endpoint = API_ENDPOINTS.SERVICES + '/' + deleteModal.id;
+          successMessage = 'تم حذف الخدمة بنجاح!';
+          // مسح cache الخدمات عند الحذف
+          localStorage.removeItem('myServices_cache');
+          localStorage.removeItem('myServices_cache_timestamp');
+          console.log('🗑️ Cleared myServices cache after service deletion');
           break;
         case 'category':
           endpoint = API_ENDPOINTS.CATEGORIES + '/' + deleteModal.id;
@@ -2011,6 +2228,10 @@ const Dashboard: React.FC = () => {
           setProducts(prev => prev.filter(p => p.id.toString() !== deleteModal.id.toString()));
           setFilteredProducts(prev => prev.filter(p => p.id.toString() !== deleteModal.id.toString()));
           break;
+        case 'service':
+          setServices(prev => prev.filter(s => s.id.toString() !== deleteModal.id.toString()));
+          setFilteredServices(prev => prev.filter(s => s.id.toString() !== deleteModal.id.toString()));
+          break;
         case 'category':
           setCategories(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
           setFilteredCategories(prev => prev.filter(c => c.id.toString() !== deleteModal.id.toString()));
@@ -2048,7 +2269,13 @@ const Dashboard: React.FC = () => {
 
   // Delete Modal Functions
   const openDeleteModal = (type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone' | 'service', id: string | number, name: string) => {
-    // Ensure id is a valid number for services
+    // For services, keep the ID as string since Firebase uses string IDs
+    if (type === 'service') {
+      handleDeleteClick(type, id, name);
+      return;
+    }
+    
+    // For other types, ensure id is a valid number
     const numericId = typeof id === 'string' ? parseInt(id) : id;
     if (isNaN(numericId)) {
       console.error('Invalid ID provided for deletion:', id);
@@ -3336,7 +3563,7 @@ const Dashboard: React.FC = () => {
                   <div className="text-red-500 mb-4">❌</div>
                   <p className="text-red-600 font-medium">{error}</p>
                   <button 
-                    onClick={fetchCustomers}
+                    onClick={() => fetchCustomers(true)}
                     className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     إعادة المحاولة
@@ -3358,7 +3585,7 @@ const Dashboard: React.FC = () => {
                         <p className="text-gray-900 font-bold text-xl mb-2">لا يوجد عملاء مسجلين</p>
                         <p className="text-gray-500 text-sm mb-6">سيظهر العملاء هنا عند التسجيل عبر النظام الجديد</p>
                         <button 
-                          onClick={fetchCustomers}
+                          onClick={() => fetchCustomers(true)}
                           className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           تحديث البيانات

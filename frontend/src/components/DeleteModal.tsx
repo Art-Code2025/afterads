@@ -7,7 +7,7 @@ interface DeleteModalProps {
   title: string;
   message: string;
   itemName?: string;
-  type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone' | 'blog';
+  type: 'product' | 'category' | 'order' | 'customer' | 'coupon' | 'shippingZone' | 'blog' | 'service';
   loading?: boolean;
 }
 

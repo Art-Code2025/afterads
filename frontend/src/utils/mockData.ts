@@ -279,8 +279,34 @@ export const getMockProducts = (): MockProduct[] => {
     }
   }
   
-  // Store mock data in localStorage for persistence
-  localStorage.setItem('products', JSON.stringify(mockProducts));
+  // Try to store mock data in localStorage for persistence
+  // But handle QuotaExceededError gracefully
+  try {
+    const dataString = JSON.stringify(mockProducts);
+    // Check if data is too large (> 4MB to be safe)
+    if (dataString.length > 4 * 1024 * 1024) {
+      console.warn('⚠️ Mock products data too large for localStorage, using in-memory only');
+    } else {
+      localStorage.setItem('products', dataString);
+      console.log('✅ Mock products stored in localStorage successfully');
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn('⚠️ localStorage quota exceeded, using mock data in-memory only');
+      // Clear some space by removing old data
+      try {
+        localStorage.removeItem('products');
+        localStorage.removeItem('categories');
+        localStorage.removeItem('services');
+        console.log('🧹 Cleared localStorage to free up space');
+      } catch (clearError) {
+        console.warn('Failed to clear localStorage:', clearError);
+      }
+    } else {
+      console.warn('Failed to store products in localStorage:', error);
+    }
+  }
+  
   return mockProducts;
 };
 
@@ -298,8 +324,23 @@ export const getMockCategories = (): MockCategory[] => {
     }
   }
   
-  // Store mock data in localStorage for persistence
-  localStorage.setItem('categories', JSON.stringify(mockCategories));
+  // Try to store mock data in localStorage for persistence
+  try {
+    const dataString = JSON.stringify(mockCategories);
+    if (dataString.length > 2 * 1024 * 1024) { // 2MB limit for categories
+      console.warn('⚠️ Mock categories data too large for localStorage, using in-memory only');
+    } else {
+      localStorage.setItem('categories', dataString);
+      console.log('✅ Mock categories stored in localStorage successfully');
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn('⚠️ localStorage quota exceeded for categories, using in-memory only');
+    } else {
+      console.warn('Failed to store categories in localStorage:', error);
+    }
+  }
+  
   return mockCategories;
 };
 

@@ -20,14 +20,32 @@ exports.handler = async (event, context) => {
     timestamp: new Date().toISOString()
   });
 
+  // Check body size to prevent "Stream body too big" error
+  if (event.body && event.body.length > 6 * 1024 * 1024) { // 6MB limit
+    console.error('❌ Request body too large:', event.body.length, 'bytes');
+    return {
+      statusCode: 413,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        error: 'حجم البيانات كبير جداً. يرجى تقليل حجم الصور أو البيانات المرسلة.',
+        maxSize: '6MB'
+      }),
+    };
+  }
+
   // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400',
       },
       body: '',
     };
@@ -36,8 +54,10 @@ exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+    'Access-Control-Allow-Credentials': 'true',
+    'Cache-Control': 'no-cache',
   };
 
   try {
@@ -116,11 +136,32 @@ exports.handler = async (event, context) => {
     if (method === 'POST') {
       let body = {};
       
-      // Handle JSON request from ServiceForm
-      body = event.body ? JSON.parse(event.body) : {};
-      
-      console.log('➕ Creating new service:', body.name);
-      console.log('📋 Data received:', JSON.stringify(body, null, 2));
+      try {
+        // Handle JSON request from ServiceForm
+        body = event.body ? JSON.parse(event.body) : {};
+        
+        console.log('➕ Creating new service:', body.name);
+        console.log('📋 Data size:', event.body ? `${(event.body.length / 1024).toFixed(2)}KB` : '0KB');
+        
+        // Log data structure without full content to avoid large logs
+        const logData = {
+          name: body.name,
+          hasMainImage: !!body.mainImage,
+          detailedImagesCount: body.detailedImages ? body.detailedImages.length : 0,
+          imageDetailsCount: body.imageDetails ? body.imageDetails.length : 0,
+          categoriesCount: body.categories ? body.categories.length : 0,
+          faqsCount: body.faqs ? body.faqs.length : 0,
+          addOnsCount: body.addOns ? body.addOns.length : 0
+        };
+        console.log('📋 Data structure:', JSON.stringify(logData, null, 2));
+      } catch (parseError) {
+        console.error('❌ JSON Parse Error:', parseError.message);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'بيانات غير صحيحة - تأكد من صحة البيانات المرسلة' }),
+        };
+      }
       
       // Validate required fields
       if (!body.name) {

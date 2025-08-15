@@ -20,6 +20,9 @@
   node_bundler = "esbuild"
   external_node_modules = ["firebase", "firebase-admin", "firebase/app", "firebase/auth", "firebase/firestore", "firebase/storage", "cloudinary", "bcryptjs", "node-fetch"]
 
+# Note: max_body_size is not supported in netlify.toml
+# Large payloads should be handled at the function level
+
 [build.processing]
   skip_processing = false
 

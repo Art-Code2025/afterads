@@ -10,7 +10,6 @@ export const API_CONFIG = {
 
 // الحصول على الـ base URL حسب البيئة
 export const getApiBaseUrl = (): string => {
-  // تحقق من البيئة
   const isDevelopment = import.meta.env.MODE === 'development';
   const baseUrl = isDevelopment ? API_CONFIG.development.baseURL : API_CONFIG.production.baseURL;
   
@@ -116,10 +115,23 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   try {
     // Add timeout to prevent hanging requests
     const controller = new AbortController();
-    // Shorter timeout for activity-logs to prevent UI blocking
+    // Different timeouts based on endpoint type
     const isActivityLog = endpoint.includes('activity-logs');
     const isCustomers = endpoint.includes('customers');
-    const timeoutDuration = isActivityLog ? 5000 : (isCustomers ? 25000 : 15000); // 5s for activity logs, 25s for customers, 15s for others
+    const isAnalytics = endpoint.includes('analytics');
+    const isServices = endpoint.includes('services');
+    const isDashboard = endpoint.includes('dashboard');
+    
+    let timeoutDuration = 15000; // Default 15s
+    if (isActivityLog) {
+      timeoutDuration = 5000; // 5s for activity logs
+    } else if (isAnalytics) {
+      timeoutDuration = 45000; // 45s for analytics (heavy calculations)
+    } else if (isCustomers) {
+      timeoutDuration = 25000; // 25s for customers
+    } else if (isServices || isDashboard) {
+      timeoutDuration = 30000; // 30s for services and dashboard
+    }
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
     console.log('📡 Making fetch request...');

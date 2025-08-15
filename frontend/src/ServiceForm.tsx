@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowRight, Save, Upload, X, Plus, Minus } from 'lucide-react';
 import { apiCall, API_ENDPOINTS, buildImageUrl, buildApiUrl } from './config/api';
+// @ts-ignore
+import pako from 'pako';
 
 // تعريف نوع الخدمة
 interface Service {
@@ -219,6 +221,27 @@ const ServiceForm: React.FC = () => {
     }
   };
 
+  // Helper function to compress large data
+  const compressData = (data: any): string => {
+    try {
+      const jsonString = JSON.stringify(data);
+      const dataSize = new Blob([jsonString]).size;
+      
+      // Only compress if data is larger than 1MB
+      if (dataSize > 1024 * 1024) {
+        console.log(`Compressing large data (${(dataSize / 1024 / 1024).toFixed(2)}MB)`);
+        const compressed = pako.gzip(jsonString);
+        const compressedBase64 = btoa(String.fromCharCode(...compressed));
+        return JSON.stringify({ compressed: true, data: compressedBase64 });
+      }
+      
+      return jsonString;
+    } catch (error) {
+      console.error('Compression failed, sending uncompressed:', error);
+      return JSON.stringify(data);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -226,7 +249,6 @@ const ServiceForm: React.FC = () => {
     setSuccess(null);
 
     const method = id ? 'PUT' : 'POST';
-    const url = id ? buildApiUrl(`${API_ENDPOINTS.SERVICES}/${id}`) : buildApiUrl(API_ENDPOINTS.SERVICES);
 
     // Prepare service data as JSON (like ProductForm)
     const serviceData = {
@@ -250,36 +272,38 @@ const ServiceForm: React.FC = () => {
     };
 
     try {
-      const response = await fetch(url, {
+      const endpoint = id ? `${API_ENDPOINTS.SERVICES}/${id}` : API_ENDPOINTS.SERVICES;
+      
+      // Compress data if it's large
+      const compressedBody = compressData(serviceData);
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (compressedBody.includes('"compressed":true')) {
+        headers['Content-Encoding'] = 'gzip';
+      }
+      
+      const responseData = await apiCall(endpoint, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(serviceData),
+        body: compressedBody,
+        headers
       });
-
-      let responseData: any = {};
-      const responseText = await response.text();
       
-      try {
-        responseData = responseText ? JSON.parse(responseText) : {};
-      } catch (jsonError) {
-        console.error('JSON parsing error:', jsonError);
-        console.error('Response text:', responseText);
-        throw new Error(`خطأ في تحليل استجابة الخادم. كود الحالة: ${response.status}`);
-      }
-      
-      console.log('Server response:', response.status, responseData);
-
-      if (!response.ok) {
-        throw new Error(responseData.message || responseData.error || `فشل في حفظ الخدمة. كود الحالة: ${response.status}`);
-      }
+      console.log('Server response:', responseData);
 
       setLoading(false);
       setSuccess(id ? 'تم تعديل الخدمة بنجاح!' : 'تم إضافة الخدمة بنجاح!');
       
+      // مسح cache الخدمات في localStorage لضمان التحديث الفوري
+      localStorage.removeItem('myServices_cache');
+      localStorage.removeItem('myServices_cache_timestamp');
+      console.log('🗑️ Cleared myServices cache after service update');
+      
       // إشعار Dashboard بتحديث البيانات
       window.dispatchEvent(new CustomEvent('productsUpdated'));
+      window.dispatchEvent(new CustomEvent('servicesUpdated'));
       
       setTimeout(() => navigate('/admin'), 1500);
     } catch (error: any) {
